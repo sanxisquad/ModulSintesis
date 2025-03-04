@@ -2,6 +2,7 @@ import {get, useForm} from 'react-hook-form';
 import { useEffect} from "react";
 import { useNavigate, useParams } from 'react-router-dom';
 import { createTask, deleteTask, updateTask, getTask } from '../api/tasks.api';
+import {toast} from 'react-hot-toast';
 export function TasksFormPage() {
 
     const {
@@ -18,12 +19,13 @@ export function TasksFormPage() {
             console.log('Editing task', params.id);
             // console.log(data);
             navigate('/tasks');
-            return;
+            toast.success('Task updated');
         }else{
 
         
         console.log(data)
         await createTask(data);
+        toast.success('Task created');
         }
         navigate('/tasks');
 
@@ -42,21 +44,29 @@ export function TasksFormPage() {
     }, []);
 
     return (
-        <div>
+        <div className="max-w-xl mx-auto">
             <form onSubmit={onSubmit}>
                 <input type="text" placeholder="Title" 
                 {...register('title', {required: true})}
+                className="bg-zinc-700 p-3 rounded-lg block w-full mb-3"
                 />
                 {errors.title && <span>Title is required</span>}
                 <br />
                 <textarea placeholder="Description"
                 {...register('description', {required: true})}
-                ></textarea>
+                className="bg-zinc-700 p-3 rounded-lg block w-full mb-3"
+                >
+                    
+                </textarea>
                 {errors.description && <span>Description is required</span>}
-                <button>Save</button>
+                <button
+                className="bg-indigo-500 px-3 rounded-lg block w-full mt-3"
+                >Save</button>
             </form>
 
-            {params.id && <button onClick={async () =>{
+            {params.id && <button 
+            className="bg-red-500 p-3 rounded-lg w-48 mt-3"
+            onClick={async () =>{
 
                 const accepted = window.confirm('Are you sure?');
                 if(accepted){
