@@ -1,0 +1,28 @@
+import {BrowserRouter, Routes, Route, Navigate} from 'react-router-dom';
+import { UsersPage } from './pages/UsersPage';
+import { UserFormPage } from './pages/UserFormPage';
+import { RegisterFormPage } from './pages/auth/RegisterFormPage';
+import { Navigation } from './components/Navigation';
+import { LoginFormPage } from './pages/auth/LoginFormPage';
+import { Toaster } from 'react-hot-toast';
+
+function App() {
+  return (
+    <BrowserRouter>
+  <div className="container mx-auto">
+  <Navigation />
+    <Routes>
+      <Route path="/users" element={<UsersPage />} />
+      <Route path="/users-create" element={<UserFormPage />} />
+      <Route path="/users/:id" element={<UserFormPage />} />
+      <Route path="/register" element={<RegisterFormPage />} />
+      <Route path="/login" element={<LoginFormPage />} />
+    </Routes>
+    <Toaster/>
+  </div>
+      
+    </BrowserRouter>
+
+  );
+}
+export default App;
