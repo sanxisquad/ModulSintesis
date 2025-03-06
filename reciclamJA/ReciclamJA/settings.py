@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/5.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
+from datetime import timedelta
 
 from pathlib import Path
 
@@ -135,10 +136,27 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+CORS_ALLOW_ALL_ORIGINS = True  # 🔴 Esto solo en desarrollo, en producción usa CORS_ALLOWED_ORIGINS
+CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173"
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
 ]
 
+
 REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',  # Restringe a usuarios autenticados
+    ),
     'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema'
+}
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'AUTH_HEADER_TYPES': ('Bearer',),
 }

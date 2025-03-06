@@ -3,6 +3,9 @@ from rest_framework.permissions import AllowAny
 from .models import CustomUser, Role
 from .serializer import CustomUserSerializer, RoleSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 
 # Vista de registro
 class RegisterView(generics.CreateAPIView):
@@ -22,3 +25,14 @@ class RoleViewSet(viewsets.ModelViewSet):
     queryset = Role.objects.all()
     serializer_class = RoleSerializer
     # Aquí también puedes agregar permisos si los necesitas
+
+class UserProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        return Response({
+            'username': user.username,
+            'email': user.email,
+            # Otros campos que quieras incluir
+        })

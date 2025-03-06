@@ -1,13 +1,14 @@
 import { useForm } from 'react-hook-form';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { loginUser } from '../../api/auth.api';  // Función que consulta la API
+import { useAuth } from '../../context/AuthContext'; // Importa el contexto de autenticación
 import { toast } from 'react-hot-toast'; // Para mostrar mensajes de éxito o error
+import { useNavigate } from 'react-router-dom';  // Importa el hook de navegación
 
 export function LoginFormPage() {
     const { register, handleSubmit, formState: { errors } } = useForm();
     const [loading, setLoading] = useState(false);
-    const navigate = useNavigate();
+    const { login } = useAuth();  // Usa la función login del contexto de autenticación
+    const navigate = useNavigate();  // Hook para redirigir
 
     // Función que se ejecuta cuando el formulario se envía
     const onSubmit = async (data) => {
@@ -15,21 +16,19 @@ export function LoginFormPage() {
 
         try {
             // Cambia "email" por "username" si tu API espera "username"
-            const response = await loginUser({
+            await login({
                 username: data.username,  // Usamos "username" aquí
                 password: data.password,
             });
 
-            // Guardar el token recibido en el localStorage (para mantener la sesión)
-            localStorage.setItem('auth_token', response.data.token);  // Asegúrate de que el token esté en la respuesta
-
-            // Si la respuesta es exitosa, redirigimos al usuario al dashboard o página principal
+            // Si la respuesta es exitosa, mostramos un mensaje de éxito
             toast.success("Logged in successfully");
-            navigate('/dashboard');  // O a la página que desees
+            navigate('/dashboard'); // Redirige al dashboard o página principal
         } catch (error) {
             // Si ocurre un error, mostramos un mensaje
-            toast.error("Error logging in: " + error.response.data.message);
-            console.error("Login Error:", error.response.data);
+            const errorMessage = error?.response?.data?.message || "Unknown error occurred";
+            toast.error("Error logging in: " + errorMessage);
+            console.error("Login Error:", error);
         }
 
         setLoading(false);  // Indicamos que la solicitud ha terminado
@@ -44,6 +43,7 @@ export function LoginFormPage() {
                     placeholder="Username"
                     {...register('username', { required: 'Username is required' })}
                     className="w-full p-3 bg-gray-700 text-white rounded-md"
+                    disabled={loading}
                 />
                 {errors.username && <p className="text-red-500">{errors.username.message}</p>}
 
@@ -53,6 +53,7 @@ export function LoginFormPage() {
                     placeholder="Password"
                     {...register('password', { required: 'Password is required' })}
                     className="w-full p-3 bg-gray-700 text-white rounded-md"
+                    disabled={loading}
                 />
                 {errors.password && <p className="text-red-500">{errors.password.message}</p>}
 

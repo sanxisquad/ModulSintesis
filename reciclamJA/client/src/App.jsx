@@ -8,7 +8,6 @@ import { Toaster } from 'react-hot-toast';
 
 function App() {
   return (
-    <BrowserRouter>
   <div className="container mx-auto">
   <Navigation />
     <Routes>
@@ -21,7 +20,6 @@ function App() {
     <Toaster/>
   </div>
       
-    </BrowserRouter>
 
   );
 }
