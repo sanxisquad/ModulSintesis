@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {getAllUsers} from '../../api/user.api.js';
-import { TaskCard } from './UserCard.jsx';
+import { UserCard } from './UserCard.jsx';
 export function UsersList(){
 
     const [users, setUsers] = useState([]);
@@ -21,8 +21,8 @@ export function UsersList(){
 
     return(
         <div className="grid grid-cols-3 gap-3">
-            {tasks.map((user) => (
-                <TaskCard key={user.id} task={user} />
+            {users.map((user) => (
+                <UserCard key={user.id} user={user} />
 
             ))}
         </div>
