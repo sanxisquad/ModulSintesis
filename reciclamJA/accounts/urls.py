@@ -23,4 +23,5 @@ urlpatterns = [
     path('api/v1/auth/register/', views.RegisterView.as_view(), name='auth_register'),
     path('api/v1/auth/profile/', views.UserProfileView.as_view(), name='auth_profile'),
     path('api/v1/auth/logout/', views.LogoutView.as_view(), name='auth_logout'),  # Ruta de logout
+    path('api/v1/empreses/', views.EmpresaViewSet.as_view({'get': 'list'}), name='empresas'),  # Ruta para empresas
 ]

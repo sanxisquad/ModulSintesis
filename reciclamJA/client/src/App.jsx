@@ -4,7 +4,8 @@ import { UserFormPage } from './pages/UserFormPage';
 import { RegisterFormPage } from './pages/auth/RegisterFormPage';
 import { Navigation } from './components/Navigation';
 import { LoginFormPage } from './pages/auth/LoginFormPage';
-import { ProfilePage } from './pages/ProfilePage';
+import { ProfilePage } from './pages/Profile/ProfilePage';
+import { HomePage } from './pages/HomePage';
 import { Toaster } from 'react-hot-toast';
 
 function App() {
@@ -12,6 +13,7 @@ function App() {
   <div className="container mx-auto">
   <Navigation />
     <Routes>
+      <Route path="/" element={<HomePage />} />
       <Route path="/users" element={<UsersPage />} />
       <Route path="/users-create" element={<UserFormPage />} />
       <Route path="/users/:id" element={<UserFormPage />} />

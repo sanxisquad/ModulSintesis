@@ -1,7 +1,7 @@
 from rest_framework import generics
 from rest_framework.permissions import AllowAny
-from .models import CustomUser, Role
-from .serializer import CustomUserSerializer, RoleSerializer
+from .models import CustomUser, Role, Empresa
+from .serializer import CustomUserSerializer, RoleSerializer, EmpresaSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -54,3 +54,7 @@ class LogoutView(APIView):
             print(f"❌ Error: {str(e)}")  # Verifica si hay algún error
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
+class EmpresaViewSet(viewsets.ModelViewSet):
+    queryset = Empresa.objects.all()
+    serializer_class = EmpresaSerializer
+    # Aquí también puedes agregar permisos si los necesitas
