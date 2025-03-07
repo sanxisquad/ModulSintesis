@@ -1,7 +1,8 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { loginUser, logoutUser, getUserProfile } from '../api/auth.api';
-import jwt_decode from 'jwt-decode';  // Si decides usar jwt-decode
+import { jwtDecode } from 'jwt-decode';
+
 
 const AuthContext = createContext();
 
@@ -12,24 +13,28 @@ const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         const token = localStorage.getItem('auth_token');
+        console.log("🔍 Token al cargar la app:", token);  // Verifica que el token está en localStorage
+    
         if (token) {
             try {
                 const decodedToken = jwt_decode(token);
-                // Verifica si el token ha expirado
+    
                 if (decodedToken.exp < Date.now() / 1000) {
-                    localStorage.removeItem('auth_token');  // Elimina el token si ha expirado
+                    console.warn("⚠️ Token expirado. Eliminando...");
+                    localStorage.removeItem('auth_token');
                     setIsAuthenticated(false);
                 } else {
                     setIsAuthenticated(true);
                     fetchUserProfile();
                 }
             } catch (error) {
-                console.error("Invalid token", error);
+                console.error("❌ Token inválido:", error);
                 localStorage.removeItem('auth_token');
                 setIsAuthenticated(false);
             }
         }
     }, []);
+    
 
     const fetchUserProfile = async () => {
         try {
@@ -43,15 +48,26 @@ const AuthProvider = ({ children }) => {
     const login = async (credentials) => {
         try {
             const response = await loginUser(credentials);
-            localStorage.setItem('auth_token', response.data.token);
+            const accessToken = response.data.access;  // ⚠️ Ojo, el backend devuelve 'access', no 'token'
+            
+            if (!accessToken) {
+                console.error("❌ No se recibió el token de acceso");
+                return;
+            }
+    
+            localStorage.setItem('auth_token', accessToken);
+            localStorage.setItem('refresh_token', response.data.refresh); // Guarda el refresh token
+    
+            console.log("✅ Token guardado en localStorage:", accessToken);
+    
             setIsAuthenticated(true);
-            fetchUserProfile();
+            await fetchUserProfile();  // 🔄 Recargar datos del usuario
             navigate('/dashboard');
         } catch (error) {
-            console.error("Login Error:", error.response?.data);
-            // Aquí puedes usar toast para mostrar el error
+            console.error("❌ Error en login:", error.response?.data);
         }
     };
+    
 
     const logout = async () => {
         try {
@@ -72,7 +88,6 @@ const AuthProvider = ({ children }) => {
     );
 };
 
-// ✅ Export everything consistently using named exports
 export { AuthProvider, AuthContext };
 
 export const useAuth = () => {

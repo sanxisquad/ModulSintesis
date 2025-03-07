@@ -4,6 +4,7 @@ import { UserFormPage } from './pages/UserFormPage';
 import { RegisterFormPage } from './pages/auth/RegisterFormPage';
 import { Navigation } from './components/Navigation';
 import { LoginFormPage } from './pages/auth/LoginFormPage';
+import { ProfilePage } from './pages/ProfilePage';
 import { Toaster } from 'react-hot-toast';
 
 function App() {
@@ -16,6 +17,7 @@ function App() {
       <Route path="/users/:id" element={<UserFormPage />} />
       <Route path="/register" element={<RegisterFormPage />} />
       <Route path="/login" element={<LoginFormPage />} />
+      <Route path="/profile" element={<ProfilePage />} />
     </Routes>
     <Toaster/>
   </div>
