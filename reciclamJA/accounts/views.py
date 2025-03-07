@@ -53,3 +53,4 @@ class LogoutView(APIView):
         except Exception as e:
             print(f"❌ Error: {str(e)}")  # Verifica si hay algún error
             return Response(status=status.HTTP_400_BAD_REQUEST)
+
