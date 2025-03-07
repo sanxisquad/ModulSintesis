@@ -6,6 +6,8 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework import status
 
 # Vista de registro
 class RegisterView(generics.CreateAPIView):
@@ -36,3 +38,18 @@ class UserProfileView(APIView):
             'email': user.email,
             # Otros campos que quieras incluir
         })
+    
+class LogoutView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request):
+        try:
+            print(f"❌ Request data: {request.data}")  # Verifica qué datos llegan
+            refresh_token = request.data["refresh"]
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+
+            return Response(status=status.HTTP_205_RESET_CONTENT)
+        except Exception as e:
+            print(f"❌ Error: {str(e)}")  # Verifica si hay algún error
+            return Response(status=status.HTTP_400_BAD_REQUEST)

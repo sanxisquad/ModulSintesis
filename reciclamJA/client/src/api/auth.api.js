@@ -1,6 +1,5 @@
 import axios from 'axios';
 
-
 const authApi = axios.create({
     baseURL: 'http://localhost:8000/auth/api/v1/auth/',
 });
@@ -23,7 +22,6 @@ authApi.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
-
 export const registerUser = (user) => {
     return authApi.post('/register/', user);
 };
@@ -35,9 +33,15 @@ export const loginUser = async (credentials) => {
         console.log("🔍 Respuesta del backend:", response.data);  // Verifica que el backend envía el token
 
         if (response.data.access) {
-            localStorage.setItem('auth_token', response.data.access);
-            localStorage.setItem('refresh_token', response.data.refresh); // Guarda el refresh token
-            console.log("✅ Token guardado en localStorage:", response.data.access);
+            if (credentials.rememberMe) {
+                localStorage.setItem('auth_token', response.data.access);
+                localStorage.setItem('refresh_token', response.data.refresh); // Guarda el refresh token
+                console.log("✅ Token guardado en localStorage:", response.data.access);
+            } else {
+                sessionStorage.setItem('auth_token', response.data.access);
+                sessionStorage.setItem('refresh_token', response.data.refresh); // Guarda el refresh token
+                console.log("✅ Token guardado en sessionStorage:", response.data.access);
+            }
         } else {
             console.error("❌ No se recibió el token de acceso");
         }
@@ -49,7 +53,6 @@ export const loginUser = async (credentials) => {
     }
 };
 
-
 export const getUserProfile = () => {
     return authApi.get('/profile/');
 };
@@ -58,6 +61,16 @@ export const updateUserProfile = (profile) => {
     return authApi.put('/profile/', profile);
 };
 
-export const logoutUser = () => {
-    return authApi.post('/logout/');
+export const logoutUser = async (refreshToken) => {
+    try {
+        console.log("🔄 Enviando refresh token para logout:", refreshToken);
+        await authApi.post('/logout/', { refresh: refreshToken });
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('refresh_token');
+        sessionStorage.removeItem('auth_token');
+        sessionStorage.removeItem('refresh_token');
+    } catch (error) {
+        console.error("❌ Error en logout:", error.response?.data || error.message);
+        throw error;
+    }
 };

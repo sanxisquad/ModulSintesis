@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';  // Importa el hook de navegaci�
 export function LoginFormPage() {
     const { register, handleSubmit, formState: { errors } } = useForm();
     const [loading, setLoading] = useState(false);
+    const [rememberMe, setRememberMe] = useState(false); // Estado para el checkbox
     const { login } = useAuth();  // Usa la función login del contexto de autenticación
     const navigate = useNavigate();  // Hook para redirigir
 
@@ -15,10 +16,10 @@ export function LoginFormPage() {
         setLoading(true);  // Indicamos que la solicitud está en proceso
 
         try {
-            // Cambia "email" por "username" si tu API espera "username"
             await login({
-                username: data.username,  // Usamos "username" aquí
+                username: data.username,  
                 password: data.password,
+                rememberMe: rememberMe, // Pasamos el estado del checkbox
             });
 
             // Si la respuesta es exitosa, mostramos un mensaje de éxito
@@ -56,6 +57,18 @@ export function LoginFormPage() {
                     disabled={loading}
                 />
                 {errors.password && <p className="text-red-500">{errors.password.message}</p>}
+
+                {/* Checkbox de mantener sesión iniciada */}
+                <div className="flex items-center">
+                    <input
+                        type="checkbox"
+                        id="rememberMe"
+                        checked={rememberMe}
+                        onChange={(e) => setRememberMe(e.target.checked)}
+                        className="mr-2"
+                    />
+                    <label htmlFor="rememberMe" className="text-white">Mantener sesión iniciada</label>
+                </div>
 
                 {/* Botón de envío */}
                 <button

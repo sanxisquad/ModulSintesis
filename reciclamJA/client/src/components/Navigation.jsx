@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useState } from 'react';
 
 export function Navigation() {
-    const { isAuthenticated, user, logout } = useAuth();
+    const { isAuthenticated, user, logout, loading } = useAuth();
     const [dropdownOpen, setDropdownOpen] = useState(false);
 
     const toggleDropdown = () => {
@@ -22,7 +22,11 @@ export function Navigation() {
                     <li className="inline-block mx-2">
                         <Link to="/users" className="text-white">Usuaris</Link>
                     </li>
-                    {isAuthenticated ? (
+                    {loading ? (
+                        <li className="inline-block mx-2">
+                            <span className="text-white">Cargando...</span>
+                        </li>
+                    ) : isAuthenticated ? (
                         <li className="relative inline-block mx-2">
                             <button
                                 className="text-white focus:outline-none"

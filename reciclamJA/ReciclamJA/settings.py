@@ -45,7 +45,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'coreapi',
     'rest_framework_simplejwt',
-    'accounts'
+    'accounts',
+    'rest_framework_simplejwt.token_blacklist'
 
 ]
 

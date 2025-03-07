@@ -22,4 +22,5 @@ urlpatterns = [
     path('api/v1/auth/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/v1/auth/register/', views.RegisterView.as_view(), name='auth_register'),
     path('api/v1/auth/profile/', views.UserProfileView.as_view(), name='auth_profile'),
+    path('api/v1/auth/logout/', views.LogoutView.as_view(), name='auth_logout'),  # Ruta de logout
 ]
