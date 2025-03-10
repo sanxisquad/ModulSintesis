@@ -6,6 +6,7 @@ import { Navigation } from './components/Navigation';
 import { LoginFormPage } from './pages/auth/LoginFormPage';
 import { ProfilePage } from './pages/Profile/ProfilePage';
 import { HomePage } from './pages/HomePage';
+import { ContenedorFormPage } from './pages/zr/ContenedorFormPage';
 import { Toaster } from 'react-hot-toast';
 
 function App() {
@@ -20,6 +21,7 @@ function App() {
       <Route path="/register" element={<RegisterFormPage />} />
       <Route path="/login" element={<LoginFormPage />} />
       <Route path="/profile" element={<ProfilePage />} />
+      <Route path="/contenedors-create" element={<ContenedorFormPage />} />
     </Routes>
     <Toaster/>
   </div>

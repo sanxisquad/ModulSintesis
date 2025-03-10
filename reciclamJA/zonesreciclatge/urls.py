@@ -12,4 +12,5 @@ router.register(r'contenidors', views.ContenedorViewSet, basename='contenidors')
 # Definir las URLs con el prefijo "api/v1/zr/"
 urlpatterns = [
     path('api/v1/zr/', include(router.urls)),  # Esto ya incluye todas las rutas necesarias
+    
 ]
