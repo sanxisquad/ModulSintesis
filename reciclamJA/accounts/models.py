@@ -18,6 +18,10 @@ class CustomUser(AbstractUser):
 
     def __str__(self):
         return self.username
+    def is_gestor(self):
+        return self.role and self.role.name == 'GESTOR'
+    
+    
 
 
 # Modelo para Empresa
@@ -30,3 +34,5 @@ class Empresa(models.Model):
 
     def __str__(self):
         return self.nom
+    
+

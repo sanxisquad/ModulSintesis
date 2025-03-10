@@ -13,6 +13,7 @@ app_name = 'auth'
 router = routers.DefaultRouter()
 router.register(r'users', views.CustomUserViewSet, basename='users')  # Usuarios
 router.register(r'roles', views.RoleViewSet, basename='roles')  # Roles
+router.register(r'empreses', views.EmpresaViewSet, basename='empreses')  # Empresas
 
 urlpatterns = [
     path("api/v1/", include(router.urls)),  # Incluir rutas de usuarios y roles

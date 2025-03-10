@@ -36,11 +36,11 @@ class UserProfileView(APIView):
         return Response({
             'username': user.username,
             'email': user.email,
+            'is_gestor': user.is_gestor(),
             # Otros campos que quieras incluir
         })
     
 class LogoutView(APIView):
-    permission_classes = (IsAuthenticated,)
 
     def post(self, request):
         try:

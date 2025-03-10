@@ -1,13 +1,13 @@
 import axios from 'axios';
 
-const userApi = axios.create({
-    baseURL: 'http://localhost:8000/zr/api/v1/',
+const zrApi = axios.create({
+    baseURL: 'http://localhost:8000/zr/api/v1/zr',
 });
 
-export const getAllUsers = (user) => {
-    return userApi.get('/users/', user);
+export const getAllContenidors = (contenidors) => {
+    return zrApi.get('/contenidors/', contenidors);
 };
-export const getUser = (id) => userApi.get(`/users/${id}/`);
-export const createUser = (user) => userApi.post('/users/', user);
-export const updateUser = (id, user) => userApi.put(`/users/${id}/`, user);
-export const deleteUser = (id) => userApi.delete(`/users/${id}/`);
+export const getContenidor = (id) => zrApi.get(`/contenidors/${id}/`);
+export const createContenidor = (contenidor) => zrApi.post('/contenidors/', contenidor);
+export const updateContenidor = (id, contenidor) => zrApi.put(`/contenidors/${id}/`, contenidor);
+export const deleteContenidor = (id) => zrApi.delete(`/contenidors/${id}/`);
