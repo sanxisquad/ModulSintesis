@@ -7,6 +7,7 @@ import { LoginFormPage } from './pages/auth/LoginFormPage';
 import { ProfilePage } from './pages/Profile/ProfilePage';
 import { HomePage } from './pages/HomePage';
 import { ContenedorFormPage } from './pages/zr/ContenedorFormPage';
+import { ContenedorsPage } from './pages/zr/ContenedorsPage';
 import { Toaster } from 'react-hot-toast';
 
 function App() {
@@ -22,6 +23,8 @@ function App() {
       <Route path="/login" element={<LoginFormPage />} />
       <Route path="/profile" element={<ProfilePage />} />
       <Route path="/contenedors-create" element={<ContenedorFormPage />} />
+      <Route path="/contenedors" element={<ContenedorsPage />} />
+      <Route path="/contenedor/:id" element={<ContenedorFormPage />} />
     </Routes>
     <Toaster/>
   </div>

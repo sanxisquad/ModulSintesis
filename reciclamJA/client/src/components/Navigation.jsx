@@ -9,21 +9,24 @@ export function Navigation() {
     const menuRef = useRef(null);
     const dropdownRef = useRef(null);
 
-    // Cierra el menú si se hace clic fuera de él
     useEffect(() => {
         function handleClickOutside(event) {
-            // Si se hace clic fuera del menú o del menú desplegable
-            if (menuRef.current && !menuRef.current.contains(event.target) && !dropdownRef.current.contains(event.target)) {
-                setMenuOpen(false); // Cierra el menú lateral
-                setDropdownOpen(false); // Cierra el dropdown
+            if (
+                menuRef.current && 
+                !menuRef.current.contains(event.target) && 
+                (!dropdownRef.current || !dropdownRef.current.contains(event.target))
+            ) {
+                setMenuOpen(false);
+                setDropdownOpen(false);
             }
         }
-
+    
         document.addEventListener("mousedown", handleClickOutside);
         return () => {
             document.removeEventListener("mousedown", handleClickOutside);
         };
     }, []);
+    
 
     return (
         <div className="flex items-center py-3 bg-black px-4">

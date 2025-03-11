@@ -2,45 +2,96 @@ import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast'; 
-import { getContenedor, createContenedor, updateContenedor, getAllZones } from '../../api/zr.api';  // Asegúrate de tener estos métodos
+import { useAuth } from '../../context/AuthContext';
+
+import { getContenedor, createContenedor, updateContenedor, deleteContenedor, getAllZones } from '../../api/zr.api';
 
 export function ContenedorFormPage() {
+    const { user } = useAuth();
     const { register, handleSubmit, formState: { errors }, setValue } = useForm();
     const navigate = useNavigate();
     const params = useParams();
     const [zonas, setZonas] = useState([]);
-    const [tipos, setTipos] = useState([]);
     const [contenedor, setContenedor] = useState(null);
 
-    // Opciones predefinidas para el campo "estado"
+    // Opciones predefinidas para el campo "estado" (ahora "estat")
     const estados = [
         { id: 'buit', nombre: 'Buit' },
         { id: 'ple', nombre: 'Ple' },
         { id: 'mig', nombre: 'Mig ple' }
     ];
 
+    // Opciones predefinidas para el campo "tipo" (ahora "tipus")
+    const tipos = [
+        { id: 'paper', nombre: 'Paper' },
+        { id: 'plastic', nombre: 'Plàstic' },
+        { id: 'vidre', nombre: 'Vidre' },
+        { id: 'organic', nombre: 'Orgànic' },
+        { id: 'rebuig', nombre: 'Rebuig' },
+    ];
+
     // Enviar el formulario
     const onSubmit = handleSubmit(async (data) => {
-        if (params.id) {
-            await updateContenedor(params.id, data);
-            toast.success('Contenedor actualizado');
+        if (user) {
+            console.log("User:", user);  // Afegeix aquest console.log per veure el valor de 'user'
+            data.empresa = user.empresa_id;
         } else {
-            await createContenedor(data);
-            toast.success('Contenedor creado');
+            console.log("No user found");  // Això ajudarà a detectar si user és null
         }
-        navigate('/contenedores');
+        console.log(data);
+        try {
+            if (params.id) {
+                await updateContenedor(params.id, data);
+                toast.success('Contenedor actualizado');
+            } else {
+                await createContenedor(data);
+                toast.success('Contenedor creado');
+            }
+            navigate('/contenedors');
+        } catch (error) {
+            console.error("Error al guardar el contenedor:", error);
+            toast.error('Error al guardar el contenedor');
+        }
     });
+
+    // Manejar la eliminación del contenedor
+    const handleDelete = async () => {
+        const confirmDelete = window.confirm("¿Estás seguro de que deseas eliminar este contenedor?");
+        if (confirmDelete) {
+            try {
+                await deleteContenedor(params.id);
+                toast.success('Contenedor eliminado');
+                navigate('/contenedors');
+            } catch (error) {
+                console.error("Error al eliminar el contenedor:", error);
+                toast.error('Error al eliminar el contenedor');
+            }
+        }
+    };
 
     // Cargar los datos del contenedor si estamos en el modo de edición
     useEffect(() => {
         async function loadContenedor() {
             if (params.id) {
-                const res = await getContenedor(params.id);
-                setContenedor(res.data);
-                setValue('codigo', res.data.codigo);
-                setValue('zona', res.data.zona ? res.data.zona.id : null);  // Si hay zona, asignarla
-                setValue('tipo', res.data.tipo.id);
-                setValue('estado', res.data.estado || '');  // Si hay estado, asignarlo, si no, vacío
+                try {
+                    const res = await getContenedor(params.id);
+                    if (res.data) {
+                        setContenedor(res.data);
+                        setValue('cod', res.data.cod);  // Cambié de 'codigo' a 'cod'
+                        setValue('zona', res.data.zona ? res.data.zona.id : null);  // Si hay zona, asignarla
+                        setValue('tipus', res.data.tipus);  // Cambié de 'tipo' a 'tipus'
+                        setValue('estat', res.data.estat || '');  // Cambié de 'estado' a 'estat'
+                        setValue('latitud', res.data.latitud);
+                        setValue('longitud', res.data.longitud);
+                        setValue('ciutat', res.data.ciutat);
+                    } else {
+                        console.error("No data found for contenedor");
+                        toast.error('No se encontraron datos para el contenedor');
+                    }
+                } catch (error) {
+                    console.error("Error al cargar el contenedor:", error);
+                    toast.error('Error al cargar el contenedor');
+                }
             }
         }
         loadContenedor();
@@ -49,41 +100,36 @@ export function ContenedorFormPage() {
     // Cargar las zonas de reciclaje
     useEffect(() => {
         async function loadZonas() {
-            const res = await getAllZonas();
-            setZonas(res.data);
+            try {
+                const res = await getAllZones();
+                setZonas(res.data);
+            } catch (error) {
+                console.error("Error al cargar las zonas:", error);
+                toast.error('Error al cargar las zonas');
+            }
         }
         loadZonas();
-    }, []);
-
-    // Cargar los tipos de reciclaje
-    useEffect(() => {
-        async function loadTipos() {
-            const res = await getAllTipos();
-            setTipos(res.data);
-        }
-        loadTipos();
     }, []);
 
     return (
         <div>
             <form onSubmit={onSubmit}>
                 <div>
-                    <label htmlFor="codigo">Código</label>
+                    <label htmlFor="cod">Codi</label>
                     <input
-                        id="codigo"
+                        id="cod"
                         type="text"
-                        {...register('codigo', { required: 'El código es obligatorio' })}
+                        {...register('cod', { required: 'El código es obligatorio' })}
                     />
-                    {errors.codigo && <p>{errors.codigo.message}</p>}
+                    {errors.cod && <p>{errors.cod.message}</p>}
                 </div>
-
                 <div>
                     <label htmlFor="zona">Zona</label>
                     <select id="zona" {...register('zona')}>
                         <option value={null}>Ninguna</option>
                         {zonas.map((zona) => (
                             <option key={zona.id} value={zona.id}>
-                                {zona.nombre}
+                                {zona.nom}
                             </option>
                         ))}
                     </select>
@@ -91,27 +137,27 @@ export function ContenedorFormPage() {
                 </div>
 
                 <div>
-                    <label htmlFor="tipo">Tipo</label>
-                    <select id="tipo" {...register('tipo', { required: 'El tipo es obligatorio' })}>
+                    <label htmlFor="tipus">Tipo</label> {/* Cambié 'tipo' a 'tipus' */}
+                    <select id="tipus" {...register('tipus', { required: 'El tipo es obligatorio' })}> {/* Cambié 'tipo' a 'tipus' */}
                         {tipos.map((tipo) => (
                             <option key={tipo.id} value={tipo.id}>
                                 {tipo.nombre}
                             </option>
                         ))}
                     </select>
-                    {errors.tipo && <p>{errors.tipo.message}</p>}
+                    {errors.tipus && <p>{errors.tipus.message}</p>} {/* Cambié 'tipo' a 'tipus' */}
                 </div>
 
                 <div>
-                    <label htmlFor="estado">Estado</label>
-                    <select id="estado" {...register('estado', { required: 'El estado es obligatorio' })}>
+                    <label htmlFor="estat">Estat</label> {/* Cambié 'estado' a 'estat' */}
+                    <select id="estat" {...register('estat', { required: 'El estado es obligatorio' })}>
                         {estados.map((estado) => (
                             <option key={estado.id} value={estado.id}>
                                 {estado.nombre}
                             </option>
                         ))}
                     </select>
-                    {errors.estado && <p>{errors.estado.message}</p>}
+                    {errors.estat && <p>{errors.estat.message}</p>} {/* Cambié 'estado' a 'estat' */}
                 </div>
 
                 <div>
@@ -119,7 +165,8 @@ export function ContenedorFormPage() {
                     <input
                         id="latitud"
                         type="number"
-                        {...register('latitud', { required: 'La latitud es obligatoria' })}
+                        step="any"
+                        {...register('latitud', { required: 'La latitud es obligatoria', valueAsNumber: true })}
                     />
                     {errors.latitud && <p>{errors.latitud.message}</p>}
                 </div>
@@ -129,7 +176,8 @@ export function ContenedorFormPage() {
                     <input
                         id="longitud"
                         type="number"
-                        {...register('longitud', { required: 'La longitud es obligatoria' })}
+                        step="any"
+                        {...register('longitud', { required: 'La longitud es obligatoria', valueAsNumber: true })}
                     />
                     {errors.longitud && <p>{errors.longitud.message}</p>}
                 </div>
@@ -146,6 +194,11 @@ export function ContenedorFormPage() {
 
                 <div>
                     <button type="submit">Guardar Contenedor</button>
+                    {params.id && (
+                        <button type="button" onClick={handleDelete} style={{ marginLeft: '10px', backgroundColor: 'red', color: 'white' }}>
+                            Eliminar Contenedor
+                        </button>
+                    )}
                 </div>
             </form>
         </div>

@@ -20,12 +20,10 @@ class ZonesReciclatgeSerializer(serializers.ModelSerializer):
 
 # Serializer para el modelo Contenedor
 class ContenedorSerializer(serializers.ModelSerializer):
-    zona = ZonesReciclatgeSerializer(read_only=True)  # Relación con la zona de reciclaje
-    empresa = EmpresaSerializer(read_only=True)  # Relación con la empresa
-    # Si prefieres solo mostrar el ID de la zona y la empresa, usa esto en vez de los serializers:
-    # zona = serializers.PrimaryKeyRelatedField(queryset=ZonesReciclatge.objects.all())
-    # empresa = serializers.PrimaryKeyRelatedField(queryset=Empresa.objects.all())
+    # Usamos PrimaryKeyRelatedField para que solo se envíen los IDs de las relaciones
+    zona = serializers.PrimaryKeyRelatedField(queryset=ZonesReciclatge.objects.all())  # Solo el ID de la zona
+    empresa = serializers.PrimaryKeyRelatedField(queryset=Empresa.objects.all())  # Solo el ID de la empresa
 
     class Meta:
         model = Contenedor
-        fields = ['id', 'zona', 'empresa', 'tipus', 'estat', 'latitud', 'longitud', 'ciutat']
+        fields = ['id', 'zona', 'empresa', 'tipus', 'estat', 'latitud', 'longitud', 'ciutat', 'cod']

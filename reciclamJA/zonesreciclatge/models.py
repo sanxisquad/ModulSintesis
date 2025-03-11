@@ -10,9 +10,10 @@ class ZonesReciclatge(models.Model):
     descripcio = models.TextField(blank=True, null=True)  
     
     def __str__(self):
-        return f"Zona de reciclaje: {self.nombre} - Ubicación: {self.ubicacion}"
+        return f"Zona de reciclaje: {self.nom} - Ciutat: {self.ciutat}"
 
 class Contenedor(models.Model):
+    cod = models.CharField(max_length=255 )
     zona = models.ForeignKey(
         ZonesReciclatge, 
         related_name="contenedors", 
