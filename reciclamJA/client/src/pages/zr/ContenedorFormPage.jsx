@@ -24,9 +24,9 @@ export function ContenedorFormPage() {
     // Opciones predefinidas para el campo "tipo" (ahora "tipus")
     const tipos = [
         { id: 'paper', nombre: 'Paper' },
-        { id: 'plastic', nombre: 'Plàstic' },
+        { id: 'plàstic', nombre: 'Plàstic' },
         { id: 'vidre', nombre: 'Vidre' },
-        { id: 'organic', nombre: 'Orgànic' },
+        { id: 'orgànic', nombre: 'Orgànic' },
         { id: 'rebuig', nombre: 'Rebuig' },
     ];
 
@@ -183,7 +183,7 @@ export function ContenedorFormPage() {
                 </div>
 
                 <div>
-                    <label htmlFor="ciutat">Ciudad</label>
+                    <label htmlFor="ciutat">Ciutat</label>
                     <input
                         id="ciutat"
                         type="text"
