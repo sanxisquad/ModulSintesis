@@ -38,9 +38,13 @@ export function ContenedorFormPage() {
         } else {
             console.log("No user found");  // Això ajudarà a detectar si user és null
         }
+        if(data.zona === "Ninguna") {
+            data.zona = null;
+        }
         console.log(data);
         try {
             if (params.id) {
+
                 await updateContenedor(params.id, data);
                 toast.success('Contenedor actualizado');
             } else {

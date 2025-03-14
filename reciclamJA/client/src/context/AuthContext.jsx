@@ -1,61 +1,113 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { loginUser, logoutUser, getUserProfile } from '../api/auth.api';
-import { jwtDecode } from 'jwt-decode'; // Importa jwt-decode correctamente
+import { jwtDecode } from 'jwt-decode';
 
 const AuthContext = createContext();
 
 const AuthProvider = ({ children }) => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true); // Estado de carga
+    const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
     useEffect(() => {
-        const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
-        console.log("🔍 Token al cargar la app:", token);  // Verifica que el token está en localStorage o sessionStorage
-    
-        if (token) {
+        const checkTokenExpiration = () => {
+            const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+            if (!token) {
+                setLoading(false);
+                return;
+            }
+
             try {
                 const decodedToken = jwtDecode(token);
-    
-                if (decodedToken.exp * 1000 < Date.now()) {
-                    console.warn("⚠️ Token expirado. Eliminando...");
-                    localStorage.removeItem('auth_token');
-                    sessionStorage.removeItem('auth_token');
-                    setIsAuthenticated(false);
+                const expirationTime = decodedToken.exp * 1000;
+                const timeRemaining = expirationTime - Date.now();
+
+                if (timeRemaining < 5 * 60 * 1000) {
+                    refreshAccessToken();
                 } else {
                     setIsAuthenticated(true);
                     fetchUserProfile();
                 }
-                
             } catch (error) {
-                console.error("❌ Token inválido:", error);
-                localStorage.removeItem('auth_token');
-                sessionStorage.removeItem('auth_token');
-                setIsAuthenticated(false);
+                console.error("❌ Error al decodificar token:", error);
+                logout();
+            } finally {
+                setLoading(false);
             }
-        }
-        setLoading(false); // Estado de carga completado
+        };
+
+        checkTokenExpiration();
+        const interval = setInterval(checkTokenExpiration, 60 * 1000);
+
+        return () => clearInterval(interval);
     }, []);
-    
+
+    const refreshAccessToken = async () => {
+        try {
+            const refreshToken = localStorage.getItem('refresh_token') || sessionStorage.getItem('refresh_token');
+            if (!refreshToken) {
+                console.error("❌ No hay refresh token disponible.");
+                logout();
+                return;
+            }
+
+            console.log("🔄 Intentando refrescar el token...");
+
+            const response = await fetch('/api/token/refresh/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ refresh: refreshToken })
+            });
+
+            if (!response.ok) {
+                console.error("❌ Error al refrescar token");
+                logout();
+                return;
+            }
+
+            const data = await response.json();
+            const newAccessToken = data.access;
+            const newRefreshToken = data.refresh;
+
+            if (newAccessToken) {
+                localStorage.setItem('auth_token', newAccessToken);
+                sessionStorage.setItem('auth_token', newAccessToken);
+                setIsAuthenticated(true);
+            }
+
+            if (newRefreshToken) {
+                localStorage.setItem('refresh_token', newRefreshToken);
+                sessionStorage.setItem('refresh_token', newRefreshToken);
+            }
+
+            console.log("✅ Token refrescado correctamente");
+        } catch (error) {
+            console.error("❌ Error en la renovación del token:", error);
+            logout();
+        }
+    };
+
     const fetchUserProfile = async () => {
         try {
             const response = await getUserProfile();
             setUser(response.data);
+            setIsAuthenticated(true);
         } catch (error) {
             console.error("Fetch User Profile Error:", error.response?.data || error.message);
-            // Si no se pudo obtener el perfil, probablemente el token sea inválido o expirado.
             setIsAuthenticated(false);
             setUser(null);
-            navigate('/login');  // Redirigir al login
+            navigate('/login');
+        } finally {
+            setLoading(false);
         }
     };
 
     const login = async (credentials) => {
         try {
             const response = await loginUser(credentials);
-            const accessToken = response.data.access;  // ⚠️ Ojo, el backend devuelve 'access', no 'token'
+            const accessToken = response.data.access;
             
             if (!accessToken) {
                 console.error("❌ No se recibió el token de acceso");
@@ -74,13 +126,13 @@ const AuthProvider = ({ children }) => {
             console.log("🔄 Refresh token guardado:", response.data.refresh);
     
             setIsAuthenticated(true);
-            await fetchUserProfile();  // 🔄 Recargar datos del usuario
+            await fetchUserProfile();
             navigate('/dashboard');
         } catch (error) {
             console.error("❌ Error en login:", error.response?.data);
         }
     };
-    
+
     const logout = async () => {
         try {
             const refreshToken = localStorage.getItem('refresh_token') || sessionStorage.getItem('refresh_token');
@@ -93,23 +145,18 @@ const AuthProvider = ({ children }) => {
     
             await logoutUser(refreshToken);
     
-            // Limpiar el almacenamiento
             localStorage.removeItem('auth_token');
             localStorage.removeItem('refresh_token');
             sessionStorage.removeItem('auth_token');
             sessionStorage.removeItem('refresh_token');
     
-            // Actualizar estado de autenticación
             setIsAuthenticated(false);
             setUser(null);
-    
-            // Redirigir a la página de login
             navigate('/login');
         } catch (error) {
             console.error("Logout Error:", error?.response?.data || error.message);
         }
     };
-    
 
     return (
         <AuthContext.Provider value={{ isAuthenticated, user, login, logout, loading }}>

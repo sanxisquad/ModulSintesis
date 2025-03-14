@@ -24,7 +24,7 @@ class Contenedor(models.Model):
     empresa = models.ForeignKey(Empresa, related_name="contenedors", on_delete=models.CASCADE)  
     tipus = models.CharField(
         max_length=100,
-        choices=[('paper', 'Paper'), ('plàstic', 'Plàstic'), ('vidrie', 'Vidre'), ('orgànic', 'Orgànic'), ('rebuig', 'Rebuig')]
+        choices=[('paper', 'Paper'), ('plàstic', 'Plàstic'), ('vidre', 'Vidre'), ('orgànic', 'Orgànic'), ('rebuig', 'Rebuig')]
     )  # Tipo de reciclaje
     estat = models.CharField(
         max_length=100,

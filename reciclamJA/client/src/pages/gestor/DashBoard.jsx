@@ -7,11 +7,7 @@ export function DashBoard() {
 
 
   return (
-    <div
-      className={`transition-all duration-300 ease-in-out ${
-        menuOpen ? 'ml-64' : 'ml-0'
-      }`}  // Aplica la clase ml-64 cuando el menú está abierto
-    >
+<div className={`transition-all duration-300 ease-in-out`}>
       <ContenedorList />
     </div>
   );

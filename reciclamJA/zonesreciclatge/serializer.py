@@ -20,10 +20,14 @@ class ZonesReciclatgeSerializer(serializers.ModelSerializer):
 
 # Serializer para el modelo Contenedor
 class ContenedorSerializer(serializers.ModelSerializer):
-    # Usamos PrimaryKeyRelatedField para que solo se envíen los IDs de las relaciones
-    zona = serializers.PrimaryKeyRelatedField(queryset=ZonesReciclatge.objects.all())  # Solo el ID de la zona
-    empresa = serializers.PrimaryKeyRelatedField(queryset=Empresa.objects.all())  # Solo el ID de la empresa
+    zona = serializers.PrimaryKeyRelatedField(
+        queryset=ZonesReciclatge.objects.all(), 
+        allow_null=True,  # Permite que sea null
+        required=False     # No obliga a enviarlo en la solicitud
+    )
+    empresa = serializers.PrimaryKeyRelatedField(queryset=Empresa.objects.all())  
 
     class Meta:
         model = Contenedor
         fields = ['id', 'zona', 'empresa', 'tipus', 'estat', 'latitud', 'longitud', 'ciutat', 'cod']
+

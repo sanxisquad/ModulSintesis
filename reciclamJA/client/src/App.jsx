@@ -12,6 +12,8 @@ import { DashBoard } from './pages/gestor/DashBoard';
 import { Toaster } from 'react-hot-toast';
 import { MenuProvider } from './context/MenuContext'; // Importar MenuProvider
 import { GestorContenedors } from './pages/gestor/GestorContenedors';
+import { GestorZona } from './pages/gestor/GestorZonesReciclatge';
+import { ZonaFormPage } from './pages/zr/ZonaReciclatgeFormPage';
 
 function App() {
   return (
@@ -27,10 +29,13 @@ function App() {
           <Route path="/login" element={<LoginFormPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/contenedors-create" element={<ContenedorFormPage />} />
+          <Route path="/zones-create" element={<ZonaFormPage />} />
           <Route path="/contenedors" element={<ContenedorsPage />} />
           <Route path="/contenedor/:id" element={<ContenedorFormPage />} />
           <Route path="/gestor-dashboard" element={<DashBoard />} />
           <Route path="/gestor-contenedors" element={<GestorContenedors />} />
+          <Route path="/gestor-zones" element={<GestorZona />} />
+          <Route path="/zona/:id" element={<ZonaFormPage />} />
         </Routes>
         <Toaster />
       </div>
