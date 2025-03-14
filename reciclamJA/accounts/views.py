@@ -38,6 +38,7 @@ class UserProfileView(APIView):
             'email': user.email,
             'is_gestor': user.is_gestor(),
             'empresa_id': user.empresa.id,
+            'CP': user.CP
             # Otros campos que quieras incluir
         })
     

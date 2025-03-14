@@ -20,7 +20,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CustomUser
-        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'age', 'location', 'role', 'role_id', 'empresa', 'empresa_id', 'is_gestor')
+        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'age', 'location', 'role', 'role_id', 'empresa', 'empresa_id', 'is_gestor','CP')
 
     def get_is_gestor(self, obj):
         return obj.is_gestor()  # Llamar al método is_gestor del modelo

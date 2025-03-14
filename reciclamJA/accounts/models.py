@@ -9,17 +9,21 @@ class Role(models.Model):
         return self.name
 
 # Modelo CustomUser extendido de AbstractUser
+# Modelo CustomUser extendido de AbstractUser
 class CustomUser(AbstractUser):
     age = models.PositiveIntegerField(null=True, blank=True)
     location = models.CharField(max_length=255, blank=True, null=True)
     role = models.ForeignKey(Role, on_delete=models.SET_NULL, null=True, blank=True)  # Relación con Role
     score = models.IntegerField(default=0)
     empresa = models.ForeignKey('Empresa', related_name='usuarios', on_delete=models.CASCADE, null=True)  # Relación uno a muchos: cada usuario pertenece a una empresa
+    CP = models.CharField(max_length=5, null=True, blank=True)  # Campo código postal (CharField por si contiene letras)
 
     def __str__(self):
         return self.username
+
     def is_gestor(self):
         return self.role and self.role.name == 'GESTOR'
+
     
     
 
