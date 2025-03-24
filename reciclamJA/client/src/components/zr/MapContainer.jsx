@@ -119,7 +119,7 @@ export function MapContainer() {
               {selectedInfo.hasOwnProperty("estat") ? (
                 // Si es un contenedor, mostrar estado con color
                 <p className={`font-bold ${getColor(selectedInfo.estat)}`}>
-                  Estat: {selectedInfo.estat} ple
+                  Estat: {selectedInfo.estat}
                 </p>
               ) : (
                 // Si es una zona, mostrar descripción

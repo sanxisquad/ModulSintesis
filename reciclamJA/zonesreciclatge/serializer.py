@@ -1,8 +1,8 @@
 from rest_framework import serializers
 from .models import ZonesReciclatge, Contenedor
-from accounts.models import Empresa  # Asegúrate de importar la clase Empresa si la necesitas
+from accounts.models import Empresa  
 
-# Serializer para el modelo Empresa (si necesitas mostrar la empresa asociada)
+# Serializer para el modelo Empresa (Solo lectura)
 class EmpresaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Empresa
@@ -10,24 +10,32 @@ class EmpresaSerializer(serializers.ModelSerializer):
 
 # Serializer para el modelo ZonesReciclatge
 class ZonesReciclatgeSerializer(serializers.ModelSerializer):
-    empresa = EmpresaSerializer(read_only=True)  # Relación con la empresa, si quieres incluir los datos de la empresa
-    # Si prefieres solo mostrar el ID de la empresa, usa esto en vez del serializer:
-    # empresa = serializers.PrimaryKeyRelatedField(queryset=Empresa.objects.all())
+    empresa = EmpresaSerializer(read_only=True)  # Solo lectura, asignado automáticamente
 
     class Meta:
         model = ZonesReciclatge
         fields = ['id', 'nom', 'ciutat', 'empresa', 'latitud', 'longitud', 'descripcio']
 
+    def create(self, validated_data):
+        user = self.context['request'].user
+        validated_data['empresa'] = user.empresa  # Asigna la empresa del usuario
+        return super().create(validated_data)
+
 # Serializer para el modelo Contenedor
 class ContenedorSerializer(serializers.ModelSerializer):
     zona = serializers.PrimaryKeyRelatedField(
         queryset=ZonesReciclatge.objects.all(), 
-        allow_null=True,  # Permite que sea null
-        required=False     # No obliga a enviarlo en la solicitud
+        allow_null=True, 
+        required=False  
     )
-    empresa = serializers.PrimaryKeyRelatedField(queryset=Empresa.objects.all())  
+    empresa = EmpresaSerializer(read_only=True)  # Solo lectura, la asignamos en `create`
 
     class Meta:
         model = Contenedor
         fields = ['id', 'zona', 'empresa', 'tipus', 'estat', 'latitud', 'longitud', 'ciutat', 'cod']
 
+    def create(self, validated_data):
+        """Asigna automáticamente la empresa del usuario autenticado al crear un contenedor."""
+        user = self.context['request'].user
+        validated_data['empresa'] = user.empresa
+        return super().create(validated_data)
