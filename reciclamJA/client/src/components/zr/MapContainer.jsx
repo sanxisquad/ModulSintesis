@@ -1,18 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/api';
-import { getAllContenedors, getAllZones } from '../../api/zr.api'; // Importamos las funciones para obtener contenedores y zonas
+import { GoogleMap, LoadScriptNext, Marker, InfoWindow } from '@react-google-maps/api';
+import { getAllContenedors, getAllZones } from '../../api/zr.api';
+import { useAuth } from '../../context/AuthContext';
 
 const containerStyle = {
   width: '100%',
   height: '400px',
 };
 
-export function MapContainer({ user }) {
+export function MapContainer() {
   const [contenedores, setContenedores] = useState([]);
   const [zonas, setZonas] = useState([]);
-  const [activeMarker, setActiveMarker] = useState(null); // Para mostrar el InfoWindow
-  const [selectedInfo, setSelectedInfo] = useState(null); // Información del contenedor o zona seleccionada
-  const [userLocation, setUserLocation] = useState({ lat: 41.3818, lng: 2.1915 }); // Coordenadas por defecto
+  const [activeMarker, setActiveMarker] = useState(null);
+  const [selectedInfo, setSelectedInfo] = useState(null);
+  const [userLocation, setUserLocation] = useState({ lat: 41.3818, lng: 2.1915 });
+
+  const getColor = (estat) => {
+    switch (estat) {
+      case 'buit': return 'text-green-500';
+      case 'mig': return 'text-yellow-500';
+      case 'ple': return 'text-red-500';
+      default: return 'text-slate-400';
+    }
+  };
+
+  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+  const { user } = useAuth();
 
   useEffect(() => {
     async function fetchContenedores() {
@@ -33,8 +46,7 @@ export function MapContainer({ user }) {
       }
     }
 
-    // Si el usuario tiene un código postal, obtener lat y lng
-    if (user && user.CP) {
+    if (user?.CP) {
       fetchUserLocation(user.CP);
     }
 
@@ -43,18 +55,14 @@ export function MapContainer({ user }) {
   }, [user]);
 
   const fetchUserLocation = async (cp) => {
-    const apiKey = 'AIzaSyB1B4h2flNvIswns3d05CRChnqdx5rFz3k'; // Reemplaza con tu propia clave de API de Google
-    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${cp}&key=${apiKey}`;
-
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${cp},España&key=${apiKey}`;
     try {
       const response = await fetch(url);
       const data = await response.json();
 
-      if (data.status === 'OK') {
+      if (data.status === 'OK' && data.results.length > 0) {
         const location = data.results[0].geometry.location;
         setUserLocation({ lat: location.lat, lng: location.lng });
-      } else {
-        console.error('No se pudo obtener la ubicación para este código postal');
       }
     } catch (error) {
       console.error('Error al obtener la ubicación:', error);
@@ -62,61 +70,67 @@ export function MapContainer({ user }) {
   };
 
   const onMarkerClick = (item) => {
-    setSelectedInfo(item); // Establecer la información del contenedor o zona seleccionada
-    setActiveMarker(item.id); // Establecer el marcador activo
+    setSelectedInfo(item);
+    setActiveMarker(item.id);
   };
 
-  // Cerrar el InfoWindow cuando se haga clic fuera de un marcador
   const onMapClick = () => {
     setActiveMarker(null);
     setSelectedInfo(null);
   };
 
+  const containerIcon = 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png';
+  const zoneIcon = 'http://maps.google.com/mapfiles/ms/icons/green-dot.png';
+
   return (
-    <LoadScript googleMapsApiKey="AIzaSyB1B4h2flNvIswns3d05CRChnqdx5rFz3k">
+    <LoadScriptNext googleMapsApiKey={apiKey}>
       <GoogleMap
         mapContainerStyle={containerStyle}
-        center={userLocation} // Usar las coordenadas del usuario
+        center={userLocation}
         zoom={12}
-        onClick={onMapClick} // Agregar evento de clic en el mapa
+        onClick={onMapClick}
       >
-        {/* Mostrar los contenedores en el mapa */}
         {contenedores.map((contenedor) => (
           <Marker
             key={contenedor.id}
             position={{ lat: contenedor.latitud, lng: contenedor.longitud }}
-            onClick={() => onMarkerClick(contenedor)} // Mostrar la información del contenedor al hacer clic
+            icon={containerIcon}
+            onClick={() => onMarkerClick(contenedor)}
           />
         ))}
 
-        {/* Mostrar las zonas en el mapa */}
         {zonas.map((zona) => (
           <Marker
             key={zona.id}
             position={{ lat: zona.latitud, lng: zona.longitud }}
-            onClick={() => onMarkerClick(zona)} // Mostrar la información de la zona al hacer clic
+            icon={zoneIcon}
+            onClick={() => onMarkerClick(zona)}
           />
         ))}
 
-        {/* InfoWindow para mostrar la información cuando se hace clic en un marcador */}
         {activeMarker && selectedInfo && (
           <InfoWindow
-            position={{
-              lat: selectedInfo.latitud,
-              lng: selectedInfo.longitud,
-            }}
-            onCloseClick={() => setActiveMarker(null)} // Cerrar el InfoWindow
+            position={{ lat: selectedInfo.latitud, lng: selectedInfo.longitud }}
+            onCloseClick={() => setActiveMarker(null)}
           >
-            <div className="infowindow">
-              <h3>{selectedInfo.nom || selectedInfo.cod}</h3> {/* Nombre de la zona o contenedor */}
-              <p>Latitud: {selectedInfo.latitud}</p>
-              <p>Longitud: {selectedInfo.longitud}</p>
-              {selectedInfo.ciutat && <p>Ciudad: {selectedInfo.ciutat}</p>}
-              {selectedInfo.descripcio && <p>Descripción: {selectedInfo.descripcio}</p>}
+            <div className="infowindow text-black">
+              <h3>{selectedInfo.nom || selectedInfo.cod}</h3>
+              
+              {selectedInfo.hasOwnProperty("estat") ? (
+                // Si es un contenedor, mostrar estado con color
+                <p className={`font-bold ${getColor(selectedInfo.estat)}`}>
+                  Estat: {selectedInfo.estat} ple
+                </p>
+              ) : (
+                // Si es una zona, mostrar descripción
+                <p>Descripción: {selectedInfo.descripcio}</p>
+              )}
+
+              {selectedInfo.ciutat && <p>Ciutat: {selectedInfo.ciutat}</p>}
             </div>
           </InfoWindow>
         )}
       </GoogleMap>
-    </LoadScript>
+    </LoadScriptNext>
   );
 }

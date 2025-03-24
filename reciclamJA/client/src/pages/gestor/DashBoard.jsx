@@ -8,9 +8,14 @@ export function DashBoard() {
 
 
   return (
-<div className={`transition-all duration-300 ease-in-out`}>
-      <ContenedorList />
+<div className={`transition-all duration-300 ease-in-out flex flex-col items-center`}>
+  <ContenedorList />
+  <div className="w-full flex justify-center mt-4">
+    <div className="h-96 w-3/4">
       <MapContainer />
     </div>
+  </div>
+</div>
+
   );
 }

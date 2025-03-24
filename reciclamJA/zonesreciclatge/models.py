@@ -35,5 +35,5 @@ class Contenedor(models.Model):
     ciutat = models.CharField(max_length=255)
 
     def __str__(self):
-        return f"Contenedor a {self.zona.nombre if self.zona else 'Sin zona'} - Estat: {self.estado} - Tipo: {self.tipus} - Ciutat: {self.ciutat}"
+        return f"Contenedor a {self.zona.nom if self.zona else 'Sense zona'} - Estat: {self.estat} - Tipo: {self.tipus} - Ciutat: {self.ciutat}"
 
