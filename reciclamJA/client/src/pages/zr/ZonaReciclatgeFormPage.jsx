@@ -77,66 +77,77 @@ export function ZonaFormPage() {
     }, [params.id, setValue]);
 
     return (
-        <div>
-            <form onSubmit={onSubmit}>
+        <div className="container mx-auto p-5">
+            <h1 className="text-3xl font-bold text-center mb-5">{params.id ? 'Editar Zona' : 'Crear Zona'}</h1>
+            <form onSubmit={onSubmit} className="space-y-4 max-w-lg mx-auto">
                 <div>
-                    <label htmlFor="nom">Nombre</label>
+                    <label htmlFor="nom" className="block text-lg font-medium">Nombre</label>
                     <input
                         id="nom"
                         type="text"
+                        className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         {...register('nom', { required: 'El nombre es obligatorio' })}
                     />
-                    {errors.nom && <p>{errors.nom.message}</p>}
+                    {errors.nom && <p className="text-red-500 text-sm">{errors.nom.message}</p>}
                 </div>
 
                 <div>
-                    <label htmlFor="ciutat">Ciudad</label>
+                    <label htmlFor="ciutat" className="block text-lg font-medium">Ciudad</label>
                     <input
                         id="ciutat"
                         type="text"
+                        className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         {...register('ciutat', { required: 'La ciudad es obligatoria' })}
                     />
-                    {errors.ciutat && <p>{errors.ciutat.message}</p>}
+                    {errors.ciutat && <p className="text-red-500 text-sm">{errors.ciutat.message}</p>}
                 </div>
 
                 <div>
-                    <label htmlFor="latitud">Latitud</label>
+                    <label htmlFor="latitud" className="block text-lg font-medium">Latitud</label>
                     <input
                         id="latitud"
                         type="number"
                         step="any"
+                        className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         {...register('latitud', { required: 'La latitud es obligatoria', valueAsNumber: true })}
                     />
-                    {errors.latitud && <p>{errors.latitud.message}</p>}
+                    {errors.latitud && <p className="text-red-500 text-sm">{errors.latitud.message}</p>}
                 </div>
 
                 <div>
-                    <label htmlFor="longitud">Longitud</label>
+                    <label htmlFor="longitud" className="block text-lg font-medium">Longitud</label>
                     <input
                         id="longitud"
                         type="number"
                         step="any"
+                        className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         {...register('longitud', { required: 'La longitud es obligatoria', valueAsNumber: true })}
                     />
-                    {errors.longitud && <p>{errors.longitud.message}</p>}
+                    {errors.longitud && <p className="text-red-500 text-sm">{errors.longitud.message}</p>}
                 </div>
 
                 <div>
-                    <label htmlFor="descripcio">Descripción</label>
+                    <label htmlFor="descripcio" className="block text-lg font-medium">Descripción</label>
                     <textarea
                         id="descripcio"
+                        className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         {...register('descripcio')}
                     />
-                    {errors.descripcio && <p>{errors.descripcio.message}</p>}
+                    {errors.descripcio && <p className="text-red-500 text-sm">{errors.descripcio.message}</p>}
                 </div>
 
-                <div>
-                    <button type="submit">Guardar Zona</button>
+                <div className="flex justify-between items-center">
+                    <button 
+                        type="submit"
+                        className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                        Guardar Zona
+                    </button>
                     {params.id && (
                         <button 
                             type="button" 
                             onClick={handleDelete} 
-                            style={{ marginLeft: '10px', backgroundColor: 'red', color: 'white' }}
+                            className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500"
                         >
                             Eliminar Zona
                         </button>
