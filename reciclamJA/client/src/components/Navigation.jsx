@@ -24,7 +24,7 @@ export function Navigation() {
     }, []);
 
     return (
-        <div className="w-full">
+        <div className="w-full sticky top-0 ">
             {/* Barra de navegación superior */}
             <div className="bg-black text-white py-3 px-4 relative flex items-center justify-between">
                 {/* Menú icono */}
