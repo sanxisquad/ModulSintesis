@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast'; 
 import { useAuth } from '../../context/AuthContext';
+import { MapPicker } from '../../components/zr/MapPicker';
 import { getContenedor, createContenedor, updateContenedor, deleteContenedor, getAllZones } from '../../api/zr.api';
 
 export function ContenedorFormPage() {
@@ -97,6 +98,15 @@ export function ContenedorFormPage() {
         loadZonas();
     }, []);
 
+    // Definir onLocationSelect
+    const onLocationSelect = (lat, lng) => {
+        setValue('latitud', lat); // Actualiza la latitud en el formulario
+        setValue('longitud', lng); // Actualiza la longitud en el formulario
+    };
+    const onCitySelect = (city) => {
+        setValue('ciutat', city);
+    };
+
     return (
         <div className="container mx-auto p-5">
             <h1 className="text-3xl font-bold text-center mb-5">{params.id ? 'Editar Contenedor' : 'Crear Contenedor'}</h1>
@@ -109,8 +119,7 @@ export function ContenedorFormPage() {
                         id="cod"
                         type="text"
                         className={`w-full p-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 ${errors.cod ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'}`}
-                        {...register('cod', { required: 'El código es obligatorio' })}
-                    />
+                        {...register('cod', { required: 'El código es obligatorio' })}/>
                     {errors.cod && <p className="text-red-500 text-sm">{errors.cod.message}</p>}
                 </div>
 
@@ -137,10 +146,9 @@ export function ContenedorFormPage() {
                         <select
                             id="tipus"
                             className={`w-full p-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 ${errors.tipus ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'}`}
-                            {...register('tipus', { required: 'El tipo es obligatorio' })}
-                        >
+                            {...register('tipus', { required: 'El tipo es obligatorio' })}>
                             {tipos.map((tipo) => (
-                                <option key={tipo.id} value={tipo.id}>{tipo.nombre}</option>
+                                <option className="text-black" key={tipo.id} value={tipo.id}>{tipo.nombre}</option>
                             ))}
                         </select>
                         {errors.tipus && <p className="text-red-500 text-sm">{errors.tipus.message}</p>}
@@ -152,10 +160,9 @@ export function ContenedorFormPage() {
                         <select
                             id="estat"
                             className={`w-full p-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 ${errors.estat ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'}`}
-                            {...register('estat', { required: 'El estado es obligatorio' })}
-                        >
+                            {...register('estat', { required: 'El estado es obligatorio' })}>
                             {estados.map((estado) => (
-                                <option key={estado.id} value={estado.id}>{estado.nombre}</option>
+                                <option className="text-black" key={estado.id} value={estado.id}>{estado.nombre}</option>
                             ))}
                         </select>
                         {errors.estat && <p className="text-red-500 text-sm">{errors.estat.message}</p>}
@@ -202,6 +209,14 @@ export function ContenedorFormPage() {
                     />
                     {errors.ciutat && <p className="text-red-500 text-sm">{errors.ciutat.message}</p>}
                 </div>
+
+                {/* Mapa */}
+                <MapPicker
+                    onLocationSelect={onLocationSelect}
+                    initialLat={contenedor?.latitud || 0}
+                    initialLng={contenedor?.longitud || 0}
+                     onCitySelect={onCitySelect}
+                />
 
                 {/* Botones */}
                 <div className="flex justify-between items-center pt-4">
