@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
@@ -63,6 +63,11 @@ export function ContenedorFormPage() {
             toast.error('Error al eliminar el contenedor');
         }
     };
+    const onCitySelect = (city) => {
+        if (!watch('ciutat')) {  // Solo actualiza si no hay una ciudad previamente establecida
+            setValue('ciutat', city);
+        }
+    };
 
     useEffect(() => {
         async function loadContenedor() {
@@ -73,7 +78,7 @@ export function ContenedorFormPage() {
                 setContenedor(data);
                 
                 // Verifica la estructura de data.zona en la consola
-                console.log('Datos de zona recibidos:', data.zona);
+                console.log('Datos de zona recibidos:', data.empresa);
                 
                 setValue('cod', data.cod);
                 setValue('zona', data.zona?.id || data.zona || "");
@@ -82,6 +87,8 @@ export function ContenedorFormPage() {
                 setValue('latitud', data.latitud);
                 setValue('longitud', data.longitud);
                 setValue('ciutat', data.ciutat);
+                setValue('empresa', data.empresa);
+
             } catch (error) {
                 toast.error('Error al cargar el contenedor');
                 navigate('/contenedors');
@@ -108,9 +115,8 @@ export function ContenedorFormPage() {
         setValue('longitud', lng);
     };
 
-    const onCitySelect = (city) => {
-        setValue('ciutat', city);
-    };
+
+    
 
     return (
         <div className="container mx-auto p-5">
@@ -247,6 +253,7 @@ export function ContenedorFormPage() {
                     onCitySelect={onCitySelect}
                     initialLat={contenedor?.latitud || 0}
                     initialLng={contenedor?.longitud || 0}
+                    initialEmpresa={user ? user.empresa : null}  // Asignar empresa del usuario
                 />
 
                 {/* Botones */}
