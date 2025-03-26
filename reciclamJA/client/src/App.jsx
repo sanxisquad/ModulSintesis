@@ -18,8 +18,9 @@ import { ZonaFormPage } from './pages/zr/ZonaReciclatgeFormPage';
 function App() {
   return (
     <MenuProvider>
-      <div className="container size-full">
-        <Navigation /> {/* La navegación ahora usa el contexto */}
+      <div className="w-screen h-screen flex flex-col">
+        <Navigation />
+        <div className="flex-1 overflow-auto"> {/* La navegación ahora usa el contexto */}
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/users" element={<UsersPage />} />
@@ -37,6 +38,7 @@ function App() {
           <Route path="/gestor-zones" element={<GestorZona />} />
           <Route path="/zona/:id" element={<ZonaFormPage />} />
         </Routes>
+        </div>
         <Toaster />
       </div>
     </MenuProvider>
