@@ -1,2 +1,6 @@
 venv/
 __pycache__/
+accounts/__pycache__/
+zonesreciclatge/__pycache__/
+accounts/__pycache__/migrations/__pycache__/
+zonesreciclatge/__pycache__/migrations/__pycache__/
