@@ -14,6 +14,7 @@ import { MenuProvider } from './context/MenuContext'; // Importar MenuProvider
 import { GestorContenedors } from './pages/gestor/GestorContenedors';
 import { GestorZona } from './pages/gestor/GestorZonesReciclatge';
 import { ZonaFormPage } from './pages/zr/ZonaReciclatgeFormPage';
+import { GestorUsuaris } from './pages/gestor/GestorUsuaris';
 
 function App() {
   return (
@@ -23,7 +24,7 @@ function App() {
         <div className="flex-1 overflow-auto"> {/* La navegación ahora usa el contexto */}
         <Routes>
           <Route path="/" element={<HomePage />} />
-          <Route path="/users" element={<UsersPage />} />
+          <Route path="/gestor-usuaris" element={<GestorUsuaris />} />
           <Route path="/users-create" element={<UserFormPage />} />
           <Route path="/users/:id" element={<UserFormPage />} />
           <Route path="/register" element={<RegisterFormPage />} />

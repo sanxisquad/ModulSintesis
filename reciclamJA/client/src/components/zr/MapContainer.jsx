@@ -1,19 +1,54 @@
 import React, { useState, useEffect } from 'react';
-import { GoogleMap, LoadScriptNext, Marker, InfoWindow } from '@react-google-maps/api';
+import { 
+  MapContainer, 
+  TileLayer, 
+  Marker, 
+  Popup,
+  useMap 
+} from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
 import { getAllContenedors, getAllZones } from '../../api/zr.api';
 import { useAuth } from '../../context/AuthContext';
 
-const containerStyle = {
-  width: '100%',
-  height: '400px',
+// Configurar iconos personalizados
+const containerIcon = new L.Icon({
+  iconUrl: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png',
+  iconSize: [32, 32],
+  iconAnchor: [16, 32],
+  popupAnchor: [0, -32]
+});
+
+const zoneIcon = new L.Icon({
+  iconUrl: 'http://maps.google.com/mapfiles/ms/icons/green-dot.png',
+  iconSize: [32, 32],
+  iconAnchor: [16, 32],
+  popupAnchor: [0, -32]
+});
+
+// Posición por defecto (Barcelona)
+const DEFAULT_POSITION = {
+  lat: 41.3818,
+  lng: 2.1915
 };
 
-export function MapContainer() {
+// Componente para centrar el mapa cuando cambia la ubicación del usuario
+function CenterMap({ center }) {
+  const map = useMap();
+  useEffect(() => {
+    if (center) {
+      map.flyTo([center.lat, center.lng], 12);
+    }
+  }, [center, map]);
+  return null;
+}
+
+export function MapView() {
   const [contenedores, setContenedores] = useState([]);
   const [zonas, setZonas] = useState([]);
-  const [activeMarker, setActiveMarker] = useState(null);
   const [selectedInfo, setSelectedInfo] = useState(null);
-  const [userLocation, setUserLocation] = useState({ lat: 41.3818, lng: 2.1915 });
+  const [userLocation, setUserLocation] = useState(DEFAULT_POSITION);
+  const { user } = useAuth();
 
   const getColor = (estat) => {
     switch (estat) {
@@ -24,8 +59,26 @@ export function MapContainer() {
     }
   };
 
-  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-  const { user } = useAuth();
+  // Función para geocodificar usando Nominatim
+  const geocodeCP = async (cp) => {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?postalcode=${cp}&country=España&format=json&limit=1`
+      );
+      const data = await response.json();
+      
+      if (data.length > 0) {
+        return {
+          lat: parseFloat(data[0].lat),
+          lng: parseFloat(data[0].lon)
+        };
+      }
+      return null;
+    } catch (error) {
+      console.error('Error en geocodificación:', error);
+      return null;
+    }
+  };
 
   useEffect(() => {
     async function fetchContenedores() {
@@ -46,91 +99,86 @@ export function MapContainer() {
       }
     }
 
-    if (user?.CP) {
-      fetchUserLocation(user.CP);
+    async function fetchUserLocation() {
+      if (user?.CP) {
+        const location = await geocodeCP(user.CP);
+        if (location) {
+          setUserLocation(location);
+        }
+      }
     }
 
     fetchContenedores();
     fetchZonas();
+    fetchUserLocation();
   }, [user]);
-
-  const fetchUserLocation = async (cp) => {
-    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${cp},España&key=${apiKey}`;
-    try {
-      const response = await fetch(url);
-      const data = await response.json();
-
-      if (data.status === 'OK' && data.results.length > 0) {
-        const location = data.results[0].geometry.location;
-        setUserLocation({ lat: location.lat, lng: location.lng });
-      }
-    } catch (error) {
-      console.error('Error al obtener la ubicación:', error);
-    }
-  };
 
   const onMarkerClick = (item) => {
     setSelectedInfo(item);
-    setActiveMarker(item.id);
   };
 
   const onMapClick = () => {
-    setActiveMarker(null);
     setSelectedInfo(null);
   };
 
-  const containerIcon = 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png';
-  const zoneIcon = 'http://maps.google.com/mapfiles/ms/icons/green-dot.png';
-
   return (
-    <LoadScriptNext googleMapsApiKey={apiKey}>
-      <GoogleMap
-        mapContainerStyle={containerStyle}
-        center={userLocation}
+    <div className="w-full">
+      <MapContainer
+        center={[userLocation.lat, userLocation.lng]}
         zoom={12}
+        style={{ height: '400px', width: '100%' }}
         onClick={onMapClick}
       >
+        <CenterMap center={userLocation} />
+        <TileLayer
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        />
+        
         {contenedores.map((contenedor) => (
           <Marker
             key={contenedor.id}
-            position={{ lat: contenedor.latitud, lng: contenedor.longitud }}
+            position={[contenedor.latitud, contenedor.longitud]}
             icon={containerIcon}
-            onClick={() => onMarkerClick(contenedor)}
-          />
+            eventHandlers={{
+              click: () => onMarkerClick(contenedor)
+            }}
+          >
+            {selectedInfo?.id === contenedor.id && (
+              <Popup>
+                <div className="infowindow text-black">
+                  <h3>{contenedor.nom || contenedor.cod}</h3>
+                  <p className={`font-bold ${getColor(contenedor.estat)}`}>
+                    Estat: {contenedor.estat}
+                  </p>
+                  {contenedor.ciutat && <p>Ciutat: {contenedor.ciutat}</p>}
+                </div>
+              </Popup>
+            )}
+          </Marker>
         ))}
 
         {zonas.map((zona) => (
           <Marker
             key={zona.id}
-            position={{ lat: zona.latitud, lng: zona.longitud }}
+            position={[zona.latitud, zona.longitud]}
             icon={zoneIcon}
-            onClick={() => onMarkerClick(zona)}
-          />
-        ))}
-
-        {activeMarker && selectedInfo && (
-          <InfoWindow
-            position={{ lat: selectedInfo.latitud, lng: selectedInfo.longitud }}
-            onCloseClick={() => setActiveMarker(null)}
+            eventHandlers={{
+              click: () => onMarkerClick(zona)
+            }}
           >
-            <div className="infowindow text-black">
-              <h3>{selectedInfo.nom || selectedInfo.cod}</h3>
-              
-              {selectedInfo.hasOwnProperty("estat") ? (
-                // Si es un contenedor, mostrar estado con color
-                <p className={`font-bold ${getColor(selectedInfo.estat)}`}>
-                  Estat: {selectedInfo.estat}
-                </p>
-              ) : (
-                // Si es una zona, mostrar descripción
-                <p>Descripción: {selectedInfo.descripcio}</p>
-              )}
-
-              {selectedInfo.ciutat && <p>Ciutat: {selectedInfo.ciutat}</p>}
-            </div>
-          </InfoWindow>
-        )}
-      </GoogleMap>
-    </LoadScriptNext>
+            {selectedInfo?.id === zona.id && (
+              <Popup>
+                <div className="infowindow text-black">
+                  <h3>{zona.nom || zona.cod}</h3>
+                  <p>Descripció: {zona.descripcio}</p>
+                  {zona.ciutat && <p>Ciutat: {zona.ciutat}</p>}
+                </div>
+              </Popup>
+            )}
+          </Marker>
+        ))}
+      </MapContainer>
+    </div>
   );
 }

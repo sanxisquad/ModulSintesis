@@ -42,10 +42,10 @@ export function ContenedorList() {
         <div className="container mx-auto">
             <h1 className="text-3xl font-bold text-center m-10">Contenidors</h1>
                     
-            <div className="flex ml-10 mb-5 space-x-4">
+            <div className="flex ml-10 mb-5">
                 {/* 📌 Filtro por ciudad */}
                 <select
-                    className="border p-2 rounded"
+                    className="border p-2 rounded mr-10"
                     value={ciudadSeleccionada}
                     onChange={(e) => setCiudadSeleccionada(e.target.value)}
                 >

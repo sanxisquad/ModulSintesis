@@ -17,10 +17,14 @@ class CustomUserSerializer(serializers.ModelSerializer):
     empresa = EmpresaSerializer(read_only=True)  # Detalles de la empresa
     empresa_id = serializers.PrimaryKeyRelatedField(queryset=Empresa.objects.all(), source='empresa', write_only=True)  # ID de la empresa
     is_gestor = serializers.SerializerMethodField()  # Agregar el campo is_gestor
+    is_admin = serializers.SerializerMethodField()  # Add the is_admin field
 
     class Meta:
         model = CustomUser
-        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'age', 'location', 'role', 'role_id', 'empresa', 'empresa_id', 'is_gestor','CP')
+        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'age', 'location', 'role', 'role_id', 'empresa', 'empresa_id', 'is_gestor', 'is_admin', 'CP')
 
     def get_is_gestor(self, obj):
         return obj.is_gestor()  # Llamar al método is_gestor del modelo
+    
+    def get_is_admin(self, obj):
+        return obj.is_admin()  # Call the is_admin method from the model

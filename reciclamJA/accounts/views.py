@@ -1,5 +1,5 @@
 from rest_framework import generics
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from .models import CustomUser, Role, Empresa
 from .serializer import CustomUserSerializer, RoleSerializer, EmpresaSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
@@ -21,7 +21,7 @@ from rest_framework import viewsets
 class CustomUserViewSet(viewsets.ModelViewSet):
     queryset = CustomUser.objects.all()
     serializer_class = CustomUserSerializer
-    # Aquí puedes agregar permisos si los necesitas
+    permission_classes = [IsAuthenticated]  # Solo usuarios autenticados pueden acceder
 
 class RoleViewSet(viewsets.ModelViewSet):
     queryset = Role.objects.all()
@@ -33,19 +33,22 @@ class UserProfileView(APIView):
 
     def get(self, request):
         user = request.user
-        return Response({
-            'username': user.username,
-            'email': user.email,
-            'is_gestor': user.is_gestor(),
-            'empresa_id': user.empresa.id,
-            'CP': user.CP,
-            'empresa': {
+        empresa_data = None
+        if hasattr(user, 'empresa') and user.empresa:
+            empresa_data = {
                 'id': user.empresa.id,
                 'nom': user.empresa.nom,
                 'direccio': user.empresa.direccio,
                 'email': user.empresa.email,
                 'CP': user.empresa.CP
             }
+        return Response({
+            'username': user.username,
+            'email': user.email,
+            'is_gestor': user.is_gestor(),
+            'is_admin': user.is_admin(),
+            'CP': user.CP,
+            'empresa': empresa_data,
             # Otros campos que quieras incluir
         })
     
