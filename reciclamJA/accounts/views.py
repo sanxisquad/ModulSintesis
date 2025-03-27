@@ -8,6 +8,9 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework import status
+from .permissions import IsSuperAdmin, IsAdminEmpresa, IsGestor, CombinedPermission  # Importa las clases de permisos
+from rest_framework import permissions  # Importa permissions para usar permissions.IsAuthenticated()
+from rest_framework.exceptions import PermissionDenied
 
 # Vista de registro
 class RegisterView(generics.CreateAPIView):
@@ -19,9 +22,60 @@ class RegisterView(generics.CreateAPIView):
 from rest_framework import viewsets
 
 class CustomUserViewSet(viewsets.ModelViewSet):
-    queryset = CustomUser.objects.all()
     serializer_class = CustomUserSerializer
-    permission_classes = [IsAuthenticated]  # Solo usuarios autenticados pueden acceder
+    queryset = CustomUser.objects.none()
+    
+    def get_permissions(self):
+        if self.action == 'list':
+            return [permissions.IsAuthenticated()]
+        elif self.action == 'destroy':
+            return [CombinedPermission(IsSuperAdmin, IsAdminEmpresa)]
+        elif self.action in ['create']:
+            return [CombinedPermission(IsSuperAdmin, IsAdminEmpresa)]  # Modificado
+        elif self.action in ['update', 'partial_update']:
+            return [CombinedPermission(IsSuperAdmin, IsAdminEmpresa)]
+        return [permissions.IsAuthenticated()]
+    
+    def get_queryset(self):
+        user = self.request.user
+
+        if not user.is_authenticated:
+            return CustomUser.objects.none()
+
+        if user.is_superadmin(): 
+            return CustomUser.objects.all()
+
+        if getattr(user, 'empresa', None):  
+            return CustomUser.objects.filter(empresa=user.empresa)
+
+        return CustomUser.objects.none()
+
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        if user.is_superadmin:
+            serializer.save()
+        elif user.is_admin:
+            serializer.save(empresa=user.empresa)  # Asigna automáticamente su empresa
+        else:
+            raise PermissionDenied("No tienes permisos para crear usuarios")
+
+    def perform_destroy(self, instance):
+        user = self.request.user
+        if user.is_admin and instance.empresa != user.empresa:
+            raise PermissionDenied("Solo puedes eliminar usuarios de tu empresa")
+        if not (user.is_superadmin or user.is_admin):
+            raise PermissionDenied("No tienes permisos para esta acción")
+        instance.delete()
+
+    def perform_update(self, serializer):
+        user = self.request.user
+        instance = self.get_object()
+        if user.is_admin and instance.empresa != user.empresa:
+            raise PermissionDenied("Solo puedes editar usuarios de tu empresa")
+        if not (user.is_superadmin or user.is_admin):
+            raise PermissionDenied("No tienes permisos para esta acción")
+        serializer.save()
 
 class RoleViewSet(viewsets.ModelViewSet):
     queryset = Role.objects.all()

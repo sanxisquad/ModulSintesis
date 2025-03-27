@@ -1,6 +1,6 @@
 import { useForm } from 'react-hook-form';
 import { useState } from 'react';
-import { useAuth } from '../../context/AuthContext'; // Importa el contexto de autenticación
+import { useAuth } from '../../../hooks/useAuth';
 import { toast } from 'react-hot-toast'; // Para mostrar mensajes de éxito o error
 import { useNavigate } from 'react-router-dom';  // Importa el hook de navegación
 

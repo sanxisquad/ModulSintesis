@@ -25,7 +25,8 @@ class CustomUser(AbstractUser):
 
     def is_admin(self):
         return self.role and self.role.name.upper() == 'ADMIN'  # Verifica si el rol es 'ADMIN'
-    
+    def is_superadmin(self):
+        return self.role and self.role.name.upper() == 'SUPERADMIN'    
 # Modelo para Empresa
 class Empresa(models.Model):
     nom = models.CharField(max_length=255)

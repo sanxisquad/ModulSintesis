@@ -9,7 +9,7 @@ import {
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { getAllContenedors, getAllZones } from '../../api/zr.api';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../../hooks/useAuth';
 
 // Configurar iconos personalizados
 const containerIcon = new L.Icon({

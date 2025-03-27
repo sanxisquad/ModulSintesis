@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../../hooks/useAuth"; // Actualiza la ruta del nuevo useAuth
 import { useState, useEffect, useRef } from "react";
 import { useMenu } from "../context/MenuContext";  // Importa el hook del contexto
 

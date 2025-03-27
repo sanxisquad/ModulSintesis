@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast'; 
-import { useAuth } from '../../context/AuthContext';  // Usamos el contexto de autenticación
+import { useAuth } from '../../../hooks/useAuth';
 
 import { getZona, createZona, updateZona, deleteZona } from '../../api/zr.api';  // Importa las funciones para interactuar con la API
 
