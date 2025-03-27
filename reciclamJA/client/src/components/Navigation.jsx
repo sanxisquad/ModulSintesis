@@ -2,12 +2,14 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth"; // Actualiza la ruta del nuevo useAuth
 import { useState, useEffect, useRef } from "react";
 import { useMenu } from "../context/MenuContext";  // Importa el hook del contexto
+import { usePermissions } from "../../hooks/usePermissions";
 
 export function Navigation() {
     const { isAuthenticated, user, logout, loading } = useAuth();
     const { menuOpen, toggleMenu } = useMenu();  // Usar el estado del menú desde el contexto
     const [gestionExpanded, setGestionExpanded] = useState(false);  // Estado para expandir "Gestión"
     const [userMenuOpen, setUserMenuOpen] = useState(false);  // Estado para el menú desplegable del usuario
+    const { canMenu } = usePermissions();  // Obtener los permisos del usuario
     const userMenuRef = useRef(null);
 
     useEffect(() => {
@@ -85,7 +87,7 @@ export function Navigation() {
             </div>
 
             {/* Menú lateral grande SOLO para gestores/admins */}
-            {menuOpen && (user?.is_gestor || user?.is_admin) && (
+            {menuOpen && canMenu && (
                 <div
                     className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-black text-white shadow-lg p-4 z-40 transition-all duration-300"
                 >

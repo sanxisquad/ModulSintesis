@@ -101,6 +101,7 @@ class UserProfileView(APIView):
             'email': user.email,
             'is_gestor': user.is_gestor(),
             'is_admin': user.is_admin(),
+            'is_superadmin': user.is_superadmin(),
             'CP': user.CP,
             'empresa': empresa_data,
             # Otros campos que quieras incluir

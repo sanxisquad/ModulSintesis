@@ -6,12 +6,13 @@ export const usePermissions = () => {
   
   return {
     // Permisos basados en rol
-    isSuperAdmin: user?.role === 'SUPERADMIN',
+    isSuperAdmin: user?.is_superadmin,
     isAdmin: user?.is_admin,
     isGestor: user?.is_gestor,
     
+    canMenu: user?.is_gestor || user?.is_admin || user?.is_superadmin,
     // Permisos específicos
-    canDeleteZR: user?.is_admin,
+    canDelete: user?.is_admin,
     canEditZR: user?.is_admin || user?.is_gestor,
     canViewDashboard: user?.role !== 'USUARIO_NORMAL',
     
