@@ -19,10 +19,12 @@ class CustomUserSerializer(serializers.ModelSerializer):
     is_gestor = serializers.SerializerMethodField()  # Agregar el campo is_gestor
     is_admin = serializers.SerializerMethodField()  # Add the is_admin field
     is_superadmin = serializers.SerializerMethodField()
+    is_user = serializers.SerializerMethodField()  # Add the is_user field
+    score = serializers.SerializerMethodField()  # Agregar el campo score
 
     class Meta:
         model = CustomUser
-        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'age', 'location', 'role', 'role_id', 'empresa', 'empresa_id', 'is_gestor', 'is_admin', 'CP','is_superadmin')  # Campos a incluir   
+        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'age', 'location', 'role', 'role_id', 'empresa', 'empresa_id', 'is_gestor', 'is_admin', 'CP','is_superadmin', 'is_user', 'score')  # Campos a incluir   
 
     def get_is_gestor(self, obj):
         return obj.is_gestor()  # Llamar al método is_gestor del modelo

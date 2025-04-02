@@ -102,9 +102,10 @@ class UserProfileView(APIView):
             'is_gestor': user.is_gestor(),
             'is_admin': user.is_admin(),
             'is_superadmin': user.is_superadmin(),
+            'is_user': user.is_user(),
             'CP': user.CP,
             'empresa': empresa_data,
-            # Otros campos que quieras incluir
+            'score': user.score,
         })
     
 class LogoutView(APIView):

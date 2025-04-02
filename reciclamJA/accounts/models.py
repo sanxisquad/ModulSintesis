@@ -14,7 +14,7 @@ class CustomUser(AbstractUser):
     location = models.CharField(max_length=255, blank=True, null=True)
     role = models.ForeignKey(Role, on_delete=models.SET_NULL, null=True, blank=True)  # Relación con Role
     score = models.IntegerField(default=0)
-    empresa = models.ForeignKey('Empresa', related_name='usuarios', on_delete=models.CASCADE, null=True)  # Relación uno a muchos: cada usuario pertenece a una empresa
+    empresa = models.ForeignKey('Empresa', related_name='usuarios', on_delete=models.CASCADE, null=True, blank=True)  # Relación uno a muchos: cada usuario pertenece a una empresa
     CP = models.CharField(max_length=5, blank=True, null=True)
 
     def __str__(self):
@@ -26,7 +26,9 @@ class CustomUser(AbstractUser):
     def is_admin(self):
         return self.role and self.role.name.upper() == 'ADMIN'  # Verifica si el rol es 'ADMIN'
     def is_superadmin(self):
-        return self.role and self.role.name.upper() == 'SUPERADMIN'    
+        return self.role and self.role.name.upper() == 'SUPERADMIN' 
+    def is_user(self):
+        return self.role and self.role.name.upper() == 'USER'  
 # Modelo para Empresa
 class Empresa(models.Model):
     nom = models.CharField(max_length=255)
