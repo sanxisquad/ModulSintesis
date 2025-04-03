@@ -81,37 +81,42 @@ export function MapView() {
   };
 
   useEffect(() => {
-    async function fetchContenedores() {
+    let isMounted = true; // Flag para evitar actualizaciones si el componente se desmonta
+  
+    async function fetchData() {
       try {
-        const response = await getAllContenedors();
-        setContenedores(response.data);
+        const [contenedoresRes, zonasRes] = await Promise.all([
+          getAllContenedors(),
+          getAllZones()
+        ]);
+  
+        if (isMounted) {
+          setContenedores(contenedoresRes.data);
+          setZonas(zonasRes.data);
+          console.log('Datos cargados:', { 
+            contenedores: contenedoresRes.data, 
+            zonas: zonasRes.data 
+          });
+        }
       } catch (error) {
-        console.error('Error al cargar contenedores', error);
+        console.error('Error al cargar datos:', error);
       }
     }
-
-    async function fetchZonas() {
-      try {
-        const response = await getAllZones();
-        setZonas(response.data);
-      } catch (error) {
-        console.error('Error al cargar zonas', error);
-      }
-    }
-
+  
     async function fetchUserLocation() {
       if (user?.CP) {
         const location = await geocodeCP(user.CP);
-        if (location) {
+        if (location && isMounted) {
           setUserLocation(location);
         }
       }
     }
-
-    fetchContenedores();
-    fetchZonas();
+  
+    fetchData();
     fetchUserLocation();
-  }, [user]);
+  
+    return () => { isMounted = false; }; // Cleanup
+  }, [user?.CP]); // Solo depende de user.CP, no de todo el user
 
   const onMarkerClick = (item) => {
     setSelectedInfo(item);

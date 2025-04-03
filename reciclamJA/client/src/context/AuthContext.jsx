@@ -91,47 +91,48 @@ const AuthProvider = ({ children }) => {
 
     const fetchUserProfile = async () => {
         try {
-            const response = await getUserProfile();
-            setUser(response.data);
-            setIsAuthenticated(true);
+          const response = await getUserProfile();
+          setUser(response.data); // Actualiza el estado del contexto
+          setIsAuthenticated(true);
+          return response.data; // Devuelve el usuario para uso inmediato
         } catch (error) {
-            console.error("Fetch User Profile Error:", error.response?.data || error.message);
-            setIsAuthenticated(false);
-            setUser(null);
-            navigate('/login');
-        } finally {
-            setLoading(false);
+          console.error("Fetch User Profile Error:", error);
+          setIsAuthenticated(false);
+          setUser(null);
+          throw error;
         }
-    };
+      };
 
     const login = async (credentials) => {
         try {
-            const response = await loginUser(credentials);
-            const accessToken = response.data.access;
-            
-            if (!accessToken) {
-                console.error("❌ No se recibió el token de acceso");
-                return;
-            }
-    
-            if (credentials.rememberMe) {
-                localStorage.setItem('auth_token', accessToken);
-                localStorage.setItem('refresh_token', response.data.refresh);
-            } else {
-                sessionStorage.setItem('auth_token', accessToken);
-                sessionStorage.setItem('refresh_token', response.data.refresh);
-            }
-    
-            console.log("✅ Token guardado:", accessToken);
-            console.log("🔄 Refresh token guardado:", response.data.refresh);
-    
-            setIsAuthenticated(true);
-            await fetchUserProfile();
-            navigate('/dashboard');
+          const response = await loginUser(credentials);
+          const accessToken = response.data.access;
+          
+          if (!accessToken) {
+            throw new Error("No access token received");
+          }
+      
+          // Guardar tokens
+          if (credentials.rememberMe) {
+            localStorage.setItem('auth_token', accessToken);
+            localStorage.setItem('refresh_token', response.data.refresh);
+          } else {
+            sessionStorage.setItem('auth_token', accessToken);
+            sessionStorage.setItem('refresh_token', response.data.refresh);
+          }
+      
+          setIsAuthenticated(true);
+          
+          // Espera explícitamente a que se complete fetchUserProfile
+          const userProfile = await fetchUserProfile(); 
+          
+          // Devuelve el usuario actualizado (no el estado anterior)
+          return userProfile; 
         } catch (error) {
-            console.error("❌ Error en login:", error.response?.data);
+          console.error("Login error:", error);
+          throw error; // Propaga el error para manejarlo en el UI
         }
-    };
+      };
 
     const logout = async () => {
         try {

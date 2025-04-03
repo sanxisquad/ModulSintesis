@@ -11,7 +11,7 @@ app_name = 'auth'
 
 # Definir enrutador solo para autenticación
 router = routers.DefaultRouter()
-router.register(r'users', views.CustomUserViewSet, basename='users')  # Usuarios
+router.register(r'users', views.CustomUserViewSet, basename='users')  
 router.register(r'roles', views.RoleViewSet, basename='roles')  # Roles
 router.register(r'empreses', views.EmpresaViewSet, basename='empreses')  # Empresas
 

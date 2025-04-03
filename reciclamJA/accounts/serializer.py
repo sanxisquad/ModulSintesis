@@ -33,3 +33,6 @@ class CustomUserSerializer(serializers.ModelSerializer):
         return obj.is_admin()  # Call the is_admin method from the model
     def get_is_superadmin(self, obj):
         return obj.is_superadmin()
+    
+    def get_is_user(self, obj):
+        return obj.is_user()

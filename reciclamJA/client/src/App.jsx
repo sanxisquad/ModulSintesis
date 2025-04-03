@@ -7,7 +7,7 @@ import { LoginFormPage } from './pages/auth/LoginFormPage';
 import { ProfilePage } from './pages/Profile/ProfilePage';
 import { HomePage } from './pages/main/HomePage';
 import { ContenedorFormPage } from './pages/zr/ContenedorFormPage';
-import { ContenedorsPage } from './pages/zr/ContenedorsPage';
+import { ContenedorPage } from './pages/zr/ContenedorPage';
 import { DashBoard } from './pages/gestor/DashBoard';
 import { Toaster } from 'react-hot-toast';
 import { MenuProvider } from './context/MenuContext';
@@ -45,7 +45,7 @@ function App() {
               <Route path="/users/:id" element={<UserFormPage />} />
               <Route path="/contenedors-create" element={<ContenedorFormPage />} />
               <Route path="/zones-create" element={<ZonaFormPage />} />
-              <Route path="/contenedors" element={<ContenedorsPage />} />
+              <Route path="/contenedors" element={<ContenedorPage />} />
               <Route path="/gestor-dashboard" element={<DashBoard />} />
               <Route path="/gestor-contenedors" element={<GestorContenedors />} />
               <Route path="/gestor-zones" element={<GestorZona />} />

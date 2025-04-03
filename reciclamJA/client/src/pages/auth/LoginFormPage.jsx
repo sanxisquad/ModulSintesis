@@ -1,44 +1,46 @@
 import { useForm } from 'react-hook-form';
 import { useState } from 'react';
 import { useAuth } from '../../../hooks/useAuth';
-import { toast } from 'react-hot-toast'; // Para mostrar mensajes de éxito o error
-import { useNavigate } from 'react-router-dom';  // Importa el hook de navegación
+import { toast } from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
+import { usePermissions } from '../../../hooks/usePermissions'; // Importa el hook de permisos
 
 export function LoginFormPage() {
     const { register, handleSubmit, formState: { errors } } = useForm();
     const [loading, setLoading] = useState(false);
-    const [rememberMe, setRememberMe] = useState(false); // Estado para el checkbox
-    const { login } = useAuth();  // Usa la función login del contexto de autenticación
-    const navigate = useNavigate();  // Hook para redirigir
+    const [rememberMe, setRememberMe] = useState(false);
+    const { login, user } = useAuth(); // Asegúrate de obtener el user del contexto
+    const navigate = useNavigate();
+    const { isSuperAdmin, isAdmin, isGestor, isUser } = usePermissions(); // Usa el hook de permisos
 
-    // Función que se ejecuta cuando el formulario se envía
     const onSubmit = async (data) => {
-        setLoading(true);  // Indicamos que la solicitud está en proceso
-
+        setLoading(true);
         try {
-            await login({
-                username: data.username,  
-                password: data.password,
-                rememberMe: rememberMe, // Pasamos el estado del checkbox
-            });
-
-            // Si la respuesta es exitosa, mostramos un mensaje de éxito
-            toast.success("Logged in successfully");
-            navigate('/dashboard'); // Redirige al dashboard o página principal
+          // Espera a que login devuelva el usuario completo
+          const loggedInUser = await login({
+            username: data.username,
+            password: data.password,
+            rememberMe: rememberMe,
+          });
+    
+          toast.success("¡Bienvenido!");
+          
+          // Redirige basado en el usuario recibido (no del contexto)
+          if (loggedInUser?.is_superadmin || loggedInUser?.is_admin || loggedInUser?.is_gestor) {
+            navigate('/gestor-dashboard');
+          } else {
+            navigate('/');
+          }
         } catch (error) {
-            // Si ocurre un error, mostramos un mensaje
-            const errorMessage = error?.response?.data?.message || "Unknown error occurred";
-            toast.error("Error logging in: " + errorMessage);
-            console.error("Login Error:", error);
+          toast.error(error.response?.data?.message || "Credenciales incorrectas");
+        } finally {
+          setLoading(false);
         }
-
-        setLoading(false);  // Indicamos que la solicitud ha terminado
-    };
+      };
 
     return (
         <div className="max-w-md mx-auto mt-10">
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                {/* Campo de nombre de usuario */}
                 <input
                     type="text"
                     placeholder="Username"
@@ -48,7 +50,6 @@ export function LoginFormPage() {
                 />
                 {errors.username && <p className="text-red-500">{errors.username.message}</p>}
 
-                {/* Campo de contraseña */}
                 <input
                     type="password"
                     placeholder="Password"
@@ -58,7 +59,6 @@ export function LoginFormPage() {
                 />
                 {errors.password && <p className="text-red-500">{errors.password.message}</p>}
 
-                {/* Checkbox de mantener sesión iniciada */}
                 <div className="flex items-center">
                     <input
                         type="checkbox"
@@ -70,7 +70,6 @@ export function LoginFormPage() {
                     <label htmlFor="rememberMe" className="text-white">Mantener sesión iniciada</label>
                 </div>
 
-                {/* Botón de envío */}
                 <button
                     type="submit"
                     disabled={loading}
