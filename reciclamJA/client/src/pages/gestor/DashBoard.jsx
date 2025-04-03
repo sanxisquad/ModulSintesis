@@ -1,7 +1,7 @@
 import { useMenu } from '../../context/MenuContext';  // Usar el contexto del menú
 
 import { ContenedorList } from '../../components/zr/ContenedorList';
-import { MapView } from '../../components/zr/MapContainer';
+import { MapView } from '../../components/MapView/MapContainer';
 
 export function DashBoard() {
   const { menuOpen } = useMenu();  // Obtener el estado del menú desde el contexto

@@ -1,5 +1,5 @@
 import { Header } from "../../components/layout/Header";
-import { MapView } from "../../components/zr/MapContainer";
+import { MapView } from "../../components/MapView/MapContainer";
 export const HomePage = () => {
 
 

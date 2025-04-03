@@ -15,7 +15,7 @@ class ContenedorViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
 
-        if user.is_superadmin(): 
+        if user.is_superadmin() or user.is_user(): 
             return Contenedor.objects.all()
 
         if getattr(user, 'empresa', None):
@@ -71,7 +71,7 @@ class ZonesReciclatgeViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
 
-        if user.is_superadmin(): 
+        if user.is_superadmin() or user.is_user(): 
             return ZonesReciclatge.objects.all()
 
         if getattr(user, 'empresa', None):
