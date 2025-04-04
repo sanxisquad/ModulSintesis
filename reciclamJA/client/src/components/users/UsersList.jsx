@@ -51,7 +51,7 @@ export function UsersList() {
 
                 {isAdmin && (
                     <Link
-                        to="/users-create"  // Corregí la ruta que estaba como "/contenedors-create"
+                        to="/users-create"
                         className="ml-auto mr-10 bg-green-500 text-white p-2 rounded hover:bg-green-600 cursor-pointer"
                     >
                         Afegir Usuari

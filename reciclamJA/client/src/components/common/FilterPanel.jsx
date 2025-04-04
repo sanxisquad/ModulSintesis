@@ -6,12 +6,13 @@ export const FilterPanel = ({
   setFilters,
   ciudades,
   zonas,
+  usuarios = [],
   estatOptions = [],
   tipusOptions = [],
   mode = 'contenedors'
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const isMobile = window.innerWidth < 768; // Detectamos si es móvil
+  const isMobile = window.innerWidth < 768;
 
   const handleClearFilters = () => {
     const baseFilters = {
@@ -19,7 +20,9 @@ export const FilterPanel = ({
       zona: '',
       estat: '',
       tipus: '',
+      usuari: '',
       codi: '',
+      nom: '',
       showContenedores: true,
       showZones: true
     };
@@ -29,25 +32,43 @@ export const FilterPanel = ({
   // Configuración específica por modo
   const config = {
     contenedors: {
+      showCiutatFilter: true,
       showZonaFilter: true,
       showEstatFilter: true,
       showTipusFilter: true,
+      showUsuariFilter: false,
       showCodiFilter: true,
+      showNomFilter: false,
       showToggles: false
     },
     zones: {
+      showCiutatFilter: true,
       showZonaFilter: false,
       showEstatFilter: false,
       showTipusFilter: false,
-      showCodiFilter: true,
+      showUsuariFilter: false,
+      showCodiFilter: false,
+      showNomFilter: true,
       showToggles: false
     },
     mapa: {
+      showCiutatFilter: true,
       showZonaFilter: true,
       showEstatFilter: true,
       showTipusFilter: true,
+      showUsuariFilter: true,
       showCodiFilter: true,
       showToggles: true
+    },
+    usuaris: {
+      showCiutatFilter: false,
+      showZonaFilter: false,
+      showEstatFilter: false,
+      showTipusFilter: false,
+      showUsuariFilter: true,
+      showCodiFilter: false,
+      showNomFilter: true,
+      showToggles: false
     }
   };
 
@@ -73,19 +94,38 @@ export const FilterPanel = ({
       <div className={`${isMobile && !isExpanded ? 'hidden' : 'block'}`}>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {/* Filtro por ciudad */}
-          <div>
-            <label className="block mb-2 font-medium text-white">Ciutat</label>
-            <select
-              value={filters.ciutat}
-              onChange={(e) => setFilters({...filters, ciutat: e.target.value})}
-              className="w-full p-2 border rounded bg-gray-800 text-white"
-            >
-              <option value="">Totes</option>
-              {ciudades.map((ciudad, index) => (
-                <option key={index} value={ciudad}>{ciudad}</option>
-              ))}
-            </select>
-          </div>
+          {currentConfig.showCiutatFilter && (
+            <div>
+              <label className="block mb-2 font-medium text-white">Ciutat</label>
+              <select
+                value={filters.ciutat}
+                onChange={(e) => setFilters({...filters, ciutat: e.target.value})}
+                className="w-full p-2 border rounded bg-gray-800 text-white"
+              >
+                <option value="">Totes</option>
+                {ciudades.map((ciudad, index) => (
+                  <option key={index} value={ciudad}>{ciudad}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Filtro por usuario */}
+          {currentConfig.showUsuariFilter && (
+            <div>
+              <label className="block mb-2 font-medium text-white">Usuari</label>
+              <select
+                value={filters.usuari}
+                onChange={(e) => setFilters({...filters, usuari: e.target.value})}
+                className="w-full p-2 border rounded bg-gray-800 text-white"
+              >
+                <option value="">Tots</option>
+                {usuarios.map(usuario => (
+                  <option key={usuario.id} value={usuario.id}>{usuario.nom}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Filtro por zona */}
           {currentConfig.showZonaFilter && (
@@ -137,6 +177,35 @@ export const FilterPanel = ({
                 <option value="">Tots</option>
                 {tipusOptions.map(option => (
                   <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          {/* Filtro por nombre */}
+        {currentConfig.showNomFilter && (
+          <div>
+            <label className="block mb-2 font-medium text-white">Nom</label>
+            <input
+              type="text"
+              placeholder="Cercar per nom"
+              value={filters.nom}
+              onChange={(e) => setFilters({...filters, nom: e.target.value})}
+              className="w-full p-2 border rounded bg-gray-800 text-white"
+            />
+          </div>
+        )}
+                  {/* Filtro por usuario */}
+          {currentConfig.showUsuariFilter && (
+            <div>
+              <label className="block mb-2 font-medium text-white">Usuari</label>
+              <select
+                value={filters.usuari}
+                onChange={(e) => setFilters({...filters, usuari: e.target.value})}
+                className="w-full p-2 border rounded bg-gray-800 text-white"
+              >
+                <option value="">Tots</option>
+                {usuarios.map(usuario => (
+                  <option key={usuario.id} value={usuario.id}>{usuario.nom}</option>
                 ))}
               </select>
             </div>
