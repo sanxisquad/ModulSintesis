@@ -8,10 +8,9 @@ export function ZonaReciclatgeList() {
     const [zones, setZones] = useState([]);
     const [filters, setFilters] = useState({
         ciutat: '',
-        codi: ''
+        nom: ''
     });
     const [ciudades, setCiudades] = useState([]);
-    const [ciudadSeleccionada, setCiudadSeleccionada] = useState('');
 
     useEffect(() => {
         async function loadZones() {
@@ -19,19 +18,18 @@ export function ZonaReciclatgeList() {
             setZones(res.data);
 
             // Extraer ciudades únicas
-            const ciudadesUnicas = [...new Set(res.data.map(zones => zones.ciutat))];
+            const ciudadesUnicas = [...new Set(res.data.map(zone => zone.ciutat))];
             setCiudades(ciudadesUnicas);
         }
         loadZones();
     }, []);
-    const zonesFiltrades = zones.filter(contenedor => {
-        // Filtro por ciudad
-        if (filters.ciutat && zones.ciutat !== filters.zones) return false;
-    
 
+    const zonesFiltrades = zones.filter(zone => {
+        // Filtro por ciudad
+        if (filters.ciutat && zone.ciutat !== filters.ciutat) return false;
         
-        // Filtro por código (búsqueda parcial)
-        if (filters.codi && !contenedor.cod?.toLowerCase().includes(filters.codi.toLowerCase())) {
+        // Filtro por nombre (búsqueda parcial)
+        if (filters.nom && !zone.nom?.toLowerCase().includes(filters.nom.toLowerCase())) {
             return false;
         }
         
@@ -41,32 +39,30 @@ export function ZonaReciclatgeList() {
     return (
         <div className="container mx-auto">
             <h1 className="text-3xl font-bold text-center m-10">Zones de reciclatge</h1>
-                        <div className="ml-10 mb-2 text-sm text-gray-600">
-                            Mostrant {zonesFiltrades.length} de {zones.length} zones
-                        </div>            
-                        {/* Usamos el FilterPanel */}
-                        <FilterPanel
-                        filters={filters}
-                        setFilters={setFilters}
-                        ciudades={ciudades}
-                        nom
-                        mode="zones"
-                        />
-                    
-
+            <div className="ml-10 mb-2 text-sm text-gray-600">
+                Mostrant {zonesFiltrades.length} de {zones.length} zones
+            </div>            
+            
+            {/* Usamos el FilterPanel */}
+            <FilterPanel
+                filters={filters}
+                setFilters={setFilters}
+                ciudades={ciudades}
+                mode="zones"
+            />
+            
             <div className="flex ml-10 mb-5">
-
-             <Link
-                to="/zones-create"
-                className="ml-auto mr-10 bg-green-500 text-white p-2 rounded hover:bg-green-600 cursor-pointer"
+                <Link
+                    to="/zones-create"
+                    className="ml-auto mr-10 bg-green-500 text-white p-2 rounded hover:bg-green-600 cursor-pointer"
                 >
-                Afegir Zona de Reciclatge
-            </Link>
-        </div>
+                    Afegir Zona de Reciclatge
+                </Link>
+            </div>
 
             <div className="grid grid-cols-3 gap-3 m-10">
-                {zonesFiltrades.map((zones) => (
-                    <ZonesReciclatgeCard key={zones.id} zones={zones} />
+                {zonesFiltrades.map((zone) => (
+                    <ZonesReciclatgeCard key={zone.id} zones={zone} />
                 ))}
             </div>
         </div>

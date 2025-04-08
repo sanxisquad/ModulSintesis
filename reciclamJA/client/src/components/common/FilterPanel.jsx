@@ -9,6 +9,7 @@ export const FilterPanel = ({
   usuarios = [],
   estatOptions = [],
   tipusOptions = [],
+  roleOptions = [],
   mode = 'contenedors'
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -23,6 +24,7 @@ export const FilterPanel = ({
       usuari: '',
       codi: '',
       nom: '',
+      role: '',
       showContenedores: true,
       showZones: true
     };
@@ -68,6 +70,7 @@ export const FilterPanel = ({
       showUsuariFilter: true,
       showCodiFilter: false,
       showNomFilter: true,
+      showRoleFilter: true,
       showToggles: false
     }
   };
@@ -181,6 +184,22 @@ export const FilterPanel = ({
               </select>
             </div>
           )}
+              {/* Nuevo filtro por rol */}
+              {currentConfig.showRoleFilter && (
+            <div>
+              <label className="block mb-2 font-medium text-white">Rol</label>
+              <select
+                value={filters.role}
+                onChange={(e) => setFilters({...filters, role: e.target.value})}
+                className="w-full p-2 border rounded bg-gray-800 text-white"
+              >
+                <option value="">Tots els rols</option>
+                {roleOptions.map((role, index) => (
+                  <option key={index} value={role}>{role}</option>
+                ))}
+              </select>
+            </div>
+          )}
           {/* Filtro por nombre */}
         {currentConfig.showNomFilter && (
           <div>
@@ -194,22 +213,7 @@ export const FilterPanel = ({
             />
           </div>
         )}
-                  {/* Filtro por usuario */}
-          {currentConfig.showUsuariFilter && (
-            <div>
-              <label className="block mb-2 font-medium text-white">Usuari</label>
-              <select
-                value={filters.usuari}
-                onChange={(e) => setFilters({...filters, usuari: e.target.value})}
-                className="w-full p-2 border rounded bg-gray-800 text-white"
-              >
-                <option value="">Tots</option>
-                {usuarios.map(usuario => (
-                  <option key={usuario.id} value={usuario.id}>{usuario.nom}</option>
-                ))}
-              </select>
-            </div>
-          )}
+
 
           {/* Filtro por código y botón limpiar */}
           <div className={`md:col-span-${

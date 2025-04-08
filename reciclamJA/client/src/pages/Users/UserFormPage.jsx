@@ -1,11 +1,11 @@
 import { useForm } from 'react-hook-form';
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from 'react-router-dom';
-import { createUser, deleteUser, updateUser, getUser } from '../api/user.api';
-import { getAllRoles } from '../api/role.api';
-import { registerUser } from '../api/auth.api';
+import { createUser, deleteUser, updateUser, getUser } from '../../api/user.api';
+import { getAllRoles } from '../../api/role.api';
+import { registerUser } from '../../api/auth.api';
 import { toast } from 'react-hot-toast';
-import { usePermissions } from '../../hooks/usePermissions';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 export function UserFormPage() {
     const { register, handleSubmit, formState: { errors }, setValue, getValues, watch } = useForm();

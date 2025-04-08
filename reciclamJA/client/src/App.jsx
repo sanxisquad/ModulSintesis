@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { UsersPage } from './pages/UsersPage';
-import { UserFormPage } from './pages/UserFormPage';
+import { UsersPage } from './pages/Users/UsersPage';
+import { UserFormPage } from './pages/Users/UserFormPage';
 import { RegisterFormPage } from './pages/auth/RegisterFormPage';
 import { Navigation } from './components/layout/Navigation';
 import { LoginFormPage } from './pages/auth/LoginFormPage';

@@ -126,3 +126,19 @@ class EmpresaViewSet(viewsets.ModelViewSet):
     queryset = Empresa.objects.all()
     serializer_class = EmpresaSerializer
     # Aquí también puedes agregar permisos si los necesitas
+class CheckEmailView(APIView):
+    """
+    Vista para verificar si un correo electrónico ya existe en el sistema.
+    """
+    permission_classes = [AllowAny]  # Permite el acceso sin autenticación
+    
+    def post(self, request):
+        email = request.data.get('email', None)
+        
+        if email is None:
+            return Response({'error': 'Email es requerido'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Verificar si el correo electrónico existe en la base de datos
+        if CustomUser.objects.filter(email=email).exists():
+            return Response({'exists': True}, status=status.HTTP_200_OK)
+        return Response({'exists': False}, status=status.HTTP_200_OK)

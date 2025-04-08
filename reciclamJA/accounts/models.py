@@ -11,6 +11,7 @@ class Role(models.Model):
 # Modelo CustomUser extendido de AbstractUser
 class CustomUser(AbstractUser):
     age = models.PositiveIntegerField(null=True, blank=True)
+    email = models.EmailField(unique=True) 
     location = models.CharField(max_length=255, blank=True, null=True)
     role = models.ForeignKey(Role, on_delete=models.SET_NULL, null=True, blank=True)  # Relación con Role
     score = models.IntegerField(default=0)
