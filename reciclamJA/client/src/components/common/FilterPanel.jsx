@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FiFilter, FiChevronDown, FiChevronUp } from 'react-icons/fi';
+import { getAllRoles } from '../../api/role.api';
 
-export const FilterPanel = ({ 
-  filters, 
+export const FilterPanel = ({
+  filters,
   setFilters,
   ciudades,
   zonas,
@@ -13,6 +14,7 @@ export const FilterPanel = ({
   mode = 'contenedors'
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [internalRoleOptions, setInternalRoleOptions] = useState([]);
   const isMobile = window.innerWidth < 768;
 
   const handleClearFilters = () => {
@@ -31,7 +33,21 @@ export const FilterPanel = ({
     setFilters(baseFilters);
   };
 
-  // Configuración específica por modo
+  // Cargar roles si no se pasaron por props y estamos en modo 'usuaris'
+  useEffect(() => {
+    if (mode === 'usuaris' && roleOptions.length === 0) {
+      const fetchRoles = async () => {
+        try {
+          const roles = await getAllRoles();
+          setInternalRoleOptions(roles); // Suponiendo { id, nom }
+        } catch (error) {
+          console.error('Error al cargar los roles:', error);
+        }
+      };
+      fetchRoles();
+    }
+  }, [mode, roleOptions]);
+
   const config = {
     contenedors: {
       showCiutatFilter: true,
@@ -76,12 +92,12 @@ export const FilterPanel = ({
   };
 
   const currentConfig = config[mode] || config.contenedors;
+  const effectiveRoleOptions = roleOptions.length ? roleOptions : internalRoleOptions;
 
   return (
     <div className="bg-black p-4 mb-4 rounded shadow">
-      {/* Botón de toggle para móvil */}
       {isMobile && (
-        <button 
+        <button
           onClick={() => setIsExpanded(!isExpanded)}
           className="flex items-center justify-between w-full p-2 mb-2 text-white bg-gray-800 rounded"
         >
@@ -93,16 +109,14 @@ export const FilterPanel = ({
         </button>
       )}
 
-      {/* Contenedor de filtros (oculto en móvil si no está expandido) */}
       <div className={`${isMobile && !isExpanded ? 'hidden' : 'block'}`}>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {/* Filtro por ciudad */}
           {currentConfig.showCiutatFilter && (
             <div>
               <label className="block mb-2 font-medium text-white">Ciutat</label>
               <select
                 value={filters.ciutat}
-                onChange={(e) => setFilters({...filters, ciutat: e.target.value})}
+                onChange={(e) => setFilters({ ...filters, ciutat: e.target.value })}
                 className="w-full p-2 border rounded bg-gray-800 text-white"
               >
                 <option value="">Totes</option>
@@ -113,13 +127,12 @@ export const FilterPanel = ({
             </div>
           )}
 
-          {/* Filtro por usuario */}
           {currentConfig.showUsuariFilter && (
             <div>
               <label className="block mb-2 font-medium text-white">Usuari</label>
               <select
                 value={filters.usuari}
-                onChange={(e) => setFilters({...filters, usuari: e.target.value})}
+                onChange={(e) => setFilters({ ...filters, usuari: e.target.value })}
                 className="w-full p-2 border rounded bg-gray-800 text-white"
               >
                 <option value="">Tots</option>
@@ -130,7 +143,6 @@ export const FilterPanel = ({
             </div>
           )}
 
-          {/* Filtro por zona */}
           {currentConfig.showZonaFilter && (
             <div>
               <label className="block mb-2 font-medium text-white">
@@ -138,7 +150,7 @@ export const FilterPanel = ({
               </label>
               <select
                 value={filters.zona}
-                onChange={(e) => setFilters({...filters, zona: e.target.value})}
+                onChange={(e) => setFilters({ ...filters, zona: e.target.value })}
                 className="w-full p-2 border rounded bg-gray-800 text-white"
               >
                 <option value="">Totes</option>
@@ -151,13 +163,12 @@ export const FilterPanel = ({
             </div>
           )}
 
-          {/* Filtro por estado */}
           {currentConfig.showEstatFilter && (
             <div>
               <label className="block mb-2 font-medium text-white">Estat</label>
               <select
                 value={filters.estat}
-                onChange={(e) => setFilters({...filters, estat: e.target.value})}
+                onChange={(e) => setFilters({ ...filters, estat: e.target.value })}
                 className="w-full p-2 border rounded bg-gray-800 text-white"
               >
                 <option value="">Tots</option>
@@ -168,13 +179,12 @@ export const FilterPanel = ({
             </div>
           )}
 
-          {/* Filtro por tipo */}
           {currentConfig.showTipusFilter && (
             <div>
               <label className="block mb-2 font-medium text-white">Tipus</label>
               <select
                 value={filters.tipus}
-                onChange={(e) => setFilters({...filters, tipus: e.target.value})}
+                onChange={(e) => setFilters({ ...filters, tipus: e.target.value })}
                 className="w-full p-2 border rounded bg-gray-800 text-white"
               >
                 <option value="">Tots</option>
@@ -184,41 +194,41 @@ export const FilterPanel = ({
               </select>
             </div>
           )}
-              {/* Nuevo filtro por rol */}
-              {currentConfig.showRoleFilter && (
+
+          {currentConfig.showRoleFilter && effectiveRoleOptions.length > 0 && (
             <div>
               <label className="block mb-2 font-medium text-white">Rol</label>
               <select
                 value={filters.role}
-                onChange={(e) => setFilters({...filters, role: e.target.value})}
+                onChange={(e) => setFilters({ ...filters, role: e.target.value })}
                 className="w-full p-2 border rounded bg-gray-800 text-white"
               >
                 <option value="">Tots els rols</option>
-                {roleOptions.map((role, index) => (
-                  <option key={index} value={role}>{role}</option>
+                {effectiveRoleOptions.map((role) => (
+                  <option key={role.id} value={role.id}>
+                    {role.nom}
+                  </option>
                 ))}
               </select>
             </div>
           )}
-          {/* Filtro por nombre */}
-        {currentConfig.showNomFilter && (
-          <div>
-            <label className="block mb-2 font-medium text-white">Nom</label>
-            <input
-              type="text"
-              placeholder="Cercar per nom"
-              value={filters.nom}
-              onChange={(e) => setFilters({...filters, nom: e.target.value})}
-              className="w-full p-2 border rounded bg-gray-800 text-white"
-            />
-          </div>
-        )}
 
+          {currentConfig.showNomFilter && (
+            <div>
+              <label className="block mb-2 font-medium text-white">Nom</label>
+              <input
+                type="text"
+                placeholder="Cercar per nom"
+                value={filters.nom}
+                onChange={(e) => setFilters({ ...filters, nom: e.target.value })}
+                className="w-full p-2 border rounded bg-gray-800 text-white"
+              />
+            </div>
+          )}
 
-          {/* Filtro por código y botón limpiar */}
           <div className={`md:col-span-${
-            currentConfig.showZonaFilter && 
-            currentConfig.showEstatFilter && 
+            currentConfig.showZonaFilter &&
+            currentConfig.showEstatFilter &&
             currentConfig.showTipusFilter ? 2 : 1
           }`}>
             <label className="block mb-2 font-medium text-white">Cercar per codi</label>
@@ -227,7 +237,7 @@ export const FilterPanel = ({
                 type="text"
                 placeholder="Introdueix el codi"
                 value={filters.codi}
-                onChange={(e) => setFilters({...filters, codi: e.target.value})}
+                onChange={(e) => setFilters({ ...filters, codi: e.target.value })}
                 className="flex-1 p-2 border rounded bg-gray-800 text-white"
               />
               <button
@@ -240,24 +250,22 @@ export const FilterPanel = ({
           </div>
         </div>
 
-        {/* Toggles para mostrar/ocultar (solo en mapa) */}
         {currentConfig.showToggles && (
           <div className="mt-4 flex space-x-4">
             <label className="flex items-center text-white">
               <input
                 type="checkbox"
                 checked={filters.showContenedores}
-                onChange={(e) => setFilters({...filters, showContenedores: e.target.checked})}
+                onChange={(e) => setFilters({ ...filters, showContenedores: e.target.checked })}
                 className="mr-2"
               />
               Mostrar Contenidors
             </label>
-
             <label className="flex items-center text-white">
               <input
                 type="checkbox"
                 checked={filters.showZones}
-                onChange={(e) => setFilters({...filters, showZones: e.target.checked})}
+                onChange={(e) => setFilters({ ...filters, showZones: e.target.checked })}
                 className="mr-2"
               />
               Mostrar Zones
