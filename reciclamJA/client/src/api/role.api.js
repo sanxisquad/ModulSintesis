@@ -3,7 +3,7 @@ import axios from 'axios';
 const roleApi = axios.create({
     baseURL: 'http://localhost:8000/auth/api/v1/',
 });
-authApi.interceptors.request.use(
+roleApi.interceptors.request.use(
     (config) => {
         let token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token'); // 🔄 Intenta en sessionStorage si no está en localStorage
 

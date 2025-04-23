@@ -33,13 +33,14 @@ export const FilterPanel = ({
     setFilters(baseFilters);
   };
 
-  // Cargar roles si no se pasaron por props y estamos en modo 'usuaris'
   useEffect(() => {
     if (mode === 'usuaris' && roleOptions.length === 0) {
       const fetchRoles = async () => {
         try {
-          const roles = await getAllRoles();
-          setInternalRoleOptions(roles); // Suponiendo { id, nom }
+          const response = await getAllRoles();
+          console.log('Roles fetched from API:', response); // Debug log
+          const roles = response.data; // Extraer el array de roles de la propiedad `data`
+          setInternalRoleOptions(roles); // Asignar el array de roles
         } catch (error) {
           console.error('Error al cargar los roles:', error);
         }
@@ -92,7 +93,18 @@ export const FilterPanel = ({
   };
 
   const currentConfig = config[mode] || config.contenedors;
-  const effectiveRoleOptions = roleOptions.length ? roleOptions : internalRoleOptions;
+
+  // Ensure effectiveRoleOptions is always an array
+  const effectiveRoleOptions = Array.isArray(roleOptions) && roleOptions.length
+    ? roleOptions
+    : Array.isArray(internalRoleOptions)
+    ? internalRoleOptions
+    : [];
+
+  // Debug logs
+  console.log('roleOptions:', roleOptions);
+  console.log('internalRoleOptions:', internalRoleOptions);
+  console.log('effectiveRoleOptions:', effectiveRoleOptions);
 
   return (
     <div className="bg-black p-4 mb-4 rounded shadow">
@@ -195,7 +207,7 @@ export const FilterPanel = ({
             </div>
           )}
 
-          {currentConfig.showRoleFilter && effectiveRoleOptions.length > 0 && (
+          {currentConfig.showRoleFilter && (
             <div>
               <label className="block mb-2 font-medium text-white">Rol</label>
               <select
@@ -206,7 +218,7 @@ export const FilterPanel = ({
                 <option value="">Tots els rols</option>
                 {effectiveRoleOptions.map((role) => (
                   <option key={role.id} value={role.id}>
-                    {role.nom}
+                    {role.name}
                   </option>
                 ))}
               </select>
