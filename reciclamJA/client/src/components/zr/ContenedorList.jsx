@@ -1,46 +1,41 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { getAllContenedors, getAllZones } from '../../api/zr.api.js';
 import { ContenedorCard } from './ContenedorCard.jsx';
 import { Link } from 'react-router-dom';
-import { FilterPanel } from '../../components/common/FilterPanel'; // Importamos el FilterPanel
 
-export function ContenedorList() {
+export function ContenedorList({ filters }) {  // Recibe filters como prop
     const [contenedors, setContenedors] = useState([]);
     const [zones, setZones] = useState([]);
-    const [filters, setFilters] = useState({
-        ciutat: '',
-        zona: '',
-        estat: '',
-        tipus: '',
-        codi: ''
-    });
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         async function loadContenedors() {
-            const [resContenedores, resZones] = await Promise.all([
-                getAllContenedors(),
-                getAllZones()
-            ]);
-            setContenedors(resContenedores.data);
-            setZones(resZones.data);
+            try {
+                setIsLoading(true);
+                const [resContenedores, resZones] = await Promise.all([
+                    getAllContenedors(),
+                    getAllZones()
+                ]);
+                setContenedors(resContenedores.data);
+                setZones(resZones.data);
+            } catch (error) {
+                console.error("Error loading data:", error);
+            } finally {
+                setIsLoading(false);
+            }
         }
         loadContenedors();
     }, []);
 
-    // Extraer opciones únicas para los filtros
-    const ciudades = [...new Set(contenedors.map(c => c.ciutat).filter(Boolean))];
-    const estatOptions = [...new Set(contenedors.map(c => c.estat).filter(Boolean))];
-    const tipusOptions = [...new Set(contenedors.map(c => c.tipus).filter(Boolean))];
-    const zonasOptions = zones.map(zona => ({ id: zona.id, nom: zona.nom }));
-
     // Filtrar contenedores
     const contenedorsFiltrados = contenedors.filter(contenedor => {
+        if (!contenedor) return false;
+        
         // Filtro por ciudad
         if (filters.ciutat && contenedor.ciutat !== filters.ciutat) return false;
         
         // Filtro por zona
         if (filters.zona && contenedor.zona !== Number(filters.zona)) return false;
-
         
         // Filtro por estado
         if (filters.estat && contenedor.estat !== filters.estat) return false;
@@ -56,28 +51,17 @@ export function ContenedorList() {
         return true;
     });
 
+    if (isLoading) return <div className="text-center m-10">Carregant...</div>;
+
     return (
         <div className="container mx-auto">
-            <h1 className="text-3xl font-bold text-center m-10">Contenidors</h1>
             
             {/* Contador de resultados */}
             <div className="ml-10 mb-2 text-sm text-gray-600">
                 Mostrant {contenedorsFiltrados.length} de {contenedors.length} contenedors
             </div>
 
-            {/* Usamos el FilterPanel */}
-            <FilterPanel
-            filters={filters}
-            setFilters={setFilters}
-            ciudades={ciudades}
-            zonas={zones}
-            estatOptions={estatOptions}
-            tipusOptions={tipusOptions}
-            mode="contenedors"
-            />
-            
             <div className="flex justify-end mb-5 mr-10">
-                {/* Botón para agregar contenedor */}
                 <Link
                     to="/contenedors-create"
                     className="bg-green-500 text-white p-2 rounded hover:bg-green-600 cursor-pointer"

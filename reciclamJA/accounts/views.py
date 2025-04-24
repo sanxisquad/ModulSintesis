@@ -106,6 +106,7 @@ class UserProfileView(APIView):
             'CP': user.CP,
             'empresa': empresa_data,
             'score': user.score,
+            'location': user.location,
         })
     
 class LogoutView(APIView):
