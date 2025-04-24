@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { Marker, Popup, useMap } from 'react-leaflet';
 
 export const DynamicMarkers = ({ 
@@ -6,37 +6,29 @@ export const DynamicMarkers = ({
   icon, 
   selectedId, 
   onMarkerClick, 
-  renderPopup 
+  renderPopup,
+  zoomLevel = 12 // Nivel de zoom por defecto
 }) => {
   const map = useMap();
-  const [bounds, setBounds] = useState(null);
-  const lastBounds = useRef(null);
   const markerRefs = useRef(new Map());
 
+  // Auto-abrir popup cuando se selecciona un marker
   useEffect(() => {
-    if (!map) return;
+    if (selectedId && markerRefs.current.has(selectedId)) {
+      const marker = markerRefs.current.get(selectedId);
+      marker.openPopup();
+    }
+  }, [selectedId]);
 
-    const updateBounds = () => {
-      const newBounds = map.getBounds();
-      
-      if (!lastBounds.current || !lastBounds.current.equals(newBounds)) {
-        lastBounds.current = newBounds;
-        setBounds(newBounds);
-      }
-    };
-
-    updateBounds();
-    map.on('moveend', updateBounds);
-    
-    return () => {
-      map.off('moveend', updateBounds);
-    };
-  }, [map]);
-
+  // Opcional: Filtrar por viewport solo en zoom alto para mejor performance
   const visibleItems = useMemo(() => {
-    if (!bounds) return [];
-    return items.filter(item => bounds.contains([item.latitud, item.longitud]));
-  }, [items, bounds]);
+    if (!map || map.getZoom() < zoomLevel) return items;
+    
+    const bounds = map.getBounds();
+    return items.filter(item => {
+      return bounds.contains([item.latitud, item.longitud]);
+    });
+  }, [items, map, zoomLevel]);
 
   return visibleItems.map(item => (
     <Marker
@@ -46,10 +38,6 @@ export const DynamicMarkers = ({
       eventHandlers={{
         click: () => {
           onMarkerClick(item);
-          const marker = markerRefs.current.get(item.id);
-          if (marker) {
-            marker.openPopup();
-          }
         }
       }}
       ref={(ref) => {

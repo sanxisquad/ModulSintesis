@@ -39,10 +39,8 @@ export function ContenedorList() {
         if (filters.ciutat && contenedor.ciutat !== filters.ciutat) return false;
         
         // Filtro por zona
-        if (filters.zona) {
-            const zonaNombre = zones.find(z => z.id === contenedor.zona)?.nom;
-            if (zonaNombre !== filters.zona) return false;
-        }
+        if (filters.zona && contenedor.zona !== Number(filters.zona)) return false;
+
         
         // Filtro por estado
         if (filters.estat && contenedor.estat !== filters.estat) return false;

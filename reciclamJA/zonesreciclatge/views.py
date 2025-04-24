@@ -8,14 +8,19 @@ class ContenedorViewSet(viewsets.ModelViewSet):
     serializer_class = ContenedorSerializer
 
     def get_permissions(self):
-        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+        if self.action in ['list', 'retrieve']:
+            return [permissions.AllowAny()]  # Permitir acceso público para leer
+        elif self.action in ['create', 'update', 'partial_update', 'destroy']:
             return [CombinedPermission(IsSuperAdmin, IsAdminEmpresa, IsGestor)]
         return [permissions.IsAuthenticated()]
-    
+
     def get_queryset(self):
         user = self.request.user
 
-        if user.is_superadmin() or user.is_user(): 
+        if not user.is_authenticated:  # Si no está autenticado, devolver todos los contenedores
+            return Contenedor.objects.all()
+
+        if user.is_superadmin() or user.is_user():
             return Contenedor.objects.all()
 
         if getattr(user, 'empresa', None):
@@ -64,14 +69,19 @@ class ZonesReciclatgeViewSet(viewsets.ModelViewSet):
     serializer_class = ZonesReciclatgeSerializer
 
     def get_permissions(self):
-        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+        if self.action in ['list', 'retrieve']:
+            return [permissions.AllowAny()]  # Permitir acceso público para leer
+        elif self.action in ['create', 'update', 'partial_update', 'destroy']:
             return [CombinedPermission(IsSuperAdmin, IsAdminEmpresa, IsGestor)]
         return [permissions.IsAuthenticated()]
-    
+
     def get_queryset(self):
         user = self.request.user
 
-        if user.is_superadmin() or user.is_user(): 
+        if not user.is_authenticated:  # Si no está autenticado, devolver todas las zonas de reciclaje
+            return ZonesReciclatge.objects.all()
+
+        if user.is_superadmin() or user.is_user():
             return ZonesReciclatge.objects.all()
 
         if getattr(user, 'empresa', None):

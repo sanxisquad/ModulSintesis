@@ -84,6 +84,8 @@ export const FilterPanel = ({
         <button 
           onClick={() => setIsExpanded(!isExpanded)}
           className="flex items-center justify-between w-full p-2 mb-2 text-white bg-gray-800 rounded"
+          aria-expanded={isExpanded}
+          aria-controls="filter-panel-content"
         >
           <div className="flex items-center">
             <FiFilter className="mr-2" />
@@ -94,13 +96,15 @@ export const FilterPanel = ({
       )}
 
       {/* Contenedor de filtros (oculto en móvil si no está expandido) */}
-      <div className={`${isMobile && !isExpanded ? 'hidden' : 'block'}`}>
+      <div id="filter-panel-content" className={`${isMobile && !isExpanded ? 'hidden' : 'block'}`}>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {/* Filtro por ciudad */}
           {currentConfig.showCiutatFilter && (
             <div>
-              <label className="block mb-2 font-medium text-white">Ciutat</label>
+              <label htmlFor="ciutat-filter" className="block mb-2 font-medium text-white">Ciutat</label>
               <select
+                id="ciutat-filter"
+                name="ciutat"
                 value={filters.ciutat}
                 onChange={(e) => setFilters({...filters, ciutat: e.target.value})}
                 className="w-full p-2 border rounded bg-gray-800 text-white"
@@ -116,8 +120,10 @@ export const FilterPanel = ({
           {/* Filtro por usuario */}
           {currentConfig.showUsuariFilter && (
             <div>
-              <label className="block mb-2 font-medium text-white">Usuari</label>
+              <label htmlFor="usuari-filter" className="block mb-2 font-medium text-white">Usuari</label>
               <select
+                id="usuari-filter"
+                name="usuari"
                 value={filters.usuari}
                 onChange={(e) => setFilters({...filters, usuari: e.target.value})}
                 className="w-full p-2 border rounded bg-gray-800 text-white"
@@ -133,10 +139,12 @@ export const FilterPanel = ({
           {/* Filtro por zona */}
           {currentConfig.showZonaFilter && (
             <div>
-              <label className="block mb-2 font-medium text-white">
+              <label htmlFor="zona-filter" className="block mb-2 font-medium text-white">
                 {mode === 'zones' ? 'Zona' : 'Zona de reciclatge'}
               </label>
               <select
+                id="zona-filter"
+                name="zona"
                 value={filters.zona}
                 onChange={(e) => setFilters({...filters, zona: e.target.value})}
                 className="w-full p-2 border rounded bg-gray-800 text-white"
@@ -154,8 +162,10 @@ export const FilterPanel = ({
           {/* Filtro por estado */}
           {currentConfig.showEstatFilter && (
             <div>
-              <label className="block mb-2 font-medium text-white">Estat</label>
+              <label htmlFor="estat-filter" className="block mb-2 font-medium text-white">Estat</label>
               <select
+                id="estat-filter"
+                name="estat"
                 value={filters.estat}
                 onChange={(e) => setFilters({...filters, estat: e.target.value})}
                 className="w-full p-2 border rounded bg-gray-800 text-white"
@@ -171,8 +181,10 @@ export const FilterPanel = ({
           {/* Filtro por tipo */}
           {currentConfig.showTipusFilter && (
             <div>
-              <label className="block mb-2 font-medium text-white">Tipus</label>
+              <label htmlFor="tipus-filter" className="block mb-2 font-medium text-white">Tipus</label>
               <select
+                id="tipus-filter"
+                name="tipus"
                 value={filters.tipus}
                 onChange={(e) => setFilters({...filters, tipus: e.target.value})}
                 className="w-full p-2 border rounded bg-gray-800 text-white"
@@ -184,11 +196,14 @@ export const FilterPanel = ({
               </select>
             </div>
           )}
-              {/* Nuevo filtro por rol */}
-              {currentConfig.showRoleFilter && (
+
+          {/* Filtro por rol */}
+          {currentConfig.showRoleFilter && (
             <div>
-              <label className="block mb-2 font-medium text-white">Rol</label>
+              <label htmlFor="role-filter" className="block mb-2 font-medium text-white">Rol</label>
               <select
+                id="role-filter"
+                name="role"
                 value={filters.role}
                 onChange={(e) => setFilters({...filters, role: e.target.value})}
                 className="w-full p-2 border rounded bg-gray-800 text-white"
@@ -200,20 +215,22 @@ export const FilterPanel = ({
               </select>
             </div>
           )}
-          {/* Filtro por nombre */}
-        {currentConfig.showNomFilter && (
-          <div>
-            <label className="block mb-2 font-medium text-white">Nom</label>
-            <input
-              type="text"
-              placeholder="Cercar per nom"
-              value={filters.nom}
-              onChange={(e) => setFilters({...filters, nom: e.target.value})}
-              className="w-full p-2 border rounded bg-gray-800 text-white"
-            />
-          </div>
-        )}
 
+          {/* Filtro por nombre */}
+          {currentConfig.showNomFilter && (
+            <div>
+              <label htmlFor="nom-filter" className="block mb-2 font-medium text-white">Nom</label>
+              <input
+                id="nom-filter"
+                name="nom"
+                type="text"
+                placeholder="Cercar per nom"
+                value={filters.nom}
+                onChange={(e) => setFilters({...filters, nom: e.target.value})}
+                className="w-full p-2 border rounded bg-gray-800 text-white"
+              />
+            </div>
+          )}
 
           {/* Filtro por código y botón limpiar */}
           <div className={`md:col-span-${
@@ -221,9 +238,11 @@ export const FilterPanel = ({
             currentConfig.showEstatFilter && 
             currentConfig.showTipusFilter ? 2 : 1
           }`}>
-            <label className="block mb-2 font-medium text-white">Cercar per codi</label>
+            <label htmlFor="codi-filter" className="block mb-2 font-medium text-white">Cercar per codi</label>
             <div className="flex gap-2">
               <input
+                id="codi-filter"
+                name="codi"
                 type="text"
                 placeholder="Introdueix el codi"
                 value={filters.codi}
@@ -231,6 +250,7 @@ export const FilterPanel = ({
                 className="flex-1 p-2 border rounded bg-gray-800 text-white"
               />
               <button
+                type="button"
                 onClick={handleClearFilters}
                 className="bg-red-600 hover:bg-red-700 text-white p-2 rounded transition-colors"
               >
@@ -243,8 +263,10 @@ export const FilterPanel = ({
         {/* Toggles para mostrar/ocultar (solo en mapa) */}
         {currentConfig.showToggles && (
           <div className="mt-4 flex space-x-4">
-            <label className="flex items-center text-white">
+            <label htmlFor="show-contenedores" className="flex items-center text-white">
               <input
+                id="show-contenedores"
+                name="showContenedores"
                 type="checkbox"
                 checked={filters.showContenedores}
                 onChange={(e) => setFilters({...filters, showContenedores: e.target.checked})}
@@ -253,8 +275,10 @@ export const FilterPanel = ({
               Mostrar Contenidors
             </label>
 
-            <label className="flex items-center text-white">
+            <label htmlFor="show-zones" className="flex items-center text-white">
               <input
+                id="show-zones"
+                name="showZones"
                 type="checkbox"
                 checked={filters.showZones}
                 onChange={(e) => setFilters({...filters, showZones: e.target.checked})}
