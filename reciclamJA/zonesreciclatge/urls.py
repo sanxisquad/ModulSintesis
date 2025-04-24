@@ -1,16 +1,21 @@
 from django.urls import path, include
 from rest_framework import routers
 from . import views  
+from .views import (
+    ContenedorViewSet, ZonesReciclatgeViewSet,
+    PublicContenedorViewSet, PublicZonesViewSet
+)
 
 app_name = 'zr'
 
-# Crear el enrutador
-router = routers.DefaultRouter()
-router.register(r'zones', views.ZonesReciclatgeViewSet, basename='zones')
-router.register(r'contenidors', views.ContenedorViewSet, basename='contenidors')
 
-# Definir las URLs con el prefijo "api/v1/zr/"
+
+router = routers.DefaultRouter()
+router.register(r'contenidors', ContenedorViewSet, basename='contenidors')
+router.register(r'zones', ZonesReciclatgeViewSet, basename='zones')
+router.register(r'public/contenidors', PublicContenedorViewSet, basename='public-contenidors')
+router.register(r'public/zones', PublicZonesViewSet, basename='public-zones')
+
 urlpatterns = [
-    path('api/v1/zr/', include(router.urls)),  # Esto ya incluye todas las rutas necesarias
-    
+    path('', include(router.urls)),
 ]

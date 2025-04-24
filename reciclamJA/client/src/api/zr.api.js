@@ -1,10 +1,10 @@
+
+
 import axios from 'axios';
 
 const zrApi = axios.create({
-    baseURL: 'http://localhost:8000/zr/api/v1/zr',
+    baseURL: 'http://localhost:8000/zr/',
 });
-
-// 🚀 Interceptor para añadir el token automáticamente
 zrApi.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
@@ -17,6 +17,7 @@ zrApi.interceptors.request.use(
         return Promise.reject(error);
     }
 );
+
 
 // 📌 Métodos para interactuar con la API
 export const getAllContenedors = () => zrApi.get('/contenidors/');
@@ -50,3 +51,8 @@ export const createZona = async (zona) => {
 export const updateZona = (id, zona) => zrApi.put(`/zones/${id}/`, zona);
 
 export const deleteZona = (id) => zrApi.delete(`/zones/${id}/`);
+export const assignContenedoresToZona = (zonaId, contenedorIds) => {
+    return zrApi.post(`zones/${zonaId}/assign-contenedors/`, {
+        contenedor_ids: contenedorIds,
+    });
+};

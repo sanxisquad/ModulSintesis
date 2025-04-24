@@ -17,6 +17,7 @@ import { ZonaFormPage } from './pages/zr/ZonaReciclatgeFormPage';
 import { GestorUsuaris } from './pages/gestor/GestorUsuaris';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Unauthorized } from './pages/auth/Unauthorized';
+import { ZonaContenedoresView } from './components/zr/ZonaContenedoresView';
 
 function App() {
   return (
@@ -49,6 +50,8 @@ function App() {
               <Route path="/gestor-dashboard" element={<DashBoard />} />
               <Route path="/gestor-contenedors" element={<GestorContenedors />} />
               <Route path="/gestor-zones" element={<GestorZona />} />
+              <Route path="/zones/:id/contenedores" element={<ZonaContenedoresView />} />
+
             </Route>
           </Routes>
         </div>
