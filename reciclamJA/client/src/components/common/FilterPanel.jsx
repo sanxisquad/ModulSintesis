@@ -136,7 +136,6 @@ export const FilterPanel = ({
             </div>
           )}
 
-          {/* Filtro por zona */}
           {currentConfig.showZonaFilter && (
             <div>
               <label htmlFor="zona-filter" className="block mb-2 font-medium text-white">
@@ -159,7 +158,6 @@ export const FilterPanel = ({
             </div>
           )}
 
-          {/* Filtro por estado */}
           {currentConfig.showEstatFilter && (
             <div>
               <label htmlFor="estat-filter" className="block mb-2 font-medium text-white">Estat</label>
@@ -167,7 +165,7 @@ export const FilterPanel = ({
                 id="estat-filter"
                 name="estat"
                 value={filters.estat}
-                onChange={(e) => setFilters({...filters, estat: e.target.value})}
+                onChange={(e) => setFilters({ ...filters, estat: e.target.value })}
                 className="w-full p-2 border rounded bg-gray-800 text-white"
               >
                 <option value="">Tots</option>
@@ -178,7 +176,6 @@ export const FilterPanel = ({
             </div>
           )}
 
-          {/* Filtro por tipo */}
           {currentConfig.showTipusFilter && (
             <div>
               <label htmlFor="tipus-filter" className="block mb-2 font-medium text-white">Tipus</label>
@@ -186,7 +183,7 @@ export const FilterPanel = ({
                 id="tipus-filter"
                 name="tipus"
                 value={filters.tipus}
-                onChange={(e) => setFilters({...filters, tipus: e.target.value})}
+                onChange={(e) => setFilters({ ...filters, tipus: e.target.value })}
                 className="w-full p-2 border rounded bg-gray-800 text-white"
               >
                 <option value="">Tots</option>
@@ -197,7 +194,10 @@ export const FilterPanel = ({
             </div>
           )}
 
+<<<<<<< HEAD
           {/* Filtro por rol */}
+=======
+>>>>>>> 6b1d9c3c1a21e5ca32352ab3f9d108e12ab945b9
           {currentConfig.showRoleFilter && (
             <div>
               <label htmlFor="role-filter" className="block mb-2 font-medium text-white">Rol</label>
@@ -205,17 +205,20 @@ export const FilterPanel = ({
                 id="role-filter"
                 name="role"
                 value={filters.role}
-                onChange={(e) => setFilters({...filters, role: e.target.value})}
+                onChange={(e) => setFilters({ ...filters, role: e.target.value })}
                 className="w-full p-2 border rounded bg-gray-800 text-white"
               >
                 <option value="">Tots els rols</option>
-                {roleOptions.map((role, index) => (
-                  <option key={index} value={role}>{role}</option>
+                {effectiveRoleOptions.map((role) => (
+                  <option key={role.id} value={role.id}>
+                    {role.name}
+                  </option>
                 ))}
               </select>
             </div>
           )}
 
+<<<<<<< HEAD
           {/* Filtro por nombre */}
           {currentConfig.showNomFilter && (
             <div>
@@ -227,15 +230,24 @@ export const FilterPanel = ({
                 placeholder="Cercar per nom"
                 value={filters.nom}
                 onChange={(e) => setFilters({...filters, nom: e.target.value})}
+=======
+          {currentConfig.showNomFilter && (
+            <div>
+              <label className="block mb-2 font-medium text-white">Nom</label>
+              <input
+                type="text"
+                placeholder="Cercar per nom"
+                value={filters.nom}
+                onChange={(e) => setFilters({ ...filters, nom: e.target.value })}
+>>>>>>> 6b1d9c3c1a21e5ca32352ab3f9d108e12ab945b9
                 className="w-full p-2 border rounded bg-gray-800 text-white"
               />
             </div>
           )}
 
-          {/* Filtro por código y botón limpiar */}
           <div className={`md:col-span-${
-            currentConfig.showZonaFilter && 
-            currentConfig.showEstatFilter && 
+            currentConfig.showZonaFilter &&
+            currentConfig.showEstatFilter &&
             currentConfig.showTipusFilter ? 2 : 1
           }`}>
             <label htmlFor="codi-filter" className="block mb-2 font-medium text-white">Cercar per codi</label>
@@ -260,7 +272,6 @@ export const FilterPanel = ({
           </div>
         </div>
 
-        {/* Toggles para mostrar/ocultar (solo en mapa) */}
         {currentConfig.showToggles && (
           <div className="mt-4 flex space-x-4">
             <label htmlFor="show-contenedores" className="flex items-center text-white">
@@ -269,19 +280,23 @@ export const FilterPanel = ({
                 name="showContenedores"
                 type="checkbox"
                 checked={filters.showContenedores}
-                onChange={(e) => setFilters({...filters, showContenedores: e.target.checked})}
+                onChange={(e) => setFilters({ ...filters, showContenedores: e.target.checked })}
                 className="mr-2"
               />
               Mostrar Contenidors
             </label>
+<<<<<<< HEAD
 
             <label htmlFor="show-zones" className="flex items-center text-white">
+=======
+            <label className="flex items-center text-white">
+>>>>>>> 6b1d9c3c1a21e5ca32352ab3f9d108e12ab945b9
               <input
                 id="show-zones"
                 name="showZones"
                 type="checkbox"
                 checked={filters.showZones}
-                onChange={(e) => setFilters({...filters, showZones: e.target.checked})}
+                onChange={(e) => setFilters({ ...filters, showZones: e.target.checked })}
                 className="mr-2"
               />
               Mostrar Zones
