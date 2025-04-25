@@ -137,6 +137,13 @@ class ZonesReciclatgeViewSet(viewsets.ModelViewSet):
             (request.user.is_gestor() and zona.empresa == request.user.empresa)):
             raise PermissionDenied("No tienes permisos para realizar esta acción")
 
+        # Obtener todos los contenedores actualmente asignados a esta zona
+        current_assigned = Contenedor.objects.filter(zona=zona)
+        
+        # 1. Primero desasignar TODOS los contenedores de esta zona
+        current_assigned.update(zona=None)
+        
+        # 2. Luego asignar solo los nuevos contenedores seleccionados
         contenedors = Contenedor.objects.filter(id__in=contenedor_ids)
         
         # Verificar que todos los contenedores pertenecen a la misma empresa (si no es superadmin)
@@ -145,11 +152,6 @@ class ZonesReciclatgeViewSet(viewsets.ModelViewSet):
                 if c.empresa != request.user.empresa:
                     return Response(
                         {'status': 'Error', 'message': f'El contenedor {c.id} no pertenece a tu empresa'}, 
-                        status=400
-                    )
-                if c.zona and c.zona != zona:
-                    return Response(
-                        {'status': 'Error', 'message': f'El contenedor {c.id} ya está asignado a otra zona.'}, 
                         status=400
                     )
         
@@ -162,7 +164,8 @@ class ZonesReciclatgeViewSet(viewsets.ModelViewSet):
 
         return Response({
             'status': 'Contenedores asignados correctamente', 
-            'contenedores': contenedores_asignados
+            'contenedores': contenedores_asignados,
+            'total_asignados': len(contenedores_asignados)
         })
     # --- Vistas públicas de solo lectura ---
 

@@ -2,8 +2,11 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { getZona, getAllContenedors, assignContenedoresToZona } from '../../api/zr.api';
+import { useConfirmDialog } from "../common/ConfirmDialog";
 
 export function ZonaContenedoresView() {
+  const confirm = useConfirmDialog();
+
   const { id } = useParams();
   const [contenedores, setContenedores] = useState([]);
   const [selectedContenedores, setSelectedContenedores] = useState([]);
@@ -22,7 +25,9 @@ export function ZonaContenedoresView() {
         const contenedoresDisponibles = contenedorResponse.data;
         setContenedores(contenedoresDisponibles);
 
-        const contenedoresAsignados = contenedoresDisponibles.filter(c => c.zonaId === id);
+        const contenedoresAsignados = contenedoresDisponibles.filter(c => 
+          c.zona && c.zona.toString() === id.toString()
+        );
         setSelectedContenedores(contenedoresAsignados);
       } catch (err) {
         toast.error(err.response?.data?.message || "Error al cargar los datos");
@@ -46,28 +51,78 @@ export function ZonaContenedoresView() {
   };
 
   const handleSubmit = async () => {
+    const currentAssignedIds = contenedores
+      .filter(c => c.zona?.id === id)
+      .map(c => c.id);
+    
+    const changes = {
+      added: selectedContenedores.filter(c => !currentAssignedIds.includes(c.id)).length,
+      removed: currentAssignedIds.filter(id => !selectedContenedores.some(c => c.id === id)).length
+    };
+  
+    const confirmation = await confirm({
+      title: "Guardar cambios en contenedores",
+      message: "Se aplicarán los siguientes cambios:",
+      detail: `✅ Añadir: ${changes.added} contenedores\n❌ Quitar: ${changes.removed} contenedores`,
+      confirmText: "Guardar cambios",
+      cancelText: "Descartar"
+    });
+  
+    if (confirmation) {
     try {
-        setLoading(true);
-        const contenedorIds = selectedContenedores.map(c => c.id);
+      setLoading(true);
+      const contenedorIds = selectedContenedores.map(c => c.id);
+      
+      // Enviar la lista actual de contenedores seleccionados
+      const response = await assignContenedoresToZona(id, contenedorIds);
+      
+      if (response.data.status === 'Contenedores asignados correctamente') {
+        toast.success(response.data.status);
         
-        const response = await assignContenedoresToZona(id, contenedorIds);
+        // Actualizar el estado local para reflejar los cambios
+        const updatedContenedores = contenedores.map(c => ({
+          ...c,
+          zona: contenedorIds.includes(c.id) ? { id: id } : null
+        }));
         
-        if (response.data.status === 'Contenedores asignados correctamente') {
-            toast.success(response.data.status);
-            // Opcional: actualizar el estado local si es necesario
-        } else {
-            toast.error("Hubo un problema al asignar los contenedores");
-        }
+        setContenedores(updatedContenedores);
+        
+        // También actualizar los contenedores asignados
+        const nuevosAsignados = updatedContenedores.filter(c => 
+          c.zona && c.zona.id.toString() === id.toString()
+        );
+        setSelectedContenedores(nuevosAsignados);
+        
+      } else {
+        toast.error("Hubo un problema al asignar los contenedores");
+      }
     } catch (error) {
-        if (error.response?.data?.message) {
-            toast.error(error.response.data.message);
+      console.error("Error al asignar contenedores:", error);
+      
+      if (error.response) {
+        if (error.response.status === 400) {
+          toast.error(error.response.data.message || "Datos inválidos");
+        } else if (error.response.status === 404) {
+          toast.error("Zona no encontrada");
         } else {
-            toast.error("Error de conexión con el servidor");
+          toast.error(error.response.data?.message || "Error del servidor");
         }
+      } else if (error.request) {
+        toast.error("No se recibió respuesta del servidor");
+      } else {
+        toast.error("Error al configurar la solicitud");
+      }
+      
+      const zonaResponse = await getZona(id);
+      const contenedorResponse = await getAllContenedors();
+      setContenedores(contenedorResponse.data);
+      setZona(zonaResponse.data);
+      
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
-};
+  }
+  };
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
