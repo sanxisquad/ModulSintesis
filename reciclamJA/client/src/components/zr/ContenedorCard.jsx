@@ -14,7 +14,7 @@ export function ContenedorCard({ contenedor }) {
 
     return (
         <div
-            className="bg-zinc-800 p3 rounded hover:bg-zinc-700 hover:cursor-pointer"
+            className="bg-zinc-800 p-3 rounded-2x1 hover:bg-zinc-700 hover:cursor-pointer"
             onClick={() => navigate(`/contenedor/${contenedor.id}`)}
         >
             <h1 className="font-bold uppercase">{contenedor.cod}</h1>

@@ -15,7 +15,7 @@ export function ZonesReciclatgeCard({ zones }) {
 
   return (
     <div
-      className="bg-zinc-800 p-3 rounded hover:bg-zinc-700 hover:cursor-pointer"
+      className="bg-zinc-800 p-3 rounded-2xl hover:bg-zinc-700 hover:cursor-pointer"
       onClick={handleDivClick}  // Redirige a editar la zona cuando se hace clic en el div
     >
       <h1 className="font-bold uppercase">{zones.nom}</h1>

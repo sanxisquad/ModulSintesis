@@ -19,45 +19,48 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { Unauthorized } from './pages/auth/Unauthorized';
 import { ZonaContenedoresView } from './components/zr/ZonaContenedoresView';
 
+import { ConfirmDialogProvider } from './components/common/ConfirmDialog';
+
 function App() {
   return (
-    <MenuProvider>
-      <div className="w-screen h-screen flex flex-col">
-        <Navigation />
-        <div className="flex-1 overflow-auto">
-          <Routes>
-            {/* TOTS */}
-            <Route path="/" element={<HomePage />} />
-            <Route path="/login" element={<LoginFormPage />} />
-            <Route path="/register" element={<RegisterFormPage />} />
-            <Route path="/unauthorized" element={<Unauthorized />} />
+    <ConfirmDialogProvider>
+      <MenuProvider>
+        <div className="w-screen h-screen flex flex-col">
+          <Navigation />
+          <div className="flex-1 overflow-auto">
+            <Routes>
+              {/* TOTS */}
+              <Route path="/" element={<HomePage />} />
+              <Route path="/login" element={<LoginFormPage />} />
+              <Route path="/register" element={<RegisterFormPage />} />
+              <Route path="/unauthorized" element={<Unauthorized />} />
 
-            {/* LOGUEJATS */}
-            <Route element={<ProtectedRoute allowedRoles={["isUser", "isGestor", "isAdmin", "isSuperAdmin"]} />}> 
-              <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/zona/:id" element={<ZonaFormPage />} />
-              <Route path="/contenedor/:id" element={<ContenedorFormPage />} />
-            </Route>
+              {/* LOGUEJATS */}
+              <Route element={<ProtectedRoute allowedRoles={["isUser", "isGestor", "isAdmin", "isSuperAdmin"]} />}> 
+                <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/zona/:id" element={<ZonaFormPage />} />
+                <Route path="/contenedor/:id" element={<ContenedorFormPage />} />
+              </Route>
 
-            {/* SUPERADMIN GESTOR ADMIN */}
-            <Route element={<ProtectedRoute allowedRoles={["isGestor", "isAdmin", "isSuperAdmin"]} />}> 
-              <Route path="/gestor-usuaris" element={<GestorUsuaris />} />
-              <Route path="/users-create" element={<UserFormPage />} />
-              <Route path="/users/:id" element={<UserFormPage />} />
-              <Route path="/contenedors-create" element={<ContenedorFormPage />} />
-              <Route path="/zones-create" element={<ZonaFormPage />} />
-              <Route path="/contenedors" element={<ContenedorPage />} />
-              <Route path="/gestor-dashboard" element={<DashBoard />} />
-              <Route path="/gestor-contenedors" element={<GestorContenedors />} />
-              <Route path="/gestor-zones" element={<GestorZona />} />
-              <Route path="/zones/:id/contenedores" element={<ZonaContenedoresView />} />
-
-            </Route>
-          </Routes>
+              {/* SUPERADMIN GESTOR ADMIN */}
+              <Route element={<ProtectedRoute allowedRoles={["isGestor", "isAdmin", "isSuperAdmin"]} />}> 
+                <Route path="/gestor-usuaris" element={<GestorUsuaris />} />
+                <Route path="/users-create" element={<UserFormPage />} />
+                <Route path="/users/:id" element={<UserFormPage />} />
+                <Route path="/contenedors-create" element={<ContenedorFormPage />} />
+                <Route path="/zones-create" element={<ZonaFormPage />} />
+                <Route path="/contenedors" element={<ContenedorPage />} />
+                <Route path="/gestor-dashboard" element={<DashBoard />} />
+                <Route path="/gestor-contenedors" element={<GestorContenedors />} />
+                <Route path="/gestor-zones" element={<GestorZona />} />
+                <Route path="/zones/:id/contenedores" element={<ZonaContenedoresView />} />
+              </Route>
+            </Routes>
+          </div>
+          <Toaster />
         </div>
-        <Toaster />
-      </div>
-    </MenuProvider>
+      </MenuProvider>
+    </ConfirmDialogProvider>
   );
 }
 

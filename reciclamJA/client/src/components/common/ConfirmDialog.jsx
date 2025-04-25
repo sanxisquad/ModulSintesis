@@ -1,15 +1,4 @@
 import React, { useState, createContext, useContext } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Typography,
-  IconButton
-} from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
-import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 
 // Contexto para el diálogo
 const ConfirmDialogContext = createContext();
@@ -24,10 +13,10 @@ export const ConfirmDialogProvider = ({ children }) => {
       confirmText: "Aceptar",
       cancelText: "Cancelar",
       showCloseButton: true,
-      ...config
+      ...config,
     });
     setOpen(true);
-    
+
     return new Promise((resolve) => {
       setConfig((prev) => ({ ...prev, resolve }));
     });
@@ -41,54 +30,51 @@ export const ConfirmDialogProvider = ({ children }) => {
   return (
     <ConfirmDialogContext.Provider value={confirm}>
       {children}
-      
-      <Dialog 
-        open={open} 
-        onClose={() => handleClose(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          {config.icon || <WarningAmberRoundedIcon color="warning" />}
-          <span style={{ flex: 1 }}>{config.title}</span>
-          {config.showCloseButton && (
-            <IconButton onClick={() => handleClose(false)}>
-              <CloseIcon />
-            </IconButton>
-          )}
-        </DialogTitle>
-        
-        <DialogContent dividers sx={{ pt: 2 }}>
-          <Typography variant="body1">{config.message}</Typography>
-          {config.detail && (
-            <Typography 
-              variant="body2" 
-              color="text.secondary" 
-              sx={{ mt: 2, whiteSpace: 'pre-line' }}
-            >
-              {config.detail}
-            </Typography>
-          )}
-        </DialogContent>
-        
-        <DialogActions>
-          <Button 
-            onClick={() => handleClose(false)}
-            color="inherit"
-            sx={{ mr: 1 }}
-          >
-            {config.cancelText}
-          </Button>
-          <Button 
-            onClick={() => handleClose(true)} 
-            color="primary"
-            variant="contained"
-            autoFocus
-          >
-            {config.confirmText}
-          </Button>
-        </DialogActions>
-      </Dialog>
+
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg shadow-lg max-w-md w-full">
+            {/* Título del diálogo */}
+            <div className="flex items-center justify-between px-4 py-3 border-b">
+              <h2 className="text-lg font-semibold">{config.title}</h2>
+              {config.showCloseButton && (
+                <button
+                  onClick={() => handleClose(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {/* Contenido del diálogo */}
+            <div className="p-4">
+              <p className="text-gray-700">{config.message}</p>
+              {config.detail && (
+                <p className="mt-2 text-sm text-gray-500 whitespace-pre-line">
+                  {config.detail}
+                </p>
+              )}
+            </div>
+
+            {/* Acciones del diálogo */}
+            <div className="flex justify-end gap-2 px-4 py-3 border-t">
+              <button
+                onClick={() => handleClose(false)}
+                className="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300"
+              >
+                {config.cancelText}
+              </button>
+              <button
+                onClick={() => handleClose(true)}
+                className="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700"
+              >
+                {config.confirmText}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </ConfirmDialogContext.Provider>
   );
 };

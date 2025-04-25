@@ -28,11 +28,12 @@ class ContenedorSerializer(serializers.ModelSerializer):
         allow_null=True, 
         required=False  
     )
+    zona_nombre = serializers.CharField(source='zona.nom', read_only=True)
     empresa = EmpresaSerializer(read_only=True)  # Solo lectura, la asignamos en `create`
 
     class Meta:
         model = Contenedor
-        fields = ['id', 'zona', 'empresa', 'tipus', 'estat', 'latitud', 'longitud', 'ciutat', 'cod']
+        fields = ['id', 'zona', 'empresa', 'tipus', 'estat','zona_nombre', 'latitud', 'longitud', 'ciutat', 'cod']
 
     def create(self, validated_data):
         """Asigna automáticamente la empresa del usuario autenticado al crear un contenedor."""
