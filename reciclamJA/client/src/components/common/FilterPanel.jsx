@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FiFilter, FiChevronDown, FiChevronUp } from 'react-icons/fi';
+import { FiFilter, FiChevronDown, FiChevronUp, FiX } from 'react-icons/fi';
 
 export const FilterPanel = ({ 
   filters, 
@@ -55,11 +55,11 @@ export const FilterPanel = ({
     },
     mapa: {
       showCiutatFilter: true,
-      showZonaFilter: true,
+      showZonaFilter: false,
       showEstatFilter: true,
       showTipusFilter: true,
-      showUsuariFilter: true,
-      showCodiFilter: true,
+      showUsuariFilter: false,
+      showCodiFilter: false,
       showToggles: true
     },
     usuaris: {
@@ -78,36 +78,36 @@ export const FilterPanel = ({
   const currentConfig = config[mode] || config.contenedors;
 
   return (
-    <div className="bg-black p-4 mb-4 rounded shadow">
+    <div className="bg-black rounded-lg shadow-lg border border-gray-700">
       {/* Botón de toggle para móvil */}
       {isMobile && (
         <button 
           onClick={() => setIsExpanded(!isExpanded)}
-          className="flex items-center justify-between w-full p-2 mb-2 text-white bg-gray-800 rounded"
+          className="flex items-center justify-between w-full p-3 text-white bg-gray-800 rounded-t-lg hover:bg-gray-700 transition-colors"
           aria-expanded={isExpanded}
           aria-controls="filter-panel-content"
         >
           <div className="flex items-center">
-            <FiFilter className="mr-2" />
-            Filtres
+            <FiFilter className="mr-2 text-blue-400" />
+            <span className="font-medium">Filtres</span>
           </div>
           {isExpanded ? <FiChevronUp /> : <FiChevronDown />}
         </button>
       )}
 
       {/* Contenedor de filtros (oculto en móvil si no está expandido) */}
-      <div id="filter-panel-content" className={`${isMobile && !isExpanded ? 'hidden' : 'block'}`}>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div id="filter-panel-content" className={`${isMobile && !isExpanded ? 'hidden' : 'block'} p-4`}>
+        <div className="flex flex-col md:flex-row md:items-end md:space-x-3 space-y-4 md:space-y-0">
           {/* Filtro por ciudad */}
           {currentConfig.showCiutatFilter && (
-            <div>
-              <label htmlFor="ciutat-filter" className="block mb-2 font-medium text-white">Ciutat</label>
+            <div className="w-full md:w-auto">
+              <label htmlFor="ciutat-filter" className="block mb-1 text-xs font-medium text-gray-400">Ciutat</label>
               <select
                 id="ciutat-filter"
                 name="ciutat"
                 value={filters.ciutat}
                 onChange={(e) => setFilters({...filters, ciutat: e.target.value})}
-                className="w-full p-2 border rounded bg-gray-800 text-white"
+                className="w-full md:w-40 p-2 border border-gray-600 rounded bg-gray-800 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Totes</option>
                 {ciudades.map((ciudad, index) => (
@@ -119,14 +119,14 @@ export const FilterPanel = ({
 
           {/* Filtro por usuario */}
           {currentConfig.showUsuariFilter && (
-            <div>
-              <label htmlFor="usuari-filter" className="block mb-2 font-medium text-white">Usuari</label>
+            <div className="w-full md:w-auto">
+              <label htmlFor="usuari-filter" className="block mb-1 text-xs font-medium text-gray-400">Usuari</label>
               <select
                 id="usuari-filter"
                 name="usuari"
                 value={filters.usuari}
                 onChange={(e) => setFilters({...filters, usuari: e.target.value})}
-                className="w-full p-2 border rounded bg-gray-800 text-white"
+                className="w-full md:w-40 p-2 border border-gray-600 rounded bg-gray-800 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Tots</option>
                 {usuarios.map(usuario => (
@@ -138,8 +138,8 @@ export const FilterPanel = ({
 
           {/* Filtro por zona */}
           {currentConfig.showZonaFilter && (
-            <div>
-              <label htmlFor="zona-filter" className="block mb-2 font-medium text-white">
+            <div className="w-full md:w-auto">
+              <label htmlFor="zona-filter" className="block mb-1 text-xs font-medium text-gray-400">
                 {mode === 'zones' ? 'Zona' : 'Zona de reciclatge'}
               </label>
               <select
@@ -147,7 +147,7 @@ export const FilterPanel = ({
                 name="zona"
                 value={filters.zona}
                 onChange={(e) => setFilters({...filters, zona: e.target.value})}
-                className="w-full p-2 border rounded bg-gray-800 text-white"
+                className="w-full md:w-48 p-2 border border-gray-600 rounded bg-gray-800 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Totes</option>
                 {zonas.map(zona => (
@@ -161,14 +161,14 @@ export const FilterPanel = ({
 
           {/* Filtro por estado */}
           {currentConfig.showEstatFilter && (
-            <div>
-              <label htmlFor="estat-filter" className="block mb-2 font-medium text-white">Estat</label>
+            <div className="w-full md:w-auto">
+              <label htmlFor="estat-filter" className="block mb-1 text-xs font-medium text-gray-400">Estat</label>
               <select
                 id="estat-filter"
                 name="estat"
                 value={filters.estat}
                 onChange={(e) => setFilters({...filters, estat: e.target.value})}
-                className="w-full p-2 border rounded bg-gray-800 text-white"
+                className="w-full md:w-40 p-2 border border-gray-600 rounded bg-gray-800 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Tots</option>
                 {estatOptions.map(option => (
@@ -180,14 +180,14 @@ export const FilterPanel = ({
 
           {/* Filtro por tipo */}
           {currentConfig.showTipusFilter && (
-            <div>
-              <label htmlFor="tipus-filter" className="block mb-2 font-medium text-white">Tipus</label>
+            <div className="w-full md:w-auto">
+              <label htmlFor="tipus-filter" className="block mb-1 text-xs font-medium text-gray-400">Tipus</label>
               <select
                 id="tipus-filter"
                 name="tipus"
                 value={filters.tipus}
                 onChange={(e) => setFilters({...filters, tipus: e.target.value})}
-                className="w-full p-2 border rounded bg-gray-800 text-white"
+                className="w-full md:w-40 p-2 border border-gray-600 rounded bg-gray-800 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Tots</option>
                 {tipusOptions.map(option => (
@@ -199,14 +199,14 @@ export const FilterPanel = ({
 
           {/* Filtro por rol */}
           {currentConfig.showRoleFilter && (
-            <div>
-              <label htmlFor="role-filter" className="block mb-2 font-medium text-white">Rol</label>
+            <div className="w-full md:w-auto">
+              <label htmlFor="role-filter" className="block mb-1 text-xs font-medium text-gray-400">Rol</label>
               <select
                 id="role-filter"
                 name="role"
                 value={filters.role}
                 onChange={(e) => setFilters({...filters, role: e.target.value})}
-                className="w-full p-2 border rounded bg-gray-800 text-white"
+                className="w-full md:w-40 p-2 border border-gray-600 rounded bg-gray-800 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Tots els rols</option>
                 {roleOptions.map((role, index) => (
@@ -218,8 +218,8 @@ export const FilterPanel = ({
 
           {/* Filtro por nombre */}
           {currentConfig.showNomFilter && (
-            <div>
-              <label htmlFor="nom-filter" className="block mb-2 font-medium text-white">Nom</label>
+            <div className="w-full md:w-auto">
+              <label htmlFor="nom-filter" className="block mb-1 text-xs font-medium text-gray-400">Nom</label>
               <input
                 id="nom-filter"
                 name="nom"
@@ -227,19 +227,15 @@ export const FilterPanel = ({
                 placeholder="Cercar per nom"
                 value={filters.nom}
                 onChange={(e) => setFilters({...filters, nom: e.target.value})}
-                className="w-full p-2 border rounded bg-gray-800 text-white"
+                className="w-full md:w-48 p-2 border border-gray-600 rounded bg-gray-800 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
           )}
 
-          {/* Filtro por código y botón limpiar */}
-          <div className={`md:col-span-${
-            currentConfig.showZonaFilter && 
-            currentConfig.showEstatFilter && 
-            currentConfig.showTipusFilter ? 2 : 1
-          }`}>
-            <label htmlFor="codi-filter" className="block mb-2 font-medium text-white">Cercar per codi</label>
-            <div className="flex gap-2">
+          {/* Filtro por código */}
+          {currentConfig.showCodiFilter && (
+            <div className="w-full md:w-auto">
+              <label htmlFor="codi-filter" className="block mb-1 text-xs font-medium text-gray-400">Cercar per codi</label>
               <input
                 id="codi-filter"
                 name="codi"
@@ -247,22 +243,27 @@ export const FilterPanel = ({
                 placeholder="Introdueix el codi"
                 value={filters.codi}
                 onChange={(e) => setFilters({...filters, codi: e.target.value})}
-                className="flex-1 p-2 border rounded bg-gray-800 text-white"
+                className="w-full md:w-48 p-2 border border-gray-600 rounded bg-gray-800 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
-              <button
-                type="button"
-                onClick={handleClearFilters}
-                className="bg-red-600 hover:bg-red-700 text-white p-2 rounded transition-colors"
-              >
-                Netejar
-              </button>
             </div>
+          )}
+
+          {/* Botón limpiar */}
+          <div className="w-full md:w-auto md:ml-2">
+            <button
+              type="button"
+              onClick={handleClearFilters}
+              className="flex items-center justify-center w-full md:w-auto px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded transition-colors focus:ring-2 focus:ring-red-400 focus:ring-opacity-50"
+            >
+              <FiX className="mr-1" />
+              <span>Netejar</span>
+            </button>
           </div>
         </div>
 
         {/* Toggles para mostrar/ocultar (solo en mapa) */}
         {currentConfig.showToggles && (
-          <div className="mt-4 flex space-x-4">
+          <div className="mt-4 flex flex-wrap space-x-4">
             <label htmlFor="show-contenedores" className="flex items-center text-white">
               <input
                 id="show-contenedores"
@@ -270,7 +271,7 @@ export const FilterPanel = ({
                 type="checkbox"
                 checked={filters.showContenedores}
                 onChange={(e) => setFilters({...filters, showContenedores: e.target.checked})}
-                className="mr-2"
+                className="mr-2 text-blue-500 focus:ring-blue-400 focus:ring-opacity-50"
               />
               Mostrar Contenidors
             </label>
@@ -282,7 +283,7 @@ export const FilterPanel = ({
                 type="checkbox"
                 checked={filters.showZones}
                 onChange={(e) => setFilters({...filters, showZones: e.target.checked})}
-                className="mr-2"
+                className="mr-2 text-blue-500 focus:ring-blue-400 focus:ring-opacity-50"
               />
               Mostrar Zones
             </label>

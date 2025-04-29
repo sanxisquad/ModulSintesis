@@ -32,19 +32,20 @@ export function ContenedorList({ filters }) {  // Recibe filters como prop
         if (!contenedor) return false;
         
         // Filtro por ciudad
-        if (filters.ciutat && contenedor.ciutat !== filters.ciutat) return false;
+        if (filters?.ciutat && contenedor.ciutat !== filters.ciutat) return false;
+
         
         // Filtro por zona
-        if (filters.zona && contenedor.zona !== Number(filters.zona)) return false;
+        if (filters?.zona && contenedor.zona !== Number(filters.zona)) return false;
         
         // Filtro por estado
-        if (filters.estat && contenedor.estat !== filters.estat) return false;
+        if (filters?.estat && contenedor.estat !== filters.estat) return false;
         
         // Filtro por tipo
-        if (filters.tipus && contenedor.tipus !== filters.tipus) return false;
+        if (filters?.tipus && contenedor.tipus !== filters.tipus) return false;
         
         // Filtro por código (búsqueda parcial)
-        if (filters.codi && !contenedor.cod?.toLowerCase().includes(filters.codi.toLowerCase())) {
+        if (filters?.codi && !contenedor.cod?.toLowerCase().includes(filters.codi.toLowerCase())) {
             return false;
         }
         
@@ -61,18 +62,10 @@ export function ContenedorList({ filters }) {  // Recibe filters como prop
                 Mostrant {contenedorsFiltrados.length} de {contenedors.length} contenedors
             </div>
 
-            <div className="flex justify-end mb-5 mr-10">
-                <Link
-                    to="/contenedors-create"
-                    className="bg-green-500 text-white p-2 rounded hover:bg-green-600 cursor-pointer"
-                >
-                    Afegir Contenidor
-                </Link>
-            </div>
 
             {/* Mostrar lista de contenedores */}
             {contenedorsFiltrados.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 m-10">
+                <div className="grid grid-cols-3 gap-3 m-10">
                     {contenedorsFiltrados.map((contenedor) => (
                         <ContenedorCard key={contenedor.id} contenedor={contenedor} />
                     ))}

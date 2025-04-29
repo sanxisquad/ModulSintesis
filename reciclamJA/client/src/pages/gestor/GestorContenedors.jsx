@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom'; // Importación añadida
 import { useMenu } from '../../context/MenuContext';
 import { ContenedorList } from '../../components/zr/ContenedorList';
 import { MapView } from '../../components/MapView/MapContainer.jsx';
@@ -54,12 +55,21 @@ export function GestorContenedors() {
 
   return (
     <div className={`transition-all duration-300 ease-in-out ${menuOpen ? 'ml-64' : 'ml-0'}`}>
-            <h1 className="text-3xl font-bold text-center m-10">Contenidors</h1>
+      <h1 className="text-3xl font-bold text-center m-10">Contenidors</h1>
+      
+      <div className="flex justify-end mb-5 mr-10">
+        <Link
+          to="/contenedors-create"
+          className="bg-green-500 text-white p-2 rounded hover:bg-green-600 cursor-pointer"
+        >
+          Afegir Contenidor
+        </Link>
+      </div>
 
       <FilterPanel 
         filters={filters}
         setFilters={setFilters}
-        mode="mapa"
+        mode="contenedor"
         ciudades={ciudadesOptions}
         zonas={zonasOptions}
         estatOptions={estatOptions}
@@ -67,7 +77,6 @@ export function GestorContenedors() {
       />
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4">
-
         <div className="lg:col-span-2">
           <ContenedorList 
             filters={filters}
