@@ -15,20 +15,24 @@ export function ZonesReciclatgeCard({ zones }) {
 
   return (
     <div
-      className="bg-zinc-800 p-3 rounded-2xl hover:bg-zinc-700 hover:cursor-pointer"
-      onClick={handleDivClick}  // Redirige a editar la zona cuando se hace clic en el div
+      className="bg-zinc-800 p-4 rounded-lg shadow-md hover:bg-zinc-700 hover:shadow-lg transition-all duration-200 cursor-pointer border border-zinc-700"
+      onClick={handleDivClick}
     >
-      <h1 className="font-bold uppercase">{zones.nom}</h1>
-      <p className="text-slate-400">{zones.ciutat}</p>
-
-      {/* Este es el enlace para gestionar los contenedores */}
-      <Link
-        to={`/zones/${zones.id}/contenedores`}
-        className="text-blue-600 hover:underline mt-2 block"
-        onClick={handleLinkClick}  // Detiene la propagación del evento cuando se hace clic en el enlace
-      >
-        Gestionar contenedores
-      </Link>
+      <div className="flex flex-col h-full">
+        <div className="flex-grow">
+          <h2 className="text-lg font-bold text-white mb-1">{zones.nom}</h2>
+          <p className="text-gray-400 text-sm mb-3">{zones.ciutat}</p>
+        </div>
+        
+        <Link
+          to={`/zones/${zones.id}/contenedores`}
+          className="inline-flex items-center justify-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded transition-colors mt-2 w-full"
+          onClick={handleLinkClick}
+        >
+          Gestionar contenedores
+        </Link>
+      </div>
     </div>
   );
 }
+

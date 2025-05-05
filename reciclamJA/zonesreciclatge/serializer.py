@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import ZonesReciclatge, Contenedor
+from .models import ZonesReciclatge, Contenedor, ReporteContenedor
 from accounts.models import Empresa  
 
 # Serializer para el modelo Empresa (Solo lectura)
@@ -40,3 +40,9 @@ class ContenedorSerializer(serializers.ModelSerializer):
         user = self.context['request'].user
         validated_data['empresa'] = user.empresa
         return super().create(validated_data)
+class ReporteContenedorSerializer(serializers.ModelSerializer):
+    usuario = serializers.HiddenField(default=serializers.CurrentUserDefault())
+
+    class Meta:
+        model = ReporteContenedor
+        fields = '__all__'
