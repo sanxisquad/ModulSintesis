@@ -73,30 +73,31 @@ class HistorialContenedor(models.Model):
 
 class ReporteContenedor(models.Model):
     TIPO_REPORTE = [
-        ('mal_estado', 'Contenedor en mal estado'),
-        ('lleno', 'Contenedor lleno'),
-        ('vandalismo', 'Vandalismo'),
-        ('ubicacion', 'Problema con la ubicación'),
-        ('olores', 'Malos olores'),
-        ('otro', 'Otro problema')
+        ('mal_estado', 'Contenidor en mal estat'),
+        ('lleno', 'Contenidor ple'),
+        ('vandalismo', 'Vandalisme'),
+        ('ubicacion', 'Problema amb la ubicació'),
+        ('olores', 'Mals olors'),
+        ('otro', 'Altre problema')
     ]
     
     ESTADO_REPORTE = [
-        ('abierto', 'Abierto'),
-        ('en_proceso', 'En proceso'),
-        ('resuelto', 'Resuelto'),
-        ('rechazado', 'Rechazado')
+        ('abierto', 'Obert'),
+        ('en_proceso', 'En procés'),
+        ('resuelto', 'Resolt'),
+        ('rechazado', 'Rebutjat')
     ]
     
     PRIORIDAD_REPORTE = [
-        ('baja', 'Baja'),
-        ('media', 'Media'),
+        ('baja', 'Baixa'),
+        ('media', 'Mitjana'),
         ('alta', 'Alta'),
-        ('urgente', 'Urgente')
+        ('urgente', 'Urgent')
     ]
     
     contenedor = models.ForeignKey('Contenedor', related_name="reportes", on_delete=models.CASCADE, null=True, blank=True)
     zona = models.ForeignKey('ZonesReciclatge', related_name="reportes", on_delete=models.SET_NULL, null=True, blank=True)
+    empresa = models.ForeignKey(Empresa, related_name="reportes", on_delete=models.CASCADE, null=True, blank=True)
     usuario = models.ForeignKey(CustomUser, related_name="reportes_enviados", on_delete=models.SET_NULL, null=True)
     gestor_asignado = models.ForeignKey(CustomUser, related_name="reportes_asignados", on_delete=models.SET_NULL, null=True, blank=True)
     fecha = models.DateTimeField(auto_now_add=True)
@@ -121,9 +122,48 @@ class ReporteContenedor(models.Model):
         return f"Reporte #{self.id} - {self.get_tipo_display()}"
     
     def save(self, *args, **kwargs):
+        # If empresa is not set but we have a contenedor or zona, get the empresa from there
+        if not self.empresa:
+            if self.contenedor:
+                self.empresa = self.contenedor.empresa
+            elif self.zona:
+                self.empresa = self.zona.empresa
+        
+        # Validate either contenedor, zona or empresa is provided
+        if not self.contenedor and not self.zona and not self.empresa:
+            raise ValueError("Debe especificar un contenedor, una zona de reciclaje o una empresa")
+            
         if self.estado == 'resuelto' and not self.fecha_resolucion:
             self.fecha_resolucion = timezone.now()
         super().save(*args, **kwargs)
+    
+    def tiempo_resolucion(self):
+        """Retorna el tiempo que tomó resolver el reporte o None si aún no está resuelto"""
+        if self.estado == 'resuelto' and self.fecha_resolucion:
+            return self.fecha_resolucion - self.fecha
+        return None
+    
+    @property
+    def antiguedad(self):
+        """Retorna la antigüedad del reporte en días"""
+        return (timezone.now() - self.fecha).days
+    
+    def cambiar_estado(self, nuevo_estado, usuario=None, comentario=None):
+        """Cambia el estado del reporte y actualiza los campos relacionados"""
+        if nuevo_estado not in dict(self.ESTADO_REPORTE):
+            raise ValueError(f"Estado no válido: {nuevo_estado}")
+            
+        self.estado = nuevo_estado
+        self.ultima_actualizacion = timezone.now()
+        
+        if nuevo_estado == 'resuelto':
+            self.fecha_resolucion = timezone.now()
+            self.resuelto_por = usuario
+            if comentario:
+                self.comentario_cierre = comentario
+                
+        self.save()
+        return True
 
 class Notificacion(models.Model):
     TIPO_ALERTA = [
@@ -150,31 +190,6 @@ class Notificacion(models.Model):
     
     def __str__(self):
         return f"Notificación para {self.usuario.username} - {self.titulo}"
-@receiver(post_save, sender=ReporteContenedor)
-def notificar_nuevo_reporte(sender, instance, created, **kwargs):
-    if created:
-        # Obtener la empresa relacionada (ya sea por contenedor o zona)
-        empresa = None
-        if instance.contenedor:
-            empresa = instance.contenedor.empresa
-        elif instance.zona:
-            empresa = instance.zona.empresa
-        
-        if empresa:
-            # Notificar a TODOS los usuarios de la empresa
-            usuarios_empresa = CustomUser.objects.filter(empresa=empresa)
-            
-            for usuario in usuarios_empresa:
-                Notificacion.objects.create(
-                    usuario=usuario,
-                    tipo='reporte',
-                    titulo=f"Nuevo reporte ({instance.get_tipo_display()})",
-                    mensaje=f"{instance.descripcion[:100]}...",
-                    relacion_reporte=instance,
-                    relacion_contenedor=instance.contenedor,
-                    relacion_zona=instance.zona
-                )
-
 @receiver(pre_save, sender=Contenedor)
 def verificar_estado_contenedor(sender, instance, **kwargs):
     if instance.id:

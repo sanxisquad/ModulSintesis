@@ -65,3 +65,21 @@ export const getPublicContenedor = (id) => publicZrApi.get(`/public/contenidors/
 // Métodos públicos para zonas
 export const getAllPublicZones = () => publicZrApi.get('/public/zones/');
 export const getPublicZona = (id) => publicZrApi.get(`/public/zones/${id}/`);
+
+// Métodos para reportes
+export const createReporte = async (reporteData, customConfig = {}) => {
+    try {
+        // Cuando se usa FormData, no es necesario establecer el Content-Type
+        // Axios lo configurará automáticamente con el boundary correcto
+        const response = await zrApi.post('/reportes/', reporteData);
+        return response.data;
+    } catch (error) {
+        console.error("Error al crear reporte:", error.response?.data || error.message);
+        throw error;
+    }
+};
+
+export const getReportes = () => zrApi.get('/reportes/');
+export const getReporte = (id) => zrApi.get(`/reportes/${id}/`);
+export const updateReporte = (id, reporteData) => zrApi.put(`/reportes/${id}/`, reporteData);
+export const deleteReporte = (id) => zrApi.delete(`/reportes/${id}/`);

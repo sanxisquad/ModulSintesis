@@ -1,10 +1,14 @@
 from rest_framework.exceptions import PermissionDenied
 from rest_framework import viewsets, permissions  # Añadido permissions aquí
-from .models import Contenedor, ZonesReciclatge
-from .serializer import ContenedorSerializer, ZonesReciclatgeSerializer
+from .models import Contenedor, ZonesReciclatge,ReporteContenedor, Notificacion
+from .serializer import ContenedorSerializer, ZonesReciclatgeSerializer, ReporteContenedorSerializer
 from accounts.permissions import IsSuperAdmin, IsAdminEmpresa, IsGestor, CombinedPermission
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from accounts.models import CustomUser
+from django.db.models import Q
+from django.utils import timezone
+from django.db import models
 
 class ContenedorViewSet(viewsets.ModelViewSet):
     serializer_class = ContenedorSerializer
@@ -179,3 +183,90 @@ class PublicZonesViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = ZonesReciclatge.objects.all()
     serializer_class = ZonesReciclatgeSerializer
     permission_classes = [permissions.AllowAny]
+class ReporteContenedorViewSet(viewsets.ModelViewSet):
+    serializer_class = ReporteContenedorSerializer
+    queryset = ReporteContenedor.objects.all()
+
+    def get_permissions(self):
+        if self.action in ['create']:
+            return [permissions.IsAuthenticated()]
+        return [CombinedPermission(IsSuperAdmin, IsAdminEmpresa, IsGestor)]
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        serializer.save(usuario=user)
+
+    def get_queryset(self):
+        user = self.request.user
+        
+        if not user.is_authenticated:
+            return ReporteContenedor.objects.none()
+            
+        if user.is_superadmin():
+            return ReporteContenedor.objects.all()
+            
+        if user.is_user():
+            return ReporteContenedor.objects.filter(usuario=user)
+            
+        if getattr(user, 'empresa', None):
+            # Para gestores y admin: ver reportes de su empresa
+            return ReporteContenedor.objects.filter(
+                models.Q(contenedor__empresa=user.empresa) | 
+                models.Q(zona__empresa=user.empresa)
+            )
+
+                
+        return ReporteContenedor.objects.none()
+
+    @action(detail=True, methods=['post'])
+    def asignar(self, request, pk=None):
+        reporte = self.get_object()
+        gestor_id = request.data.get('gestor_id')
+        
+        if not gestor_id:
+            return Response({'error': 'Se requiere gestor_id'}, status=400)
+            
+        try:
+            gestor = CustomUser.objects.get(pk=gestor_id)
+            if not (gestor.is_gestor() or gestor.is_admin()):
+                return Response({'error': 'El usuario no es gestor o admin'}, status=400)
+                
+            reporte.gestor_asignado = gestor
+            reporte.estado = 'en_proceso'
+            reporte.save()
+            
+            # Crear notificación
+            Notificacion.objects.create(
+                usuario=gestor,
+                tipo='reporte',
+                titulo=f"Reporte asignado: {reporte.get_tipo_display()}",
+                mensaje=f"Se te ha asignado el reporte #{reporte.id}",
+                relacion_reporte=reporte
+            )
+            
+            return Response({'status': 'Reporte asignado correctamente'})
+            
+        except CustomUser.DoesNotExist:
+            return Response({'error': 'Gestor no encontrado'}, status=404)
+
+    @action(detail=True, methods=['post'])
+    def resolver(self, request, pk=None):
+        reporte = self.get_object()
+        comentario = request.data.get('comentario', '')
+        
+        reporte.estado = 'resuelto'
+        reporte.comentario_cierre = comentario
+        reporte.resuelto_por = request.user
+        reporte.save()
+        
+        # Notificar al usuario que reportó
+        if reporte.usuario:
+            Notificacion.objects.create(
+                usuario=reporte.usuario,
+                tipo='reporte',
+                titulo=f"Reporte resuelto: {reporte.get_tipo_display()}",
+                mensaje=f"Tu reporte #{reporte.id} ha sido marcado como resuelto",
+                relacion_reporte=reporte
+            )
+            
+        return Response({'status': 'Reporte resuelto correctamente'})

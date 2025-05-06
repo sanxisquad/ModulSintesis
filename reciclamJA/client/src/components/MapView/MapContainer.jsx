@@ -4,6 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import { containerIcon, zoneIcon } from './icons';
 import { useAuth } from '../../../hooks/useAuth';
 import { usePermissions } from '../../../hooks/usePermissions';
+import { createReporte } from '../../api/zr.api';
 
 const DEFAULT_POSITION = { lat: 41.9300, lng: 1.7000 }; // Centro de Catalunya
 
@@ -15,10 +16,265 @@ function CenterMap({ center }) {
   return null;
 }
 
+// Componente de formulario para reportar problemas
+function ReporteProblemForm({ isOpen, onClose, item, itemType }) {
+  const [formData, setFormData] = useState({
+    tipo: 'mal_estado',
+    prioridad: 'media',
+    descripcion: '',
+    imagen: null
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [previewImage, setPreviewImage] = useState(null);
+  const [error, setError] = useState(null);
+  const { user } = useAuth();
+
+  // Reset form when new item is selected
+  useEffect(() => {
+    if (isOpen) {
+      setFormData({
+        tipo: 'mal_estado',
+        prioridad: 'media',
+        descripcion: '',
+        imagen: null
+      });
+      setPreviewImage(null);
+      setError(null);
+    }
+  }, [isOpen, item]);
+
+  if (!isOpen) return null;
+
+  const TIPO_REPORTE = [
+    ['mal_estado', 'Contenidor en mal estat'],
+    ['lleno', 'Contenidor ple'],
+    ['vandalismo', 'Vandalisme'],
+    ['ubicacion', 'Problema amb la ubicació'],
+    ['olores', 'Mals olors'],
+    ['otro', 'Altre problema']
+  ];
+
+  const PRIORIDAD_REPORTE = [
+    ['baja', 'Baixa'],
+    ['media', 'Mitjana'],
+    ['alta', 'Alta'],
+    ['urgente', 'Urgent']
+  ];
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setFormData(prev => ({ ...prev, imagen: file }));
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewImage(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setError(null);
+    
+    try {
+      const reportData = new FormData();
+      
+      // Campos obligatorios
+      reportData.append('tipo', formData.tipo);
+      reportData.append('prioridad', formData.prioridad);
+      reportData.append('descripcion', formData.descripcion);
+      
+      // Estos campos son requeridos por el serializer
+      reportData.append('tipo_objeto', itemType); // 'contenedor' o 'zona'
+      reportData.append('objeto_id', item.id);    // ID del contenedor o zona
+      
+      // Campo opcional (imagen)
+      if (formData.imagen) {
+        reportData.append('imagen', formData.imagen);
+      }
+      
+      // Configuración de headers para FormData
+      const config = {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
+        }
+      };
+      
+      const response = await createReporte(reportData, config);
+      
+      console.log('Reporte enviado exitosamente:', response);
+      alert(`Informe enviat correctament per a ${itemType === 'contenedor' ? 'contenidor' : 'zona'} ${item.nom || item.cod}`);
+      setIsSubmitting(false);
+      onClose();
+      
+    } catch (error) {
+      console.error('Error detallado:', error.response?.data);
+      setError(error.response?.data?.message || 'Error en enviar l\'informe. Si us plau, torneu-ho a provar.');
+      setIsSubmitting(false);
+    }
+  };
+  
+  // Portal style rendering for z-index issues
+  return (
+    <div className="modal-overlay" style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: '1rem',
+      zIndex: 10000000, // Extremely high z-index
+      pointerEvents: 'auto'
+    }}>
+      <div className="modal-content" style={{
+        backgroundColor: 'white',
+        borderRadius: '0.5rem',
+        boxShadow: '0 10px 25px rgba(0, 0, 0, 0.5)',
+        width: '100%',
+        maxWidth: '28rem',
+        maxHeight: '90vh',
+        overflow: 'auto',
+        position: 'relative', // Ensure it's positioned
+        zIndex: 10000001 // Even higher z-index
+      }}>
+        <div className="p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold text-gray-800">
+              Informar problema: {item?.nom || item?.cod}
+            </h2>
+            <button 
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700"
+              style={{zIndex: 10000002}} // Ensure clickable
+            >
+              ✕
+            </button>
+          </div>
+          
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded">
+              {error}
+            </div>
+          )}
+          
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Tipus de problema
+              </label>
+              <select
+                name="tipo"
+                value={formData.tipo}
+                onChange={handleChange}
+                className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 text-gray-800 bg-white"
+                required
+              >
+                {TIPO_REPORTE.map(([value, label]) => (
+                  <option key={value} value={value} className="text-gray-800">{label}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Prioritat
+              </label>
+              <select
+                name="prioridad"
+                value={formData.prioridad}
+                onChange={handleChange}
+                className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 text-gray-800 bg-white"
+                required
+              >
+                {PRIORIDAD_REPORTE.map(([value, label]) => (
+                  <option key={value} value={value} className="text-gray-800">{label}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Descripció del problema
+              </label>
+              <textarea
+                name="descripcion"
+                value={formData.descripcion}
+                onChange={handleChange}
+                rows="4"
+                className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
+                placeholder="Descriu el problema amb detall..."
+                required
+              ></textarea>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Imatge (opcional)
+              </label>
+              <input
+                type="file"
+                name="imagen"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              />
+              
+              {previewImage && (
+                <div className="mt-2">
+                  <img 
+                    src={previewImage} 
+                    alt="Vista prèvia" 
+                    className="h-32 w-auto object-cover rounded-md"
+                  />
+                </div>
+              )}
+            </div>
+            
+            <div className="flex justify-end space-x-3 pt-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+                disabled={isSubmitting}
+              >
+                Cancel·lar
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
+                disabled={isSubmitting}
+                style={{zIndex: 10000002}} // Ensure clickable
+              >
+                {isSubmitting ? 'Enviant...' : 'Enviar informe'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
 export function MapView({ filters, contenedores: propContenedores = [], zonas: propZonas = [] }) {
   const [userLocation, setUserLocation] = useState(null);
   const [loadingLocation, setLoadingLocation] = useState(true);
   const [selectedInfo, setSelectedInfo] = useState(null);
+  const [reportFormOpen, setReportFormOpen] = useState(false);
+  const [reportItem, setReportItem] = useState(null);
+  const [reportItemType, setReportItemType] = useState(null);
   const { user, isAuthenticated } = useAuth();
   const { isAdmin, isSuperAdmin, isGestor } = usePermissions();
 
@@ -150,6 +406,26 @@ export function MapView({ filters, contenedores: propContenedores = [], zonas: p
     return zonasMap;
   }, [propContenedores, canViewAllContent]);
 
+  // Función para manejar el reporte de un problema
+  const handleReportProblem = (item, type) => {
+    // Verificamos si el usuario está autenticado
+    if (!isAuthenticated) {
+      alert("Debes iniciar sesión para reportar problemas");
+      return;
+    }
+    
+    // Abrimos el formulario de reporte
+    setReportItem(item);
+    setReportItemType(type);
+    setReportFormOpen(true);
+  };
+
+  // Función para abrir la ubicación en Google Maps
+  const openInGoogleMaps = (lat, lng) => {
+    const url = `https://www.google.com/maps?q=${lat},${lng}`;
+    window.open(url, '_blank');
+  };
+
   const renderContenedorItem = (contenedor) => (
     <div key={contenedor.id} className="border-b border-gray-200 py-2 last:border-b-0">
       <div className="font-medium text-gray-800">{contenedor.nom || contenedor.cod}</div>
@@ -182,6 +458,20 @@ export function MapView({ filters, contenedores: propContenedores = [], zonas: p
       {canViewAllContent && contenedor.is_private && (
         <div className="mt-2 text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Privat</div>
       )}
+      
+      {/* Botón para reportar problema con el contenedor */}
+      <div className="mt-3 flex justify-end">
+        <button 
+          onClick={(e) => {
+            e.stopPropagation();
+            handleReportProblem(contenedor, 'contenedor');
+          }}
+          className="flex items-center text-red-600 hover:text-red-800"
+        >
+          <div className="w-0 h-0 border-left-8 border-right-8 border-bottom-16 border-solid border-transparent border-b-red-600 mr-1"></div>
+          <span className="text-sm">Reportar problema</span>
+        </button>
+      </div>
     </div>
   );
 
@@ -201,8 +491,41 @@ export function MapView({ filters, contenedores: propContenedores = [], zonas: p
             } 
           }}
         >
-          {/* Solo mostrar popup para contenedores individuales */}
-          {!isZone && <Popup>{renderPopup(item)}</Popup>}
+          {/* Popup para todos los items */}
+          <Popup>
+            {isZone ? (
+              <div className="p-3 rounded shadow-lg bg-white text-gray-800 max-w-xs">
+                <h3 className="text-lg font-semibold mb-2 text-gray-800">{item.nom}</h3>
+                {item.descripcio && <p className="text-sm text-gray-700 mb-2">{item.descripcio}</p>}
+                {item.ciutat && <p className="text-sm text-gray-700">Ciutat: {item.ciutat}</p>}
+                
+                <div className="mt-3 flex justify-between">
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openInGoogleMaps(item.latitud, item.longitud);
+                    }}
+                    className="text-blue-600 hover:text-blue-800 text-sm"
+                  >
+                    Veure en Google Maps
+                  </button>
+                  
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleReportProblem(item, 'zona');
+                    }}
+                    className="flex items-center text-red-600 hover:text-red-800"
+                  >
+                    <div className="w-0 h-0 border-left-8 border-right-8 border-bottom-16 border-solid border-transparent border-b-red-600 mr-1"></div>
+                    <span className="text-sm">Reportar</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              renderPopup(item)
+            )}
+          </Popup>
         </Marker>
       ))}
     </>
@@ -261,7 +584,7 @@ export function MapView({ filters, contenedores: propContenedores = [], zonas: p
               <MarkerList
                 items={filteredZonas}
                 icon={zoneIcon}
-                renderPopup={() => null} // No necesitamos renderizar nada aquí
+                renderPopup={() => null}
                 isZone={true}
               />
             )}
@@ -297,6 +620,27 @@ export function MapView({ filters, contenedores: propContenedores = [], zonas: p
               </div>
             )}
             
+            {/* Botón para ver en Google Maps */}
+            <div className="mb-4">
+              <button 
+                onClick={() => openInGoogleMaps(zonaSelected.latitud, zonaSelected.longitud)}
+                className="w-full py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium rounded flex items-center justify-center"
+              >
+                <span>Veure en Google Maps</span>
+              </button>
+            </div>
+            
+            {/* Botón para reportar un problema */}
+            <div className="mb-4">
+              <button 
+                onClick={() => handleReportProblem(zonaSelected, 'zona')}
+                className="w-full py-2 bg-red-50 hover:bg-red-100 text-red-700 font-medium rounded flex items-center justify-center"
+              >
+                <div className="w-0 h-0 border-left-8 border-right-8 border-bottom-16 border-solid border-transparent border-b-red-600 mr-2"></div>
+                <span>Reportar problema</span>
+              </button>
+            </div>
+            
             {canViewZonaContainers ? (
               <div className="mb-4">
                 <h4 className="font-medium text-lg border-b border-gray-200 pb-2 mb-2 text-gray-800">
@@ -308,6 +652,15 @@ export function MapView({ filters, contenedores: propContenedores = [], zonas: p
                     {contenedoresPorZona[zonaSelected.id].map(contenedor => (
                       <div key={contenedor.id} className="p-3 mb-2 border border-gray-200 rounded bg-gray-50">
                         {renderContenedorItem(contenedor)}
+                        <div className="mt-2 text-right">
+                          <button 
+                            onClick={() => handleReportProblem(contenedor, 'contenedor')}
+                            className="text-red-600 hover:text-red-800 text-sm flex items-center justify-end ml-auto"
+                          >
+                            <div className="w-0 h-0 border-left-8 border-right-8 border-bottom-16 border-solid border-transparent border-b-red-600 mr-1"></div>
+                            <span>Reportar</span>
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -345,6 +698,14 @@ export function MapView({ filters, contenedores: propContenedores = [], zonas: p
           </div>
         )}
       </div>
+      
+      {/* Formulario de reporte */}
+      <ReporteProblemForm 
+        isOpen={reportFormOpen}
+        onClose={() => setReportFormOpen(false)}
+        item={reportItem}
+        itemType={reportItemType}
+      />
     </div>
   );
 }
