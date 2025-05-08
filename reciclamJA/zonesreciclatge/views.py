@@ -1,10 +1,10 @@
 from rest_framework.exceptions import PermissionDenied
-from rest_framework import viewsets, permissions  # Añadido permissions aquí
-from .models import Contenedor, ZonesReciclatge,ReporteContenedor, Notificacion
-from .serializer import ContenedorSerializer, ZonesReciclatgeSerializer, ReporteContenedorSerializer
-from accounts.permissions import IsSuperAdmin, IsAdminEmpresa, IsGestor, CombinedPermission
+from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from .models import Contenedor, ZonesReciclatge,ReporteContenedor, Notificacion
+from .serializer import ContenedorSerializer, ZonesReciclatgeSerializer, ReporteContenedorSerializer, NotificacionSerializer
+from accounts.permissions import IsSuperAdmin, IsAdminEmpresa, IsGestor, CombinedPermission
 from accounts.models import CustomUser
 from django.db.models import Q
 from django.utils import timezone
@@ -270,3 +270,25 @@ class ReporteContenedorViewSet(viewsets.ModelViewSet):
             )
             
         return Response({'status': 'Reporte resuelto correctamente'})
+
+class NotificacionViewSet(viewsets.ModelViewSet):
+    serializer_class = NotificacionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        # Solo devuelve notificaciones del usuario actual
+        return Notificacion.objects.filter(usuario=self.request.user).order_by('-fecha')
+    
+    @action(detail=False, methods=['post'])
+    def marcar_como_leidas(self, request):
+        # Marca todas las notificaciones del usuario como leídas
+        Notificacion.objects.filter(usuario=request.user, leida=False).update(leida=True)
+        return Response({"message": "Notificaciones marcadas como leídas"}, status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=['post'])
+    def marcar_leida(self, request, pk=None):
+        # Marca una notificación específica como leída
+        notificacion = self.get_object()
+        notificacion.leida = True
+        notificacion.save()
+        return Response({"message": "Notificación marcada como leída"}, status=status.HTTP_200_OK)

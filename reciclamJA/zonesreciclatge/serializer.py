@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import ZonesReciclatge, Contenedor, ReporteContenedor
+from .models import ZonesReciclatge, Contenedor, ReporteContenedor, Notificacion
 from accounts.models import Empresa  
 from django.contrib.auth import get_user_model
 
@@ -12,10 +12,14 @@ class EmpresaSerializer(serializers.ModelSerializer):
 # Serializer para el modelo ZonesReciclatge
 class ZonesReciclatgeSerializer(serializers.ModelSerializer):
     empresa = EmpresaSerializer(read_only=True)  # Solo lectura, asignado automáticamente
+    num_contenedores = serializers.SerializerMethodField()
 
     class Meta:
         model = ZonesReciclatge
-        fields = ['id', 'nom', 'ciutat', 'empresa', 'latitud', 'longitud', 'descripcio']
+        fields = ['id', 'nom', 'ciutat', 'empresa', 'latitud', 'longitud', 'descripcio', 'num_contenedores']
+
+    def get_num_contenedores(self, obj):
+        return obj.contenedors.count()
 
     def create(self, validated_data):
         user = self.context['request'].user
@@ -109,3 +113,10 @@ class ReporteContenedorSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
             
         return super().create(validated_data)
+
+class NotificacionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notificacion
+        fields = ['id', 'tipo', 'titulo', 'mensaje', 'fecha', 'leida', 
+                  'relacion_contenedor', 'relacion_zona', 'relacion_reporte']
+        read_only_fields = ['id', 'fecha']

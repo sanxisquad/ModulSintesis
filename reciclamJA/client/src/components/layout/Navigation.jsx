@@ -3,17 +3,22 @@ import { useAuth } from "../../../hooks/useAuth";
 import { useState, useEffect, useRef } from "react";
 import { useMenu } from "../../context/MenuContext";
 import { usePermissions } from "../../../hooks/usePermissions";
-import { FaBars, FaTimes, FaChevronDown, FaChevronUp, FaUser, FaSignOutAlt, FaQrcode } from "react-icons/fa";
+import { FaBars, FaTimes, FaChevronDown, FaChevronUp, FaUser, FaSignOutAlt, FaQrcode, FaBell } from "react-icons/fa";
 import { MdManageAccounts } from "react-icons/md";
+import { getNotificaciones, marcarTodasLeidas, marcarNotificacionLeida } from "../../api/zr.api";
 
 export function Navigation() {
     const { isAuthenticated, user, logout, loading } = useAuth();
     const { menuOpen, toggleMenu } = useMenu();
     const [gestionExpanded, setGestionExpanded] = useState(false);
     const [userMenuOpen, setUserMenuOpen] = useState(false);
+    const [notificaciones, setNotificaciones] = useState([]);
+    const [notificacionesOpen, setNotificacionesOpen] = useState(false);
+    const [loadingNotificaciones, setLoadingNotificaciones] = useState(false);
     const { canMenu, menuUser, isUser } = usePermissions();
     const userMenuRef = useRef(null);
     const menuRef = useRef(null);
+    const notificacionesRef = useRef(null);
 
     // Cerrar menús al hacer clic fuera
     useEffect(() => {
@@ -26,6 +31,11 @@ export function Navigation() {
                 !event.target.closest('button[aria-label="Toggle menu"]')) {
                 toggleMenu(false);
             }
+            
+            if (notificacionesRef.current && !notificacionesRef.current.contains(event.target) &&
+                !event.target.closest('button[aria-label="Toggle notifications"]')) {
+                setNotificacionesOpen(false);
+            }
         }
 
         document.addEventListener("mousedown", handleClickOutside);
@@ -33,6 +43,77 @@ export function Navigation() {
             document.removeEventListener("mousedown", handleClickOutside);
         };
     }, [toggleMenu]);
+
+    // Cargar notificaciones cuando el usuario está autenticado
+    useEffect(() => {
+        if (isAuthenticated && (canMenu || user?.is_staff)) {
+            fetchNotificaciones();
+            
+            // Actualizar notificaciones cada minuto
+            const interval = setInterval(fetchNotificaciones, 60000);
+            return () => clearInterval(interval);
+        }
+    }, [isAuthenticated, user]);
+
+    const fetchNotificaciones = async () => {
+        if (!isAuthenticated) return;
+        
+        try {
+            setLoadingNotificaciones(true);
+            const response = await getNotificaciones();
+            setNotificaciones(response.data);
+        } catch (error) {
+            console.error("Error al cargar notificaciones:", error);
+        } finally {
+            setLoadingNotificaciones(false);
+        }
+    };
+
+    const handleNotificacionClick = async (id) => {
+        try {
+            await marcarNotificacionLeida(id);
+            setNotificaciones(notificaciones.map(notif => 
+                notif.id === id ? { ...notif, leida: true } : notif
+            ));
+        } catch (error) {
+            console.error("Error al marcar notificación como leída:", error);
+        }
+    };
+
+    const marcarTodasNotificacionesLeidas = async () => {
+        try {
+            await marcarTodasLeidas();
+            setNotificaciones(notificaciones.map(notif => ({ ...notif, leida: true })));
+            setNotificacionesOpen(false);
+        } catch (error) {
+            console.error("Error al marcar todas las notificaciones como leídas:", error);
+        }
+    };
+
+    const notificacionesNoLeidas = notificaciones.filter(n => !n.leida).length;
+
+    // Función auxiliar para formatear fechas sin date-fns
+    const formatearFechaRelativa = (fecha) => {
+        const ahora = new Date();
+        const fechaNotif = new Date(fecha);
+        const diferenciaMilisegundos = ahora - fechaNotif;
+        
+        // Convertir a diferentes unidades de tiempo
+        const segundos = Math.floor(diferenciaMilisegundos / 1000);
+        const minutos = Math.floor(segundos / 60);
+        const horas = Math.floor(minutos / 60);
+        const dias = Math.floor(horas / 24);
+        
+        if (dias > 0) {
+            return dias === 1 ? 'hace 1 día' : `hace ${dias} días`;
+        } else if (horas > 0) {
+            return horas === 1 ? 'hace 1 hora' : `hace ${horas} horas`;
+        } else if (minutos > 0) {
+            return minutos === 1 ? 'hace 1 minuto' : `hace ${minutos} minutos`;
+        } else {
+            return 'hace unos segundos';
+        }
+    };
 
     return (
         <div className="w-full sticky top-0 z-50">
@@ -71,6 +152,75 @@ export function Navigation() {
                 {/* Menú de usuario */}
                 <nav className="flex items-center">
                     <ul className="flex items-center">
+                        {/* Notificaciones - Solo para gestores y admins */}
+                        {isAuthenticated && (canMenu || user?.is_staff) && (
+                            <li className="relative mr-4">
+                                <button
+                                    aria-label="Toggle notifications"
+                                    className="text-white p-2 rounded-full hover:bg-gray-800 relative"
+                                    onClick={() => {
+                                        setNotificacionesOpen(!notificacionesOpen);
+                                        if (!notificacionesOpen) fetchNotificaciones();
+                                    }}
+                                >
+                                    <FaBell className="text-lg" />
+                                    {notificacionesNoLeidas > 0 && (
+                                        <span className="absolute top-0 right-0 transform translate-x-1/4 -translate-y-1/4 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                                            {notificacionesNoLeidas > 9 ? '9+' : notificacionesNoLeidas}
+                                        </span>
+                                    )}
+                                </button>
+
+                                {notificacionesOpen && (
+                                    <div 
+                                        ref={notificacionesRef}
+                                        className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg py-1 z-50 max-h-96 overflow-y-auto text-black"
+                                    >
+                                        <div className="flex justify-between items-center p-3 border-b">
+                                            <h3 className="font-semibold">Notificacions</h3>
+                                            {notificacionesNoLeidas > 0 && (
+                                                <button 
+                                                    onClick={marcarTodasNotificacionesLeidas}
+                                                    className="text-sm text-blue-600 hover:text-blue-800"
+                                                >
+                                                    Marcar todas como leídas
+                                                </button>
+                                            )}
+                                        </div>
+                                        
+                                        {loadingNotificaciones ? (
+                                            <div className="p-4 text-center text-gray-500">
+                                                Cargando...
+                                            </div>
+                                        ) : notificaciones.length > 0 ? (
+                                            notificaciones.map(notif => (
+                                                <div 
+                                                    key={notif.id}
+                                                    className={`p-3 border-b hover:bg-gray-50 cursor-pointer ${!notif.leida ? 'bg-blue-50' : ''}`}
+                                                    onClick={() => handleNotificacionClick(notif.id)}
+                                                >
+                                                    <div className="flex justify-between items-start">
+                                                        <h4 className="font-medium text-sm">{notif.titulo}</h4>
+                                                        <span className="text-xs text-gray-500">
+                                                            {formatearFechaRelativa(notif.fecha)}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-sm text-gray-600 mt-1">{notif.mensaje}</p>
+                                                    {!notif.leida && (
+                                                        <div className="mt-2 text-xs text-blue-600">Marcar como leída</div>
+                                                    )}
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="p-4 text-center text-gray-500">
+                                                No hay notificaciones
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </li>
+                        )}
+                        
                         {loading ? (
                             <li className="inline-block mx-2">
                                 <span className="text-white">Cargando...</span>
@@ -188,7 +338,7 @@ export function Navigation() {
                             <li>
                                 <Link 
                                     to="/tasks" 
-                                    className="block py-3 px-4 bg-green-600 rounded-lg flex items-center justify-center"
+                                    className=" py-3 px-4 bg-green-600 rounded-lg flex items-center justify-center"
                                     onClick={toggleMenu}
                                 >
                                     <FaQrcode className="mr-2" /> Escanejar Codi QR
@@ -202,7 +352,7 @@ export function Navigation() {
                                 <li>
                                     <Link 
                                         to="/profile" 
-                                        className="block py-3 px-4 hover:bg-gray-800 rounded-lg flex items-center"
+                                        className="py-3 px-4 hover:bg-gray-800 rounded-lg flex items-center"
                                         onClick={toggleMenu}
                                     >
                                         <FaUser className="mr-2" /> El meu perfil

@@ -5,9 +5,10 @@ import {
 } from 'recharts';
 import { 
   CircleAlert, Trash2, Database, MapPin, 
-  RefreshCw, Filter, DownloadCloud, Settings 
+  RefreshCw, Filter, DownloadCloud, Settings,
+  MessageSquare, CheckCircle2, XCircle, Clock
 } from 'lucide-react';
-import { getAllContenedors, getAllZones } from '../../api/zr.api';
+import { getAllContenedors, getAllZones, getReportes } from '../../api/zr.api';
 
 export function DashBoard() {
   const [contenidors, setContenidors] = useState([]);
@@ -16,6 +17,8 @@ export function DashBoard() {
   const [error, setError] = useState(null);
   const [selectedZone, setSelectedZone] = useState('all');
   const [timeRange, setTimeRange] = useState('month');
+  const [reports, setReports] = useState([]);
+  const [reportFilter, setReportFilter] = useState('all');
 
   // Colors per al gràfic
   const COLORS = ['#00C49F', '#FFBB28', '#FF8042'];
@@ -29,13 +32,15 @@ export function DashBoard() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [contenidorsResponse, zonesResponse] = await Promise.all([
+        const [contenidorsResponse, zonesResponse, reportesResponse] = await Promise.all([
           getAllContenedors(),
-          getAllZones()
+          getAllZones(),
+          getReportes()
         ]);
         
         setContenidors(contenidorsResponse.data);
         setZones(zonesResponse.data);
+        setReports(reportesResponse.data);
         setLoading(false);
       } catch (err) {
         console.error("Error carregant dades:", err);
@@ -52,13 +57,20 @@ export function DashBoard() {
     ? contenidors 
     : contenidors.filter(c => c.zona === parseInt(selectedZone));
 
+  // Filtra reports segons el filtre seleccionat
+  const filteredReports = reportFilter === 'all'
+    ? reports
+    : reports.filter(r => r.estado === reportFilter);
+
   // Estadístiques generals
   const stats = {
     total: filteredContenidors.length,
     ple: filteredContenidors.filter(c => c.estat === 'ple').length,
     mig_ple: filteredContenidors.filter(c => c.estat === 'mig').length,
     buit: filteredContenidors.filter(c => c.estat === 'buit').length,
-    alertes: filteredContenidors.filter(c => c.alerta).length
+    alertes: filteredContenidors.filter(c => c.alerta).length,
+    queixes: reports.length,
+    queixes_pendents: reports.filter(r => r.estado === 'abierto').length
   };
 
   // Dades per al gràfic d'estat
@@ -77,7 +89,7 @@ export function DashBoard() {
     buits: contenidors.filter(c => c.zona === zone.id && c.estat === 'buit').length
   }));
 
-  // Dades de tendència (simulades per l'exemple)
+  // Dades de tendència (històric de contenidors)
   const getHistoricData = () => {
     const months = ['Gen', 'Feb', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Oct', 'Nov', 'Des'];
     const currentMonth = new Date().getMonth();
@@ -94,6 +106,40 @@ export function DashBoard() {
   };
 
   const historicData = getHistoricData();
+
+  // Traductor de tipus de queixa (basats en el model de ReporteContenedor)
+  const reportTypesLabels = {
+    'mal_estado': 'Contenidor en mal estat',
+    'lleno': 'Contenidor ple',
+    'vandalismo': 'Vandalisme',
+    'ubicacion': 'Problema amb la ubicació',
+    'olores': 'Mals olors',
+    'otro': 'Altre problema'
+  };
+
+  // Traductor d'estats de queixa (basats en el model de ReporteContenedor)
+  const reportStatusLabels = {
+    'abierto': 'Obert',
+    'en_proceso': 'En procés',
+    'resuelto': 'Resolt',
+    'rechazado': 'Rebutjat'
+  };
+
+  // Configuració de colors per estat de queixa
+  const reportStatusColors = {
+    'abierto': 'bg-yellow-100 text-yellow-700',
+    'en_proceso': 'bg-blue-100 text-blue-700',
+    'resuelto': 'bg-green-100 text-green-700',
+    'rechazado': 'bg-red-100 text-red-700'
+  };
+
+  // Icones per estat de queixa
+  const reportStatusIcons = {
+    'abierto': <Clock className="h-4 w-4 mr-1" />,
+    'en_proceso': <RefreshCw className="h-4 w-4 mr-1" />,
+    'resuelto': <CheckCircle2 className="h-4 w-4 mr-1" />,
+    'rechazado': <XCircle className="h-4 w-4 mr-1" />
+  };
 
   if (loading) return (
     <div className="flex items-center justify-center h-screen">
@@ -190,7 +236,7 @@ export function DashBoard() {
         </div>
 
         {/* Targetes d'estadístiques */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
           <div className="bg-white p-4 rounded-lg shadow">
             <div className="flex items-center justify-between">
               <div>
@@ -240,6 +286,15 @@ export function DashBoard() {
                 <p className="text-2xl font-bold text-gray-800">{stats.alertes}</p>
               </div>
               <CircleAlert className="h-10 w-10 text-red-500" />
+            </div>
+          </div>
+          <div className="bg-white p-4 rounded-lg shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Queixes</p>
+                <p className="text-2xl font-bold text-gray-800">{stats.queixes_pendents}/{stats.queixes}</p>
+              </div>
+              <MessageSquare className="h-10 w-10 text-purple-500" />
             </div>
           </div>
         </div>
@@ -315,8 +370,8 @@ export function DashBoard() {
           </div>
         </div>
 
-        {/* Llista de Contenidors */}
-        <div className="bg-white p-4 rounded-lg shadow">
+        {/* Llistat de Contenidors */}
+        <div className="bg-white p-4 rounded-lg shadow mb-6">
           <h2 className="text-lg font-medium mb-4 text-gray-800">
             Llistat de Contenidors {selectedZone !== 'all' ? `- ${zones.find(z => z.id == selectedZone)?.nom || ''}` : ''}
           </h2>
@@ -387,6 +442,120 @@ export function DashBoard() {
             <div className="mt-4 text-center">
               <button className="text-blue-500 hover:text-blue-700">
                 Veure tots els {filteredContenidors.length} contenidors
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Secció de Queixes i Reportes */}
+        <div className="bg-white p-4 rounded-lg shadow mb-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-medium text-gray-800">
+              Queixes i Reportes dels Usuaris
+            </h2>
+            <div className="flex gap-2">
+              <select 
+                className="border rounded px-3 py-1 text-gray-800"
+                value={reportFilter}
+                onChange={(e) => setReportFilter(e.target.value)}
+              >
+                <option value="all">Tots els estats</option>
+                <option value="abierto">Oberts</option>
+                <option value="en_proceso">En procés</option>
+                <option value="resuelto">Resolts</option>
+                <option value="rechazado">Rebutjats</option>
+              </select>
+              <button 
+                className="flex items-center bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded"
+                onClick={() => {
+                  setLoading(true);
+                  getReportes()
+                    .then(res => {
+                      setReports(res.data);
+                      setLoading(false);
+                    })
+                    .catch(err => {
+                      console.error("Error actualitzant reportes:", err);
+                      setLoading(false);
+                    });
+                }}
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Actualitzar
+              </button>
+            </div>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <table className="min-w-full bg-white">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="py-2 px-4 text-left text-gray-700">ID</th>
+                  <th className="py-2 px-4 text-left text-gray-700">Data</th>
+                  <th className="py-2 px-4 text-left text-gray-700">Tipus</th>
+                  <th className="py-2 px-4 text-left text-gray-700">Descripció</th>
+                  <th className="py-2 px-4 text-left text-gray-700">Contenidor/Zona</th>
+                  <th className="py-2 px-4 text-left text-gray-700">Estat</th>
+                  <th className="py-2 px-4 text-left text-gray-700">Accions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredReports.slice(0, 5).map(report => {
+                  const contenedorInfo = report.contenedor ? 
+                    `Contenidor #${report.contenedor}` : 
+                    report.zona ? `Zona #${report.zona}` : 'No especificat';
+                
+                  const zonaName = report.contenedor && contenidors.find(c => c.id === report.contenedor)?.zona_nombre;
+                  
+                  return (
+                    <tr key={report.id} className="border-b hover:bg-gray-50">
+                      <td className="py-2 px-4 text-gray-800">{report.id}</td>
+                      <td className="py-2 px-4 text-gray-800">{new Date(report.fecha).toLocaleDateString()}</td>
+                      <td className="py-2 px-4 text-gray-800">
+                        {reportTypesLabels[report.tipo] || report.tipo}
+                      </td>
+                      <td className="py-2 px-4 text-gray-800 truncate max-w-xs" title={report.descripcion}>
+                        {report.descripcion.length > 40 ? `${report.descripcion.substring(0, 40)}...` : report.descripcion}
+                      </td>
+                      <td className="py-2 px-4 text-gray-800">
+                        {contenedorInfo} {zonaName ? `(${zonaName})` : ''}
+                      </td>
+                      <td className="py-2 px-4">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium flex items-center ${reportStatusColors[report.estado]}`}>
+                          {reportStatusIcons[report.estado]}
+                          {reportStatusLabels[report.estado] || report.estado}
+                        </span>
+                      </td>
+                      <td className="py-2 px-4">
+                        <div className="flex space-x-2">
+                          <button className="text-blue-500 hover:text-blue-700" title="Veure detalls">
+                            Detalls
+                          </button>
+                          {report.estado === 'abierto' && (
+                            <button className="text-green-500 hover:text-green-700" title="Processar">
+                              Processar
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {filteredReports.length === 0 && (
+                  <tr>
+                    <td colSpan="7" className="py-4 text-center text-gray-500">
+                      No s'han trobat queixes amb els filtres seleccionats
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          
+          {filteredReports.length > 5 && (
+            <div className="mt-4 text-center">
+              <button className="text-blue-500 hover:text-blue-700">
+                Veure totes les {filteredReports.length} queixes
               </button>
             </div>
           )}

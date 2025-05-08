@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { MapContainer, TileLayer, useMap, Marker, Popup } from 'react-leaflet';
+import { useNavigate } from 'react-router-dom';
 import 'leaflet/dist/leaflet.css';
 import { containerIcon, zoneIcon } from './icons';
 import { useAuth } from '../../../hooks/useAuth';
@@ -269,6 +270,7 @@ function ReporteProblemForm({ isOpen, onClose, item, itemType }) {
   );
 }
 export function MapView({ filters, contenedores: propContenedores = [], zonas: propZonas = [] }) {
+  const navigate = useNavigate();
   const [userLocation, setUserLocation] = useState(null);
   const [loadingLocation, setLoadingLocation] = useState(true);
   const [selectedInfo, setSelectedInfo] = useState(null);
@@ -280,6 +282,7 @@ export function MapView({ filters, contenedores: propContenedores = [], zonas: p
 
   // Determinar qué contenido debe mostrarse basado en permisos
   const canViewAllContent = isAdmin || isSuperAdmin || isGestor;
+  const canNavigateToDetails = isAdmin || isSuperAdmin || isGestor;
   
   const geocodeCP = useCallback(async (cp, location) => {
     try {
@@ -420,15 +423,64 @@ export function MapView({ filters, contenedores: propContenedores = [], zonas: p
     setReportFormOpen(true);
   };
 
+  // Función para navegar a la página de detalles
+  const navigateToDetail = (item, type) => {
+    if (type === 'contenedor') {
+      navigate(`/contenedor/${item.id}`);
+    } else if (type === 'zona') {
+      navigate(`/zona/${item.id}`);
+    }
+  };
+
   // Función para abrir la ubicación en Google Maps
   const openInGoogleMaps = (lat, lng) => {
     const url = `https://www.google.com/maps?q=${lat},${lng}`;
     window.open(url, '_blank');
   };
 
+  // New function to get type color
+  const getTipusColor = (tipus) => {
+    switch (tipus) {
+      case 'paper': return 'bg-blue-500';
+      case 'plàstic': return 'bg-yellow-500';
+      case 'vidre': return 'bg-green-500';
+      case 'orgànic': return 'bg-amber-500';
+      case 'rebuig': 
+      case 'indiferenciat': return 'bg-gray-500';
+      default: return 'bg-gray-500';
+    }
+  };
+  
+  // New function to get text color for type
+  const getTipusTextColor = (tipus) => {
+    switch (tipus) {
+      case 'paper': return 'text-blue-800';
+      case 'plàstic': return 'text-yellow-800';
+      case 'vidre': return 'text-green-800';
+      case 'orgànic': return 'text-amber-800';
+      case 'rebuig': 
+      case 'indiferenciat': return 'text-gray-800';
+      default: return 'text-gray-800';
+    }
+  };
+
+  const getContainerIcon = (contenedor) => {
+    // Si el contenedor pertenece a una zona, usamos un icono ligeramente modificado
+    if (contenedor.zona) {
+      // Podríamos crear un nuevo icono o simplemente devolver el existente
+      // Por simplificidad, usamos el mismo icono por ahora
+      return containerIcon;
+    }
+    return containerIcon;
+  };
+
   const renderContenedorItem = (contenedor) => (
     <div key={contenedor.id} className="border-b border-gray-200 py-2 last:border-b-0">
-      <div className="font-medium text-gray-800">{contenedor.nom || contenedor.cod}</div>
+      <div className="flex items-center">
+        {/* Add color indicator for container type */}
+        <div className={`w-3 h-3 rounded-full mr-2 ${getTipusColor(contenedor.tipus)}`}></div>
+        <div className="font-medium text-gray-800">{contenedor.nom || contenedor.cod}</div>
+      </div>
       <div className={`text-sm ${
         contenedor.estat === 'buit' ? 'text-green-600' :
         contenedor.estat === 'mig' ? 'text-yellow-600' :
@@ -436,7 +488,11 @@ export function MapView({ filters, contenedores: propContenedores = [], zonas: p
       }`}>
         Estat: {contenedor.estat}
       </div>
-      {contenedor.tipus && <div className="text-xs text-gray-600">Tipus: {contenedor.tipus}</div>}
+      {contenedor.tipus && (
+        <div className="text-xs text-gray-600 ml-5">
+          Tipus: <span className={`font-medium ${getTipusTextColor(contenedor.tipus)}`}>{contenedor.tipus}</span>
+        </div>
+      )}
       {canViewAllContent && contenedor.is_private && (
         <div className="mt-1 text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Privat</div>
       )}
@@ -445,7 +501,15 @@ export function MapView({ filters, contenedores: propContenedores = [], zonas: p
 
   const renderContenedorPopup = (contenedor) => (
     <div className="p-3 rounded shadow-lg bg-white text-gray-800 max-w-xs">
-      <h3 className="text-lg font-semibold mb-2 text-gray-800">{contenedor.nom || contenedor.cod}</h3>
+      {/* Color bar at the top of popup for container type */}
+      <div className={`h-1.5 -mt-3 -mx-3 mb-3 rounded-t ${getTipusColor(contenedor.tipus)}`}></div>
+      
+      <h3 className="text-lg font-semibold mb-2 text-gray-800">
+        <div className="flex items-center">
+          <div className={`w-3 h-3 rounded-full mr-2 ${getTipusColor(contenedor.tipus)}`}></div>
+          {contenedor.nom || contenedor.cod}
+        </div>
+      </h3>
       <p className={`font-medium mb-1 ${
         contenedor.estat === 'buit' ? 'text-green-600' :
         contenedor.estat === 'mig' ? 'text-yellow-600' :
@@ -454,13 +518,46 @@ export function MapView({ filters, contenedores: propContenedores = [], zonas: p
         Estat: {contenedor.estat}
       </p>
       {contenedor.ciutat && <p className="text-sm text-gray-700">Ciutat: {contenedor.ciutat}</p>}
-      {contenedor.tipus && <p className="text-sm text-gray-700">Tipus: {contenedor.tipus}</p>}
+      {contenedor.tipus && (
+        <p className="text-sm text-gray-700">
+          Tipus: <span className={`font-medium ${getTipusTextColor(contenedor.tipus)}`}>{contenedor.tipus}</span>
+        </p>
+      )}
+      {/* Añadir información de la zona si está asignado */}
+      {contenedor.zona && contenedor.zona_nombre && (
+        <p className="text-sm text-gray-700">
+          Zona: <span className="font-medium">{contenedor.zona_nombre}</span>
+        </p>
+      )}
       {canViewAllContent && contenedor.is_private && (
         <div className="mt-2 text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Privat</div>
       )}
       
-      {/* Botón para reportar problema con el contenedor */}
-      <div className="mt-3 flex justify-end">
+      <div className="mt-3 flex justify-between">
+        {/* Mostrar diferentes botones según el rol del usuario */}
+        {canNavigateToDetails ? (
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              navigateToDetail(contenedor, 'contenedor');
+            }}
+            className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+          >
+            Veure detalls
+          </button>
+        ) : (
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              openInGoogleMaps(contenedor.latitud, contenedor.longitud);
+            }}
+            className="text-blue-600 hover:text-blue-800 text-sm"
+          >
+            Veure en Google Maps
+          </button>
+        )}
+
+        {/* Botón para reportar problema con el contenedor */}
         <button 
           onClick={(e) => {
             e.stopPropagation();
@@ -481,10 +578,10 @@ export function MapView({ filters, contenedores: propContenedores = [], zonas: p
         <Marker
           key={`${item.id}-${item.latitud}-${item.longitud}`}
           position={[parseFloat(item.latitud), parseFloat(item.longitud)]}
-          icon={icon}
+          icon={isZone ? icon : getContainerIcon(item)}
           eventHandlers={{ 
             click: () => {
-              // Para zonas, solo mostrar el panel lateral
+              // Para zonas, mostrar el panel lateral
               if (isZone) {
                 setSelectedInfo(item);
               }
@@ -500,15 +597,28 @@ export function MapView({ filters, contenedores: propContenedores = [], zonas: p
                 {item.ciutat && <p className="text-sm text-gray-700">Ciutat: {item.ciutat}</p>}
                 
                 <div className="mt-3 flex justify-between">
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openInGoogleMaps(item.latitud, item.longitud);
-                    }}
-                    className="text-blue-600 hover:text-blue-800 text-sm"
-                  >
-                    Veure en Google Maps
-                  </button>
+                  {/* Mostrar diferentes botones según el rol del usuario */}
+                  {canNavigateToDetails ? (
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigateToDetail(item, 'zona');
+                      }}
+                      className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                    >
+                      Veure detalls
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openInGoogleMaps(item.latitud, item.longitud);
+                      }}
+                      className="text-blue-600 hover:text-blue-800 text-sm"
+                    >
+                      Veure en Google Maps
+                    </button>
+                  )}
                   
                   <button 
                     onClick={(e) => {
@@ -620,14 +730,23 @@ export function MapView({ filters, contenedores: propContenedores = [], zonas: p
               </div>
             )}
             
-            {/* Botón para ver en Google Maps */}
+            {/* Botón que cambia según el rol del usuario */}
             <div className="mb-4">
-              <button 
-                onClick={() => openInGoogleMaps(zonaSelected.latitud, zonaSelected.longitud)}
-                className="w-full py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium rounded flex items-center justify-center"
-              >
-                <span>Veure en Google Maps</span>
-              </button>
+              {canNavigateToDetails ? (
+                <button 
+                  onClick={() => navigateToDetail(zonaSelected, 'zona')}
+                  className="w-full py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium rounded flex items-center justify-center"
+                >
+                  <span>Veure detalls de la zona</span>
+                </button>
+              ) : (
+                <button 
+                  onClick={() => openInGoogleMaps(zonaSelected.latitud, zonaSelected.longitud)}
+                  className="w-full py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium rounded flex items-center justify-center"
+                >
+                  <span>Veure en Google Maps</span>
+                </button>
+              )}
             </div>
             
             {/* Botón para reportar un problema */}
@@ -650,16 +769,29 @@ export function MapView({ filters, contenedores: propContenedores = [], zonas: p
                 {contenedoresPorZona[zonaSelected.id]?.length > 0 ? (
                   <div className="max-h-[400px] overflow-y-auto">
                     {contenedoresPorZona[zonaSelected.id].map(contenedor => (
-                      <div key={contenedor.id} className="p-3 mb-2 border border-gray-200 rounded bg-gray-50">
-                        {renderContenedorItem(contenedor)}
-                        <div className="mt-2 text-right">
-                          <button 
-                            onClick={() => handleReportProblem(contenedor, 'contenedor')}
-                            className="text-red-600 hover:text-red-800 text-sm flex items-center justify-end ml-auto"
-                          >
-                            <div className="w-0 h-0 border-left-8 border-right-8 border-bottom-16 border-solid border-transparent border-b-red-600 mr-1"></div>
-                            <span>Reportar</span>
-                          </button>
+                      <div key={contenedor.id} className="p-3 mb-2 border border-gray-200 rounded bg-gray-50 relative">
+                        {/* Color stripe based on container type */}
+                        <div className={`absolute top-0 left-0 w-1.5 h-full rounded-l ${getTipusColor(contenedor.tipus)}`}></div>
+                        <div className="pl-1.5">
+                          {renderContenedorItem(contenedor)}
+                          <div className="mt-2 flex justify-between">
+                            {/* Navegación directa para gestores y admins */}
+                            {canNavigateToDetails && (
+                              <button 
+                                onClick={() => navigateToDetail(contenedor, 'contenedor')}
+                                className="text-blue-600 hover:text-blue-800 text-sm"
+                              >
+                                Veure detalls
+                              </button>
+                            )}
+                            <button 
+                              onClick={() => handleReportProblem(contenedor, 'contenedor')}
+                              className="text-red-600 hover:text-red-800 text-sm flex items-center ml-auto"
+                            >
+                              <div className="w-0 h-0 border-left-8 border-right-8 border-bottom-16 border-solid border-transparent border-b-red-600 mr-1"></div>
+                              <span>Reportar</span>
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}

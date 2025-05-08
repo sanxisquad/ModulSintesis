@@ -78,36 +78,36 @@ export const FilterPanel = ({
   const currentConfig = config[mode] || config.contenedors;
 
   return (
-    <div className="bg-black rounded-lg shadow-lg border border-gray-700">
-      {/* Botón de toggle para móvil */}
-      {isMobile && (
-        <button 
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="flex items-center justify-between w-full p-3 text-white bg-gray-800 rounded-t-lg hover:bg-gray-700 transition-colors"
-          aria-expanded={isExpanded}
-          aria-controls="filter-panel-content"
-        >
-          <div className="flex items-center">
-            <FiFilter className="mr-2 text-blue-400" />
-            <span className="font-medium">Filtres</span>
-          </div>
-          {isExpanded ? <FiChevronUp /> : <FiChevronDown />}
-        </button>
-      )}
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+      {/* Header with toggle button */}
+      <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+        <div className="flex items-center">
+          <FiFilter className="mr-2 text-blue-500" />
+          <h3 className="font-semibold text-gray-700">Filtres avançats</h3>
+        </div>
+        {isMobile && (
+          <button 
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            {isExpanded ? <FiChevronUp /> : <FiChevronDown />}
+          </button>
+        )}
+      </div>
 
-      {/* Contenedor de filtros (oculto en móvil si no está expandido) */}
-      <div id="filter-panel-content" className={`${isMobile && !isExpanded ? 'hidden' : 'block'} p-4`}>
-        <div className="flex flex-col md:flex-row md:items-end md:space-x-3 space-y-4 md:space-y-0">
+      {/* Filter Content */}
+      <div className={`p-4 ${isMobile && !isExpanded ? 'hidden' : 'block'}`}>
+        <div className="flex flex-col md:flex-row md:flex-wrap md:items-end gap-4">
           {/* Filtro por ciudad */}
           {currentConfig.showCiutatFilter && (
             <div className="w-full md:w-auto">
-              <label htmlFor="ciutat-filter" className="block mb-1 text-xs font-medium text-gray-400">Ciutat</label>
+              <label htmlFor="ciutat-filter" className="block mb-1 text-xs font-medium text-gray-600">Ciutat</label>
               <select
                 id="ciutat-filter"
                 name="ciutat"
                 value={filters.ciutat}
                 onChange={(e) => setFilters({...filters, ciutat: e.target.value})}
-                className="w-full md:w-40 p-2 border border-gray-600 rounded bg-gray-800 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full md:w-40 p-2 border border-gray-300 rounded bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Totes</option>
                 {ciudades.map((ciudad, index) => (
@@ -120,13 +120,13 @@ export const FilterPanel = ({
           {/* Filtro por usuario */}
           {currentConfig.showUsuariFilter && (
             <div className="w-full md:w-auto">
-              <label htmlFor="usuari-filter" className="block mb-1 text-xs font-medium text-gray-400">Usuari</label>
+              <label htmlFor="usuari-filter" className="block mb-1 text-xs font-medium text-gray-600">Usuari</label>
               <select
                 id="usuari-filter"
                 name="usuari"
                 value={filters.usuari}
                 onChange={(e) => setFilters({...filters, usuari: e.target.value})}
-                className="w-full md:w-40 p-2 border border-gray-600 rounded bg-gray-800 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full md:w-40 p-2 border border-gray-300 rounded bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Tots</option>
                 {usuarios.map(usuario => (
@@ -139,7 +139,7 @@ export const FilterPanel = ({
           {/* Filtro por zona */}
           {currentConfig.showZonaFilter && (
             <div className="w-full md:w-auto">
-              <label htmlFor="zona-filter" className="block mb-1 text-xs font-medium text-gray-400">
+              <label htmlFor="zona-filter" className="block mb-1 text-xs font-medium text-gray-600">
                 {mode === 'zones' ? 'Zona' : 'Zona de reciclatge'}
               </label>
               <select
@@ -147,7 +147,7 @@ export const FilterPanel = ({
                 name="zona"
                 value={filters.zona}
                 onChange={(e) => setFilters({...filters, zona: e.target.value})}
-                className="w-full md:w-48 p-2 border border-gray-600 rounded bg-gray-800 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full md:w-48 p-2 border border-gray-300 rounded bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Totes</option>
                 {zonas.map(zona => (
@@ -162,13 +162,13 @@ export const FilterPanel = ({
           {/* Filtro por estado */}
           {currentConfig.showEstatFilter && (
             <div className="w-full md:w-auto">
-              <label htmlFor="estat-filter" className="block mb-1 text-xs font-medium text-gray-400">Estat</label>
+              <label htmlFor="estat-filter" className="block mb-1 text-xs font-medium text-gray-600">Estat</label>
               <select
                 id="estat-filter"
                 name="estat"
                 value={filters.estat}
                 onChange={(e) => setFilters({...filters, estat: e.target.value})}
-                className="w-full md:w-40 p-2 border border-gray-600 rounded bg-gray-800 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full md:w-40 p-2 border border-gray-300 rounded bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Tots</option>
                 {estatOptions.map(option => (
@@ -181,13 +181,13 @@ export const FilterPanel = ({
           {/* Filtro por tipo */}
           {currentConfig.showTipusFilter && (
             <div className="w-full md:w-auto">
-              <label htmlFor="tipus-filter" className="block mb-1 text-xs font-medium text-gray-400">Tipus</label>
+              <label htmlFor="tipus-filter" className="block mb-1 text-xs font-medium text-gray-600">Tipus</label>
               <select
                 id="tipus-filter"
                 name="tipus"
                 value={filters.tipus}
                 onChange={(e) => setFilters({...filters, tipus: e.target.value})}
-                className="w-full md:w-40 p-2 border border-gray-600 rounded bg-gray-800 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full md:w-40 p-2 border border-gray-300 rounded bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Tots</option>
                 {tipusOptions.map(option => (
@@ -200,13 +200,13 @@ export const FilterPanel = ({
           {/* Filtro por rol */}
           {currentConfig.showRoleFilter && (
             <div className="w-full md:w-auto">
-              <label htmlFor="role-filter" className="block mb-1 text-xs font-medium text-gray-400">Rol</label>
+              <label htmlFor="role-filter" className="block mb-1 text-xs font-medium text-gray-600">Rol</label>
               <select
                 id="role-filter"
                 name="role"
                 value={filters.role}
                 onChange={(e) => setFilters({...filters, role: e.target.value})}
-                className="w-full md:w-40 p-2 border border-gray-600 rounded bg-gray-800 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full md:w-40 p-2 border border-gray-300 rounded bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Tots els rols</option>
                 {roleOptions.map((role, index) => (
@@ -219,7 +219,7 @@ export const FilterPanel = ({
           {/* Filtro por nombre */}
           {currentConfig.showNomFilter && (
             <div className="w-full md:w-auto">
-              <label htmlFor="nom-filter" className="block mb-1 text-xs font-medium text-gray-400">Nom</label>
+              <label htmlFor="nom-filter" className="block mb-1 text-xs font-medium text-gray-600">Nom</label>
               <input
                 id="nom-filter"
                 name="nom"
@@ -227,7 +227,7 @@ export const FilterPanel = ({
                 placeholder="Cercar per nom"
                 value={filters.nom}
                 onChange={(e) => setFilters({...filters, nom: e.target.value})}
-                className="w-full md:w-48 p-2 border border-gray-600 rounded bg-gray-800 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full md:w-48 p-2 border border-gray-300 rounded bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
           )}
@@ -235,7 +235,7 @@ export const FilterPanel = ({
           {/* Filtro por código */}
           {currentConfig.showCodiFilter && (
             <div className="w-full md:w-auto">
-              <label htmlFor="codi-filter" className="block mb-1 text-xs font-medium text-gray-400">Cercar per codi</label>
+              <label htmlFor="codi-filter" className="block mb-1 text-xs font-medium text-gray-600">Cercar per codi</label>
               <input
                 id="codi-filter"
                 name="codi"
@@ -243,28 +243,28 @@ export const FilterPanel = ({
                 placeholder="Introdueix el codi"
                 value={filters.codi}
                 onChange={(e) => setFilters({...filters, codi: e.target.value})}
-                className="w-full md:w-48 p-2 border border-gray-600 rounded bg-gray-800 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full md:w-48 p-2 border border-gray-300 rounded bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
           )}
 
-          {/* Botón limpiar */}
-          <div className="w-full md:w-auto md:ml-2">
+          {/* Botón limpiar - estilo mejorado */}
+          <div className="w-full md:w-auto md:self-end">
             <button
               type="button"
               onClick={handleClearFilters}
-              className="flex items-center justify-center w-full md:w-auto px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded transition-colors focus:ring-2 focus:ring-red-400 focus:ring-opacity-50"
+              className="flex items-center justify-center w-full md:w-auto px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded transition-colors focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50"
             >
               <FiX className="mr-1" />
-              <span>Netejar</span>
+              <span>Netejar filtres</span>
             </button>
           </div>
         </div>
 
-        {/* Toggles para mostrar/ocultar (solo en mapa) */}
+        {/* Toggles para mostrar/ocultar */}
         {currentConfig.showToggles && (
-          <div className="mt-4 flex flex-wrap space-x-4">
-            <label htmlFor="show-contenedores" className="flex items-center text-white">
+          <div className="mt-4 flex flex-wrap gap-4 pt-3 border-t border-gray-200">
+            <label htmlFor="show-contenedores" className="flex items-center text-gray-700">
               <input
                 id="show-contenedores"
                 name="showContenedores"
@@ -276,7 +276,7 @@ export const FilterPanel = ({
               Mostrar Contenidors
             </label>
 
-            <label htmlFor="show-zones" className="flex items-center text-white">
+            <label htmlFor="show-zones" className="flex items-center text-gray-700">
               <input
                 id="show-zones"
                 name="showZones"

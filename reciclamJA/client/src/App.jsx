@@ -18,6 +18,7 @@ import { GestorUsuaris } from './pages/gestor/GestorUsuaris';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Unauthorized } from './pages/auth/Unauthorized';
 import { ZonaContenedoresView } from './components/zr/ZonaContenedoresView';
+import { GestioTiquets } from './pages/gestor/GestioTiquets';
 
 import { ConfirmDialogProvider } from './components/common/ConfirmDialog';
 
@@ -54,6 +55,7 @@ function App() {
                 <Route path="/gestor-contenedors" element={<GestorContenedors />} />
                 <Route path="/gestor-zones" element={<GestorZona />} />
                 <Route path="/zones/:id/contenedores" element={<ZonaContenedoresView />} />
+                <Route path="/gestor-tiquets" element={<GestioTiquets />} />
               </Route>
             </Routes>
           </div>

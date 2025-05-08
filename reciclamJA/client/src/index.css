@@ -1,5 +1,23 @@
 @import "tailwindcss";
 body {
-  color:white;
-  background: #353535;
+  color: #374151; /* Dark gray text for readability */
+  background: #f9fafb; /* Light gray background that looks professional */
+}
+
+/* Professional scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c5c5c5;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a0a0a0;
 }
