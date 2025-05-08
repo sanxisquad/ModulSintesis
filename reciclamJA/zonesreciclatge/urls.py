@@ -19,4 +19,8 @@ router.register(r'public/zones', PublicZonesViewSet, basename='public-zones')
 
 urlpatterns = [
     path('', include(router.urls)),
+    # Actions específicas para reportes
+    path('reportes/<int:pk>/resolver/', views.ReporteContenedorViewSet.as_view({'post': 'resolver'}), name='reporte-resolver'),
+    path('reportes/<int:pk>/rechazar/', views.ReporteContenedorViewSet.as_view({'post': 'rechazar'}), name='reporte-rechazar'),
+    path('reportes/<int:pk>/procesar/', views.ReporteContenedorViewSet.as_view({'post': 'procesar'}), name='reporte-procesar'),
 ]

@@ -3,22 +3,45 @@ import { useAuth } from "../../../hooks/useAuth";
 import { useState, useEffect, useRef } from "react";
 import { useMenu } from "../../context/MenuContext";
 import { usePermissions } from "../../../hooks/usePermissions";
-import { FaBars, FaTimes, FaChevronDown, FaChevronUp, FaUser, FaSignOutAlt, FaQrcode, FaBell } from "react-icons/fa";
+import { useNotification } from "../../context/NotificationContext";
+import { 
+  FaBars, 
+  FaTimes, 
+  FaChevronDown, 
+  FaChevronUp, 
+  FaUser, 
+  FaSignOutAlt, 
+  FaQrcode, 
+  FaBell,
+  FaHome,
+  FaUsers,
+  FaFlask,
+  FaChartBar,
+  FaTicketAlt,
+  FaMap
+} from "react-icons/fa";
 import { MdManageAccounts } from "react-icons/md";
-import { getNotificaciones, marcarTodasLeidas, marcarNotificacionLeida } from "../../api/zr.api";
 
 export function Navigation() {
     const { isAuthenticated, user, logout, loading } = useAuth();
     const { menuOpen, toggleMenu } = useMenu();
     const [gestionExpanded, setGestionExpanded] = useState(false);
     const [userMenuOpen, setUserMenuOpen] = useState(false);
-    const [notificaciones, setNotificaciones] = useState([]);
     const [notificacionesOpen, setNotificacionesOpen] = useState(false);
-    const [loadingNotificaciones, setLoadingNotificaciones] = useState(false);
     const { canMenu, menuUser, isUser } = usePermissions();
     const userMenuRef = useRef(null);
     const menuRef = useRef(null);
     const notificacionesRef = useRef(null);
+    
+    // Usar el contexto de notificaciones
+    const { 
+        notificaciones, 
+        loadingNotificaciones, 
+        notificacionesNoLeidas, 
+        fetchNotificaciones, 
+        handleNotificacionClick,
+        marcarTodasNotificacionesLeidas 
+    } = useNotification();
 
     // Cerrar menús al hacer clic fuera
     useEffect(() => {
@@ -44,54 +67,6 @@ export function Navigation() {
         };
     }, [toggleMenu]);
 
-    // Cargar notificaciones cuando el usuario está autenticado
-    useEffect(() => {
-        if (isAuthenticated && (canMenu || user?.is_staff)) {
-            fetchNotificaciones();
-            
-            // Actualizar notificaciones cada minuto
-            const interval = setInterval(fetchNotificaciones, 60000);
-            return () => clearInterval(interval);
-        }
-    }, [isAuthenticated, user]);
-
-    const fetchNotificaciones = async () => {
-        if (!isAuthenticated) return;
-        
-        try {
-            setLoadingNotificaciones(true);
-            const response = await getNotificaciones();
-            setNotificaciones(response.data);
-        } catch (error) {
-            console.error("Error al cargar notificaciones:", error);
-        } finally {
-            setLoadingNotificaciones(false);
-        }
-    };
-
-    const handleNotificacionClick = async (id) => {
-        try {
-            await marcarNotificacionLeida(id);
-            setNotificaciones(notificaciones.map(notif => 
-                notif.id === id ? { ...notif, leida: true } : notif
-            ));
-        } catch (error) {
-            console.error("Error al marcar notificación como leída:", error);
-        }
-    };
-
-    const marcarTodasNotificacionesLeidas = async () => {
-        try {
-            await marcarTodasLeidas();
-            setNotificaciones(notificaciones.map(notif => ({ ...notif, leida: true })));
-            setNotificacionesOpen(false);
-        } catch (error) {
-            console.error("Error al marcar todas las notificaciones como leídas:", error);
-        }
-    };
-
-    const notificacionesNoLeidas = notificaciones.filter(n => !n.leida).length;
-
     // Función auxiliar para formatear fechas sin date-fns
     const formatearFechaRelativa = (fecha) => {
         const ahora = new Date();
@@ -114,6 +89,20 @@ export function Navigation() {
             return 'hace unos segundos';
         }
     };
+
+    // Helper function to render menu item with icon
+    const MenuItem = ({ to, icon: Icon, children, onClick }) => (
+      <li className="mb-2">
+        <Link
+          to={to}
+          className="flex items-center p-2 text-gray-600 hover:bg-gray-100 rounded"
+          onClick={onClick}
+        >
+          {Icon && <Icon className="w-5 h-5 mr-2" />}
+          <span>{children}</span>
+        </Link>
+      </li>
+    );
 
     return (
         <div className="w-full sticky top-0 z-50">
@@ -197,7 +186,7 @@ export function Navigation() {
                                                 <div 
                                                     key={notif.id}
                                                     className={`p-3 border-b hover:bg-gray-50 cursor-pointer ${!notif.leida ? 'bg-blue-50' : ''}`}
-                                                    onClick={() => handleNotificacionClick(notif.id)}
+                                                    onClick={() => handleNotificacionClick(notif.id, notif.ruta)}
                                                 >
                                                     <div className="flex justify-between items-start">
                                                         <h4 className="font-medium text-sm">{notif.titulo}</h4>
@@ -273,6 +262,7 @@ export function Navigation() {
                                             toggleMenu();
                                         }}
                                     >
+                                        <FaChartBar className="w-5 h-5 inline-block mr-2" />
                                         Dashboard
                                     </Link>
                                 </li>
@@ -282,7 +272,10 @@ export function Navigation() {
                                         className="flex justify-between items-center w-full py-3 px-4 hover:bg-gray-800 rounded-lg text-left"
                                         onClick={() => setGestionExpanded(!gestionExpanded)}
                                     >
-                                        <span>Gestió</span>
+                                        <span className="flex items-center">
+                                            <FaFlask className="w-5 h-5 mr-2" />
+                                            Gestió
+                                        </span>
                                         {gestionExpanded ? <FaChevronUp /> : <FaChevronDown />}
                                     </button>
                                     {gestionExpanded && (
@@ -294,7 +287,7 @@ export function Navigation() {
                                                     className="flex items-center py-2 px-4 hover:bg-gray-800 rounded-lg"
                                                     onClick={toggleMenu}
                                                 >
-                                                    <MdManageAccounts className="mr-2" />
+                                                    <FaUsers className="w-5 h-5 mr-2" />
                                                     Usuaris
                                                 </Link>
                                                 </li>
@@ -304,6 +297,7 @@ export function Navigation() {
                                                         className="block py-2 px-4 hover:bg-gray-800 rounded-lg"
                                                         onClick={toggleMenu}
                                                     >
+                                                        <FaFlask className="w-5 h-5 mr-2" />
                                                         Contenidors
                                                     </Link>
                                                 </li>
@@ -313,7 +307,18 @@ export function Navigation() {
                                                         className="block py-2 px-4 hover:bg-gray-800 rounded-lg"
                                                         onClick={toggleMenu}
                                                     >
+                                                        <FaMap className="w-5 h-5 mr-2" />
                                                         Zones de reciclatge
+                                                    </Link>
+                                                </li>
+                                                <li>
+                                                    <Link 
+                                                        to="/gestor-tiquets" 
+                                                        className="block py-2 px-4 hover:bg-gray-800 rounded-lg"
+                                                        onClick={toggleMenu}
+                                                    >
+                                                        <FaTicketAlt className="w-5 h-5 mr-2" />
+                                                        Tiquets
                                                     </Link>
                                                 </li>
                                             </ul>

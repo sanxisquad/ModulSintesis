@@ -1,15 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { TiquetCard } from './TiquetCard';
 import { Search } from 'lucide-react';
 
-export function TiquetsList({ tiquets }) {
+export function TiquetsList({ tiquets, onTicketStatusChange }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [localTiquets, setLocalTiquets] = useState(tiquets);
   
-  // Actualizar tiquets locales cuando cambian los props
-  if (tiquets !== localTiquets) {
+  // Update local tickets when props change
+  useEffect(() => {
     setLocalTiquets(tiquets);
-  }
+  }, [tiquets]);
   
   // Filtrar tiquets según el término de búsqueda
   const filteredTiquets = searchTerm
@@ -21,10 +21,16 @@ export function TiquetsList({ tiquets }) {
   
   // Manejar la actualización de un tiquet
   const handleUpdateTiquet = (updatedTiquet) => {
+    // Update local state immediately
     const updatedTiquets = localTiquets.map(t => 
       t.id === updatedTiquet.id ? updatedTiquet : t
     );
     setLocalTiquets(updatedTiquets);
+    
+    // Trigger parent component to refresh data from server
+    if (onTicketStatusChange) {
+      onTicketStatusChange();
+    }
   };
   
   return (

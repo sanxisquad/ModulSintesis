@@ -16,10 +16,11 @@ export function GestorContenedors() {
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState('list'); // 'list' o 'map'
   const [showStats, setShowStats] = useState(true); // New state for statistics panel toggle
+  const [selectedEstat, setSelectedEstat] = useState(null); // New state to track selected estat
   const [filters, setFilters] = useState({
     ciutat: '',
     zona: '',
-    estat: '',
+    // estat filter removed
     tipus: '',
     codi: '',
     nom: '',
@@ -52,8 +53,8 @@ export function GestorContenedors() {
   const ciudadesOptions = [...new Set(contenedores.map(c => c.ciutat).filter(Boolean))];
   const zonasOptions = zonas.map(zona => ({ id: zona.id, nom: zona.nom }));
   
-  // Opciones fijas para estado y tipo
-  const estatOptions = ['ple', 'mig', 'buit'];
+  // Opciones fijas para tipo
+  // estatOptions removed as it's now handled by the cards
   const tipusOptions = ['vidre', 'paper', 'plàstic', 'orgànic', 'indiferenciat'];
 
   // Datos para estadísticas y gráficos
@@ -78,11 +79,16 @@ export function GestorContenedors() {
   const filteredContenedores = contenedores.filter(c => {
     if (filters.ciutat && c.ciutat !== filters.ciutat) return false;
     if (filters.zona && c.zona !== Number(filters.zona)) return false;
-    if (filters.estat && c.estat !== filters.estat) return false;
+    if (selectedEstat && c.estat !== selectedEstat) return false; // Use the new selectedEstat instead
     if (filters.tipus && c.tipus !== filters.tipus) return false;
     if (filters.codi && !c.cod?.toLowerCase().includes(filters.codi.toLowerCase())) return false;
     return true;
   });
+
+  // Function to handle clicking on a state card
+  const handleEstatCardClick = (estat) => {
+    setSelectedEstat(prevEstat => prevEstat === estat ? null : estat);
+  };
 
   if (isLoading) return (
     <div className="flex items-center justify-center h-screen bg-white">
@@ -109,9 +115,100 @@ export function GestorContenedors() {
           </div>
         </div>
         
-        {/* Estadísticas toggle button */}
+        {/* Tarjetas de estadísticas básicas - moved outside collapsible section */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+          <div className="bg-white p-4 rounded-lg shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Total Contenidors</p>
+                <p className="mt-1 text-3xl font-semibold text-gray-900">{stats.total}</p>
+                {/* Removed conditional filtering message */}
+              </div>
+              <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center">
+                <Database className="h-6 w-6 text-blue-600" />
+              </div>
+            </div>
+          </div>
+          
+          <div 
+            className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${
+              selectedEstat === 'ple' ? 'ring-2 ring-red-500' : ''
+            }`}
+            onClick={() => handleEstatCardClick('ple')}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Contenidors Plens</p>
+                <p className="mt-1 text-3xl font-semibold text-gray-900">{stats.ple}</p>
+                <p className="text-sm text-gray-500 mt-1">
+                  {Math.round(stats.ple / stats.total * 100) || 0}% del total
+                </p>
+              </div>
+              <div className="h-12 w-12 bg-red-100 rounded-full flex items-center justify-center">
+                <Trash2 className="h-6 w-6 text-red-600" />
+              </div>
+            </div>
+          </div>
+          
+          <div 
+            className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${
+              selectedEstat === 'mig' ? 'ring-2 ring-yellow-500' : ''
+            }`}
+            onClick={() => handleEstatCardClick('mig')}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Mig Plens</p>
+                <p className="mt-1 text-3xl font-semibold text-gray-900">{stats.mig}</p>
+                <p className="text-sm text-gray-500 mt-1">
+                  {Math.round(stats.mig / stats.total * 100) || 0}% del total
+                </p>
+              </div>
+              <div className="h-12 w-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                <Trash2 className="h-6 w-6 text-yellow-600" />
+              </div>
+            </div>
+          </div>
+          
+          <div 
+            className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${
+              selectedEstat === 'buit' ? 'ring-2 ring-green-500' : ''
+            }`}
+            onClick={() => handleEstatCardClick('buit')}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Buits</p>
+                <p className="mt-1 text-3xl font-semibold text-gray-900">{stats.buit}</p>
+                <p className="text-sm text-gray-500 mt-1">
+                  {Math.round(stats.buit / stats.total * 100) || 0}% del total
+                </p>
+              </div>
+              <div className="h-12 w-12 bg-green-100 rounded-full flex items-center justify-center">
+                <Trash2 className="h-6 w-6 text-green-600" />
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white p-4 rounded-lg shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Alertes</p>
+                <p className="mt-1 text-3xl font-semibold text-gray-900">{stats.alertas}</p>
+                <p className="text-sm text-gray-500 mt-1">
+                  {stats.alertas > 0 ? 'Requereixen atenció' : 'Cap alerta'}
+                </p>
+              </div>
+              <div className="h-12 w-12 bg-red-100 rounded-full flex items-center justify-center">
+                <CircleAlert className="h-6 w-6 text-red-600" />
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Estadísticas toggle button - now only for charts */}
         <div className="mb-2 flex justify-between items-center">
-          <div className="text-lg font-medium text-gray-800">Estadístiques</div>
+          <div className="text-lg font-medium text-gray-800">Gràfics i estadístiques avançades</div>
           <button 
             onClick={() => setShowStats(!showStats)}
             className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 focus:outline-none transition-colors"
@@ -121,89 +218,10 @@ export function GestorContenedors() {
           </button>
         </div>
         
-        {/* Panel de estadísticas mejorado - Collapsible (incluye todas las estadísticas) */}
+        {/* Panel de visualizaciones analíticas - Collapsible (solo gráficos) */}
         <div className={`overflow-hidden transition-all duration-500 ease-in-out ${showStats ? 'max-h-[1200px] opacity-100 mb-6' : 'max-h-0 opacity-0'}`}>
-          {/* Tarjetas de estadísticas básicas */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
-            <div className="bg-white p-5 rounded-lg shadow-sm border border-gray-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Total Contenidors</p>
-                  <p className="mt-1 text-3xl font-semibold text-gray-900">{stats.total}</p>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {filteredContenedores.length !== stats.total && 
-                      `${filteredContenedores.length} filtrats`}
-                  </p>
-                </div>
-                <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center">
-                  <Database className="h-6 w-6 text-blue-600" />
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white p-5 rounded-lg shadow-sm border border-gray-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Contenidors Plens</p>
-                  <p className="mt-1 text-3xl font-semibold text-gray-900">{stats.ple}</p>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {Math.round(stats.ple / stats.total * 100) || 0}% del total
-                  </p>
-                </div>
-                <div className="h-12 w-12 bg-red-100 rounded-full flex items-center justify-center">
-                  <Trash2 className="h-6 w-6 text-red-600" />
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white p-5 rounded-lg shadow-sm border border-gray-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Mig Plens</p>
-                  <p className="mt-1 text-3xl font-semibold text-gray-900">{stats.mig}</p>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {Math.round(stats.mig / stats.total * 100) || 0}% del total
-                  </p>
-                </div>
-                <div className="h-12 w-12 bg-yellow-100 rounded-full flex items-center justify-center">
-                  <Trash2 className="h-6 w-6 text-yellow-600" />
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white p-5 rounded-lg shadow-sm border border-gray-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Buits</p>
-                  <p className="mt-1 text-3xl font-semibold text-gray-900">{stats.buit}</p>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {Math.round(stats.buit / stats.total * 100) || 0}% del total
-                  </p>
-                </div>
-                <div className="h-12 w-12 bg-green-100 rounded-full flex items-center justify-center">
-                  <Trash2 className="h-6 w-6 text-green-600" />
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white p-5 rounded-lg shadow-sm border border-gray-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Alertes</p>
-                  <p className="mt-1 text-3xl font-semibold text-gray-900">{stats.alertas}</p>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {stats.alertas > 0 ? 'Requereixen atenció' : 'Cap alerta'}
-                  </p>
-                </div>
-                <div className="h-12 w-12 bg-red-100 rounded-full flex items-center justify-center">
-                  <CircleAlert className="h-6 w-6 text-red-600" />
-                </div>
-              </div>
-            </div>
-          </div>
-          
           {/* Visualizaciones analíticas */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
             <div className="bg-white p-5 rounded-lg shadow-sm border border-gray-200">
               <h2 className="text-lg font-medium mb-4 text-gray-800">Distribució d'Estat</h2>
               <div className="h-64">
@@ -297,7 +315,7 @@ export function GestorContenedors() {
           </Link>
         </div>
         
-        {/* Panel de filtros */}
+        {/* Panel de filtros (sin el filtro de estat) */}
         {showFilters && (
           <div className="mb-6">
             <FilterPanel 
@@ -306,7 +324,7 @@ export function GestorContenedors() {
               mode="contenedor"
               ciudades={ciudadesOptions}
               zonas={zonasOptions}
-              estatOptions={estatOptions}
+              // estatOptions removed from here
               tipusOptions={tipusOptions}
             />
           </div>

@@ -1,12 +1,15 @@
 import { 
   Clock, RefreshCw, CheckCircle2, XCircle, 
-  User, Calendar, MapPin, MessageSquare
+  User, Calendar, MapPin, MessageSquare, ExternalLink
 } from 'lucide-react';
 import { useState } from 'react';
-import { updateReporte } from '../../api/zr.api';
+import { resolveReporte, rejectReporte, processReporte } from '../../api/zr.api';
+import { Link } from 'react-router-dom';
+import { useConfirm } from '../common/ConfirmDialog';
 
 export function TiquetCard({ tiquet, onUpdateTiquet }) {
   const [loading, setLoading] = useState(false);
+  const confirm = useConfirm();
   
   const getTraduccionTipo = (tipo) => {
     switch(tipo) {
@@ -52,17 +55,69 @@ export function TiquetCard({ tiquet, onUpdateTiquet }) {
   
   const handleUpdateState = async (newState) => {
     try {
+      // Check if the ticket is already in a terminal state
+      if (tiquet.estado === 'resuelto' || tiquet.estado === 'rechazado') {
+        return; // Don't allow changes to tickets already in terminal states
+      }
+      
+      // For "en_proceso" state, immediately change without confirmation
+      if (newState === 'en_proceso') {
+        setLoading(true);
+        // Use the dedicated endpoint for processing tickets
+        await processReporte(tiquet.id);
+        if (onUpdateTiquet) {
+          onUpdateTiquet({ ...tiquet, estado: 'en_proceso' });
+        }
+        setLoading(false);
+        return;
+      }
+      
+      // For "resuelto" and "rechazado", show confirmation dialog
+      let confirmResult;
+      
+      if (newState === 'resuelto') {
+        confirmResult = await confirm({
+          title: 'Confirmar resolució',
+          message: 'Estàs segur que vols marcar aquest tiquet com a resolt?',
+          detail: 'Aquesta acció enviarà una notificació a l\'usuari i li donarà 100 punts.',
+          confirmText: 'Marcar com a resolt',
+          cancelText: 'Cancel·lar'
+        });
+      } else if (newState === 'rechazado') {
+        confirmResult = await confirm({
+          title: 'Confirmar rebuig',
+          message: 'Estàs segur que vols rebutjar aquest tiquet?',
+          detail: 'Aquesta acció enviarà una notificació a l\'usuari informant que el seu tiquet ha estat rebutjat.',
+          confirmText: 'Rebutjar tiquet',
+          cancelText: 'Cancel·lar'
+        });
+      }
+      
+      if (!confirmResult) {
+        return; // User cancelled the action
+      }
+      
       setLoading(true);
-      await updateReporte(tiquet.id, { ...tiquet, estado: newState });
+      
+      if (newState === 'resuelto') {
+        await resolveReporte(tiquet.id, '');
+      } else if (newState === 'rechazado') {
+        await rejectReporte(tiquet.id, '');
+      }
+      
       if (onUpdateTiquet) {
         onUpdateTiquet({ ...tiquet, estado: newState });
       }
+      
       setLoading(false);
     } catch (error) {
       console.error("Error actualitzant l'estat del tiquet:", error);
       setLoading(false);
     }
   };
+  
+  // Prevent actions on tickets that are already in terminal states
+  const isTerminalState = tiquet.estado === 'resuelto' || tiquet.estado === 'rechazado';
   
   return (
     <div className="bg-white p-4 rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition-shadow duration-200">
@@ -113,36 +168,46 @@ export function TiquetCard({ tiquet, onUpdateTiquet }) {
         </div>
       )}
       
-      {tiquet.estado !== 'resuelto' && tiquet.estado !== 'rechazado' && (
-        <div className="flex justify-end space-x-2 mt-4">
-          {tiquet.estado === 'abierto' && (
+      <div className="flex justify-between items-center mt-4">
+        <Link 
+          to={`/gestor/tiquets/${tiquet.id}`} 
+          className="text-blue-500 hover:text-blue-700 flex items-center text-sm"
+        >
+          <ExternalLink className="h-3 w-3 mr-1" />
+          Veure detalls
+        </Link>
+        
+        {!isTerminalState && (
+          <div className="flex space-x-2">
+            {tiquet.estado === 'abierto' && (
+              <button
+                disabled={loading}
+                onClick={() => handleUpdateState('en_proceso')}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm flex items-center"
+              >
+                <RefreshCw className={`h-3 w-3 mr-1 ${loading ? 'animate-spin' : ''}`} />
+                Iniciar
+              </button>
+            )}
             <button
               disabled={loading}
-              onClick={() => handleUpdateState('en_proceso')}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm flex items-center"
+              onClick={() => handleUpdateState('resuelto')}
+              className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm flex items-center"
             >
-              <RefreshCw className="h-3 w-3 mr-1" />
-              Iniciar procés
+              <CheckCircle2 className="h-3 w-3 mr-1" />
+              Resoldre
             </button>
-          )}
-          <button
-            disabled={loading}
-            onClick={() => handleUpdateState('resuelto')}
-            className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm flex items-center"
-          >
-            <CheckCircle2 className="h-3 w-3 mr-1" />
-            Marcar resolt
-          </button>
-          <button
-            disabled={loading}
-            onClick={() => handleUpdateState('rechazado')}
-            className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm flex items-center"
-          >
-            <XCircle className="h-3 w-3 mr-1" />
-            Rebutjar
-          </button>
-        </div>
-      )}
+            <button
+              disabled={loading}
+              onClick={() => handleUpdateState('rechazado')}
+              className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm flex items-center"
+            >
+              <XCircle className="h-3 w-3 mr-1" />
+              Rebutjar
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

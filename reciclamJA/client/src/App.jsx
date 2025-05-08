@@ -19,6 +19,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { Unauthorized } from './pages/auth/Unauthorized';
 import { ZonaContenedoresView } from './components/zr/ZonaContenedoresView';
 import { GestioTiquets } from './pages/gestor/GestioTiquets';
+import { TiquetView } from './components/tiquets/TiquetView';
 
 import { ConfirmDialogProvider } from './components/common/ConfirmDialog';
 
@@ -40,7 +41,7 @@ function App() {
               <Route element={<ProtectedRoute allowedRoles={["isUser", "isGestor", "isAdmin", "isSuperAdmin"]} />}> 
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/zona/:id" element={<ZonaFormPage />} />
-                <Route path="/contenedor/:id" element={<ContenedorFormPage />} />
+                
               </Route>
 
               {/* SUPERADMIN GESTOR ADMIN */}
@@ -56,6 +57,9 @@ function App() {
                 <Route path="/gestor-zones" element={<GestorZona />} />
                 <Route path="/zones/:id/contenedores" element={<ZonaContenedoresView />} />
                 <Route path="/gestor-tiquets" element={<GestioTiquets />} />
+                <Route path="/gestor/tiquets/:id" element={<TiquetView />} />
+                <Route path="/contenedor/:id" element={<ContenedorFormPage />} />
+                
               </Route>
             </Routes>
           </div>

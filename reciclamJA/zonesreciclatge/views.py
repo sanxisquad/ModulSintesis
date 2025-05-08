@@ -271,6 +271,89 @@ class ReporteContenedorViewSet(viewsets.ModelViewSet):
             
         return Response({'status': 'Reporte resuelto correctamente'})
 
+    @action(detail=True, methods=['post'])
+    def rechazar(self, request, pk=None):
+        reporte = self.get_object()
+        comentario = request.data.get('comentario', '')
+        
+        reporte.estado = 'rechazado'
+        reporte.comentario_cierre = comentario
+        reporte.resuelto_por = request.user
+        reporte.save()
+        
+        # Notificar al usuario que su reporte fue rechazado
+        if reporte.usuario:
+            Notificacion.objects.create(
+                usuario=reporte.usuario,
+                tipo='reporte',
+                titulo=f"Reporte rebutjat: {reporte.get_tipo_display()}",
+                mensaje=f"El teu tiquet #{reporte.id} ha estat rebutjat.",
+                relacion_reporte=reporte
+            )
+            
+        return Response({'status': 'Reporte rechazado correctamente'})
+
+    @action(detail=True, methods=['post'])
+    def procesar(self, request, pk=None):
+        reporte = self.get_object()
+        
+        # Remove the validation that only allows processing open tickets
+        # This allows changing the state from any status
+        
+        reporte.estado = 'en_proceso'
+        reporte.save()
+        
+        return Response({'status': 'Reporte ahora en proceso'})
+
+    # Add a new endpoint for reopening tickets
+    @action(detail=True, methods=['post'])
+    def reabrir(self, request, pk=None):
+        reporte = self.get_object()
+        reporte.estado = 'abierto'
+        reporte.save()
+        
+        return Response({'status': 'Reporte reabierto correctamente'})
+
+    def perform_update(self, serializer):
+        instance = self.get_object()
+        old_estado = instance.estado
+        usuario = self.request.user
+        
+        # Guardamos la instancia actualizada
+        updated_instance = serializer.save()
+        new_estado = updated_instance.estado
+        
+        # Si el estado cambió de abierto/en_proceso a resuelto
+        if old_estado in ['abierto', 'en_proceso'] and new_estado == 'resuelto':
+            # Añadir puntos al usuario que creó el reporte (si existe)
+            if updated_instance.usuario:
+                reporter_user = updated_instance.usuario
+                reporter_user.score += 100  # Añadir 100 puntos
+                reporter_user.save()
+                
+                # Crear notificación para el usuario que reportó
+                Notificacion.objects.create(
+                    usuario=reporter_user,
+                    tipo='reporte',
+                    titulo=f"Reporte resolt: {updated_instance.get_tipo_display()}",
+                    mensaje=f"El teu tiquet #{updated_instance.id} ha estat resolt. Has guanyat 100 punts!",
+                    relacion_reporte=updated_instance
+                )
+        
+        # Si el estado cambió a rechazado
+        elif old_estado in ['abierto', 'en_proceso'] and new_estado == 'rechazado':
+            # Notificar al usuario que su reporte fue rechazado
+            if updated_instance.usuario:
+                Notificacion.objects.create(
+                    usuario=updated_instance.usuario,
+                    tipo='reporte',
+                    titulo=f"Reporte rebutjat: {updated_instance.get_tipo_display()}",
+                    mensaje=f"El teu tiquet #{updated_instance.id} ha estat rebutjat.",
+                    relacion_reporte=updated_instance
+                )
+        
+        return updated_instance
+
 class NotificacionViewSet(viewsets.ModelViewSet):
     serializer_class = NotificacionSerializer
     permission_classes = [permissions.IsAuthenticated]

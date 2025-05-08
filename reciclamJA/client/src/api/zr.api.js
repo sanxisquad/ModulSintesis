@@ -88,3 +88,22 @@ export const deleteReporte = (id) => zrApi.delete(`/reportes/${id}/`);
 export const getNotificaciones = () => zrApi.get('/notificaciones/');
 export const marcarNotificacionLeida = (id) => zrApi.post(`/notificaciones/${id}/marcar_leida/`);
 export const marcarTodasLeidas = () => zrApi.post('/notificaciones/marcar_como_leidas/');
+
+// Métodos específicos para resolución de reportes
+export const resolveReporte = (id, comentario) => {
+    return zrApi.post(`/reportes/${id}/resolver/`, { comentario });
+};
+
+export const rejectReporte = (id, comentario) => {
+    return zrApi.post(`/reportes/${id}/rechazar/`, { comentario });
+};
+
+// Métodos específicos para procesar reportes
+export const processReporte = (id) => {
+    return zrApi.post(`/reportes/${id}/procesar/`);
+};
+
+// Método para reabrir tickets
+export const reopenTicket = (id) => {
+    return zrApi.post(`/reportes/${id}/reabrir/`);
+};

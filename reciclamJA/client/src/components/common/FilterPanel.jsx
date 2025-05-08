@@ -7,7 +7,6 @@ export const FilterPanel = ({
   ciudades,
   zonas,
   usuarios = [],
-  estatOptions = [],
   tipusOptions = [],
   roleOptions = [],
   mode = 'contenedors'
@@ -154,25 +153,6 @@ export const FilterPanel = ({
                   <option key={zona.id} value={mode === 'zones' ? zona.nom : zona.id}>
                     {zona.nom}
                   </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Filtro por estado */}
-          {currentConfig.showEstatFilter && (
-            <div className="w-full md:w-auto">
-              <label htmlFor="estat-filter" className="block mb-1 text-xs font-medium text-gray-600">Estat</label>
-              <select
-                id="estat-filter"
-                name="estat"
-                value={filters.estat}
-                onChange={(e) => setFilters({...filters, estat: e.target.value})}
-                className="w-full md:w-40 p-2 border border-gray-300 rounded bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">Tots</option>
-                {estatOptions.map(option => (
-                  <option key={option} value={option}>{option}</option>
                 ))}
               </select>
             </div>

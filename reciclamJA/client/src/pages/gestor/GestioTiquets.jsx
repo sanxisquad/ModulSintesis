@@ -33,6 +33,19 @@ export function GestioTiquets() {
     fetchData();
   }, []);
   
+  // Actualitzar dades després de canvis d'estat del tiquet
+  const handleTiquetUpdated = async () => {
+    try {
+      setLoading(true);
+      const response = await getReportes();
+      setTiquets(response.data);
+      setLoading(false);
+    } catch (error) {
+      console.error("Error recarregant tiquets:", error);
+      setLoading(false);
+    }
+  };
+  
   // Estadístiques de tiquets
   const stats = {
     total: tiquets.length,
@@ -70,17 +83,6 @@ export function GestioTiquets() {
           <div className="flex flex-wrap justify-between items-center">
             <h2 className="text-lg font-medium text-gray-800">Filtres</h2>
             <div className="flex gap-2 mt-2 sm:mt-0">
-              <select 
-                className="border rounded px-3 py-1 text-gray-800"
-                value={filtreEstat}
-                onChange={(e) => setFiltreEstat(e.target.value)}
-              >
-                <option value="tots">Tots els estats</option>
-                <option value="abierto">Oberts</option>
-                <option value="en_proceso">En procés</option>
-                <option value="resuelto">Resolts</option>
-                <option value="rechazado">Rebutjats</option>
-              </select>
               <button 
                 className="flex items-center bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded"
                 onClick={() => {
@@ -105,7 +107,10 @@ export function GestioTiquets() {
         
         {/* Targetes d'estadístiques */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-          <div className="bg-white p-4 rounded-lg shadow">
+          <div 
+            className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${filtreEstat === 'tots' ? 'ring-2 ring-purple-500' : ''}`}
+            onClick={() => setFiltreEstat('tots')}
+          >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Total Tiquets</p>
@@ -116,7 +121,10 @@ export function GestioTiquets() {
               </div>
             </div>
           </div>
-          <div className="bg-white p-4 rounded-lg shadow">
+          <div 
+            className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${filtreEstat === 'abierto' ? 'ring-2 ring-yellow-500' : ''}`}
+            onClick={() => setFiltreEstat('abierto')}
+          >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Oberts</p>
@@ -127,7 +135,10 @@ export function GestioTiquets() {
               </div>
             </div>
           </div>
-          <div className="bg-white p-4 rounded-lg shadow">
+          <div 
+            className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${filtreEstat === 'en_proceso' ? 'ring-2 ring-blue-500' : ''}`}
+            onClick={() => setFiltreEstat('en_proceso')}
+          >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">En Procés</p>
@@ -138,7 +149,10 @@ export function GestioTiquets() {
               </div>
             </div>
           </div>
-          <div className="bg-white p-4 rounded-lg shadow">
+          <div 
+            className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${filtreEstat === 'resuelto' ? 'ring-2 ring-green-500' : ''}`}
+            onClick={() => setFiltreEstat('resuelto')}
+          >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Resolts</p>
@@ -149,7 +163,10 @@ export function GestioTiquets() {
               </div>
             </div>
           </div>
-          <div className="bg-white p-4 rounded-lg shadow">
+          <div 
+            className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${filtreEstat === 'rechazado' ? 'ring-2 ring-red-500' : ''}`}
+            onClick={() => setFiltreEstat('rechazado')}
+          >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Rebutjats</p>
@@ -237,7 +254,7 @@ export function GestioTiquets() {
       </div>
       
       {/* Llista de tiquets */}
-      <TiquetsList tiquets={tiquetsFiltrats} />
+      <TiquetsList tiquets={tiquetsFiltrats} onTicketStatusChange={handleTiquetUpdated} />
     </div>
   );
 }

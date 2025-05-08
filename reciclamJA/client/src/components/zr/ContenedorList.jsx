@@ -2,10 +2,9 @@ import { ContenedorCard } from './ContenedorCard.jsx';
 import { Search } from 'lucide-react';
 
 export function ContenedorList({ filters, contenedores, zonas }) {
-    // Use the contenedores and zonas passed from the parent component
-    // No need to fetch them again or maintain local state
-    
-    if (!contenedores || contenedores.length === 0) {
+    // Only show loading spinner when contenedores is null/undefined (still loading)
+    // Not when it's an empty array (means data loaded but no results)
+    if (contenedores === null || contenedores === undefined) {
         return (
             <div className="flex items-center justify-center h-60">
                 <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
