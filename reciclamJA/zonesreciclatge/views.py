@@ -141,16 +141,11 @@ class ZonesReciclatgeViewSet(viewsets.ModelViewSet):
             (request.user.is_gestor() and zona.empresa == request.user.empresa)):
             raise PermissionDenied("No tienes permisos para realizar esta acción")
 
-        # Obtener todos los contenedores actualmente asignados a esta zona
         current_assigned = Contenedor.objects.filter(zona=zona)
-        
-        # 1. Primero desasignar TODOS los contenedores de esta zona
         current_assigned.update(zona=None)
         
-        # 2. Luego asignar solo los nuevos contenedores seleccionados
         contenedors = Contenedor.objects.filter(id__in=contenedor_ids)
         
-        # Verificar que todos los contenedores pertenecen a la misma empresa (si no es superadmin)
         if not request.user.is_superadmin():
             for c in contenedors:
                 if c.empresa != request.user.empresa:
@@ -171,7 +166,6 @@ class ZonesReciclatgeViewSet(viewsets.ModelViewSet):
             'contenedores': contenedores_asignados,
             'total_asignados': len(contenedores_asignados)
         })
-    # --- Vistas públicas de solo lectura ---
 
 class PublicContenedorViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Contenedor.objects.all()
@@ -209,7 +203,6 @@ class ReporteContenedorViewSet(viewsets.ModelViewSet):
             return ReporteContenedor.objects.filter(usuario=user)
             
         if getattr(user, 'empresa', None):
-            # Para gestores y admin: ver reportes de su empresa
             return ReporteContenedor.objects.filter(
                 models.Q(contenedor__empresa=user.empresa) | 
                 models.Q(zona__empresa=user.empresa)
@@ -259,7 +252,6 @@ class ReporteContenedorViewSet(viewsets.ModelViewSet):
         reporte.resuelto_por = request.user
         reporte.save()
         
-        # Notificar al usuario que reportó
         if reporte.usuario:
             Notificacion.objects.create(
                 usuario=reporte.usuario,
@@ -281,7 +273,6 @@ class ReporteContenedorViewSet(viewsets.ModelViewSet):
         reporte.resuelto_por = request.user
         reporte.save()
         
-        # Notificar al usuario que su reporte fue rechazado
         if reporte.usuario:
             Notificacion.objects.create(
                 usuario=reporte.usuario,
@@ -297,15 +288,12 @@ class ReporteContenedorViewSet(viewsets.ModelViewSet):
     def procesar(self, request, pk=None):
         reporte = self.get_object()
         
-        # Remove the validation that only allows processing open tickets
-        # This allows changing the state from any status
         
         reporte.estado = 'en_proceso'
         reporte.save()
         
         return Response({'status': 'Reporte ahora en proceso'})
 
-    # Add a new endpoint for reopening tickets
     @action(detail=True, methods=['post'])
     def reabrir(self, request, pk=None):
         reporte = self.get_object()

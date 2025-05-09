@@ -4,7 +4,8 @@ import { getReportes } from '../../api/zr.api';
 import { TiquetsList } from '../../components/tiquets/TiquetsList';
 import { 
   MessageSquare, CheckCircle2, Clock, 
-  AlertCircle, XCircle, RefreshCw
+  AlertCircle, XCircle, RefreshCw,
+  Filter, ArrowUpDown, Flag
 } from 'lucide-react';
 import { 
   PieChart, Pie, Cell, ResponsiveContainer, 
@@ -16,6 +17,8 @@ export function GestioTiquets() {
   const [tiquets, setTiquets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filtreEstat, setFiltreEstat] = useState('tots');
+  const [filtrePrioritat, setFiltrePrioritat] = useState('totes');
+  const [filterMode, setFilterMode] = useState('estat'); // 'estat' or 'prioritat'
   
   useEffect(() => {
     const fetchData = async () => {
@@ -46,8 +49,8 @@ export function GestioTiquets() {
     }
   };
   
-  // Estadístiques de tiquets
-  const stats = {
+  // Estadístiques de tiquets per estat
+  const statsEstat = {
     total: tiquets.length,
     oberts: tiquets.filter(t => t.estado === 'abierto').length,
     enProces: tiquets.filter(t => t.estado === 'en_proceso').length,
@@ -55,20 +58,46 @@ export function GestioTiquets() {
     rebutjats: tiquets.filter(t => t.estado === 'rechazado').length
   };
   
+  // Estadístiques de tiquets per prioritat
+  const statsPrioritat = {
+    total: tiquets.length,
+    baixa: tiquets.filter(t => t.prioridad === 'baja').length,
+    normal: tiquets.filter(t => t.prioridad === 'normal' || !t.prioridad).length,
+    alta: tiquets.filter(t => t.prioridad === 'alta').length,
+    urgent: tiquets.filter(t => t.prioridad === 'urgente').length
+  };
+  
   // Dades per al gràfic d'estat de tiquets
   const tiquetsData = [
-    { name: 'Oberts', value: stats.oberts },
-    { name: 'En Procés', value: stats.enProces },
-    { name: 'Resolts', value: stats.resolts },
-    { name: 'Rebutjats', value: stats.rebutjats }
+    { name: 'Oberts', value: statsEstat.oberts },
+    { name: 'En Procés', value: statsEstat.enProces },
+    { name: 'Resolts', value: statsEstat.resolts },
+    { name: 'Rebutjats', value: statsEstat.rebutjats }
   ];
   
-  const COLORS = ['#FFBB28', '#0088FE', '#00C49F', '#FF8042'];
+  // Dades per al gràfic de prioritat de tiquets
+  const prioritatData = [
+    { name: 'Baixa', value: statsPrioritat.baixa },
+    { name: 'Normal', value: statsPrioritat.normal },
+    { name: 'Alta', value: statsPrioritat.alta },
+    { name: 'Urgent', value: statsPrioritat.urgent }
+  ];
   
-  // Filtrar tiquets segons l'estat seleccionat
-  const tiquetsFiltrats = filtreEstat === 'tots' 
-    ? tiquets 
-    : tiquets.filter(t => t.estado === filtreEstat);
+  const COLORS_ESTAT = ['#FFBB28', '#0088FE', '#00C49F', '#FF8042'];
+  const COLORS_PRIORITAT = ['#82ca9d', '#8884d8', '#ffc658', '#ff7300'];
+  
+  // Filtrar tiquets segons l'estat i la prioritat seleccionats
+  const tiquetsFiltrats = tiquets.filter(t => {
+    const matchEstat = filtreEstat === 'tots' || t.estado === filtreEstat;
+    const matchPrioritat = filtrePrioritat === 'totes' || 
+                           (filtrePrioritat === 'normal' && (!t.prioridad || t.prioridad === 'normal')) ||
+                           t.prioridad === filtrePrioritat;
+    return matchEstat && matchPrioritat;
+  });
+  
+  const toggleFilterMode = () => {
+    setFilterMode(filterMode === 'estat' ? 'prioritat' : 'estat');
+  };
   
   if (loading) return <div className="text-center p-8">Carregant dades...</div>;
 
@@ -81,7 +110,16 @@ export function GestioTiquets() {
         {/* Filtres */}
         <div className="bg-white p-4 rounded-lg shadow mb-6">
           <div className="flex flex-wrap justify-between items-center">
-            <h2 className="text-lg font-medium text-gray-800">Filtres</h2>
+            <div className="flex items-center">
+              <h2 className="text-lg font-medium text-gray-800 mr-3">Filtres</h2>
+              <button 
+                onClick={toggleFilterMode}
+                className="flex items-center bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1 rounded"
+              >
+                <Filter className="h-4 w-4 mr-2" />
+                {filterMode === 'estat' ? 'Veure per prioritat' : 'Veure per estat'}
+              </button>
+            </div>
             <div className="flex gap-2 mt-2 sm:mt-0">
               <button 
                 className="flex items-center bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded"
@@ -103,91 +141,195 @@ export function GestioTiquets() {
               </button>
             </div>
           </div>
+          <div className="mt-3 text-sm text-gray-600">
+            {filtreEstat !== 'tots' && (
+              <span className="inline-flex items-center mr-3 bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                Estat: {getTraduccionEstado(filtreEstat)}
+                <button 
+                  onClick={() => setFiltreEstat('tots')} 
+                  className="ml-1 text-blue-700 hover:text-blue-900"
+                >
+                  ×
+                </button>
+              </span>
+            )}
+            {filtrePrioritat !== 'totes' && (
+              <span className="inline-flex items-center bg-purple-100 text-purple-800 px-2 py-1 rounded">
+                Prioritat: {getTraduccionPrioridad(filtrePrioritat)}
+                <button 
+                  onClick={() => setFiltrePrioritat('totes')} 
+                  className="ml-1 text-purple-700 hover:text-purple-900"
+                >
+                  ×
+                </button>
+              </span>
+            )}
+          </div>
         </div>
         
-        {/* Targetes d'estadístiques */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-          <div 
-            className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${filtreEstat === 'tots' ? 'ring-2 ring-purple-500' : ''}`}
-            onClick={() => setFiltreEstat('tots')}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total Tiquets</p>
-                <p className="text-2xl font-bold text-gray-800">{stats.total}</p>
+        {/* Targetes d'estadístiques - Estat */}
+        {filterMode === 'estat' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+            <div 
+              className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${filtreEstat === 'tots' ? 'ring-2 ring-purple-500' : ''}`}
+              onClick={() => setFiltreEstat('tots')}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Total Tiquets</p>
+                  <p className="text-2xl font-bold text-gray-800">{statsEstat.total}</p>
+                </div>
+                <div className="h-10 w-10 rounded-full bg-purple-500 flex items-center justify-center">
+                  <MessageSquare className="h-6 w-6 text-white" />
+                </div>
               </div>
-              <div className="h-10 w-10 rounded-full bg-purple-500 flex items-center justify-center">
-                <MessageSquare className="h-6 w-6 text-white" />
+            </div>
+            <div 
+              className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${filtreEstat === 'abierto' ? 'ring-2 ring-yellow-500' : ''}`}
+              onClick={() => setFiltreEstat('abierto')}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Oberts</p>
+                  <p className="text-2xl font-bold text-gray-800">{statsEstat.oberts}</p>
+                </div>
+                <div className="h-10 w-10 rounded-full bg-yellow-500 flex items-center justify-center">
+                  <Clock className="h-6 w-6 text-white" />
+                </div>
+              </div>
+            </div>
+            <div 
+              className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${filtreEstat === 'en_proceso' ? 'ring-2 ring-blue-500' : ''}`}
+              onClick={() => setFiltreEstat('en_proceso')}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">En Procés</p>
+                  <p className="text-2xl font-bold text-gray-800">{statsEstat.enProces}</p>
+                </div>
+                <div className="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center">
+                  <RefreshCw className="h-6 w-6 text-white" />
+                </div>
+              </div>
+            </div>
+            <div 
+              className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${filtreEstat === 'resuelto' ? 'ring-2 ring-green-500' : ''}`}
+              onClick={() => setFiltreEstat('resuelto')}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Resolts</p>
+                  <p className="text-2xl font-bold text-gray-800">{statsEstat.resolts}</p>
+                </div>
+                <div className="h-10 w-10 rounded-full bg-green-500 flex items-center justify-center">
+                  <CheckCircle2 className="h-6 w-6 text-white" />
+                </div>
+              </div>
+            </div>
+            <div 
+              className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${filtreEstat === 'rechazado' ? 'ring-2 ring-red-500' : ''}`}
+              onClick={() => setFiltreEstat('rechazado')}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Rebutjats</p>
+                  <p className="text-2xl font-bold text-gray-800">{statsEstat.rebutjats}</p>
+                </div>
+                <div className="h-10 w-10 rounded-full bg-red-500 flex items-center justify-center">
+                  <XCircle className="h-6 w-6 text-white" />
+                </div>
               </div>
             </div>
           </div>
-          <div 
-            className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${filtreEstat === 'abierto' ? 'ring-2 ring-yellow-500' : ''}`}
-            onClick={() => setFiltreEstat('abierto')}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Oberts</p>
-                <p className="text-2xl font-bold text-gray-800">{stats.oberts}</p>
+        )}
+        
+        {/* Targetes d'estadístiques - Prioritat */}
+        {filterMode === 'prioritat' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+            <div 
+              className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${filtrePrioritat === 'totes' ? 'ring-2 ring-purple-500' : ''}`}
+              onClick={() => setFiltrePrioritat('totes')}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Total Tiquets</p>
+                  <p className="text-2xl font-bold text-gray-800">{statsPrioritat.total}</p>
+                </div>
+                <div className="h-10 w-10 rounded-full bg-purple-500 flex items-center justify-center">
+                  <MessageSquare className="h-6 w-6 text-white" />
+                </div>
               </div>
-              <div className="h-10 w-10 rounded-full bg-yellow-500 flex items-center justify-center">
-                <Clock className="h-6 w-6 text-white" />
+            </div>
+            <div 
+              className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${filtrePrioritat === 'baja' ? 'ring-2 ring-green-500' : ''}`}
+              onClick={() => setFiltrePrioritat('baja')}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Prioritat Baixa</p>
+                  <p className="text-2xl font-bold text-gray-800">{statsPrioritat.baixa}</p>
+                </div>
+                <div className="h-10 w-10 rounded-full bg-green-500 flex items-center justify-center">
+                  <Flag className="h-6 w-6 text-white" />
+                </div>
+              </div>
+            </div>
+            <div 
+              className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${filtrePrioritat === 'normal' ? 'ring-2 ring-blue-500' : ''}`}
+              onClick={() => setFiltrePrioritat('normal')}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Prioritat Normal</p>
+                  <p className="text-2xl font-bold text-gray-800">{statsPrioritat.normal}</p>
+                </div>
+                <div className="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center">
+                  <Flag className="h-6 w-6 text-white" />
+                </div>
+              </div>
+            </div>
+            <div 
+              className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${filtrePrioritat === 'alta' ? 'ring-2 ring-yellow-500' : ''}`}
+              onClick={() => setFiltrePrioritat('alta')}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Prioritat Alta</p>
+                  <p className="text-2xl font-bold text-gray-800">{statsPrioritat.alta}</p>
+                </div>
+                <div className="h-10 w-10 rounded-full bg-yellow-500 flex items-center justify-center">
+                  <Flag className="h-6 w-6 text-white" />
+                </div>
+              </div>
+            </div>
+            <div 
+              className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${filtrePrioritat === 'urgente' ? 'ring-2 ring-red-500' : ''}`}
+              onClick={() => setFiltrePrioritat('urgente')}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Prioritat Urgent</p>
+                  <p className="text-2xl font-bold text-gray-800">{statsPrioritat.urgent}</p>
+                </div>
+                <div className="h-10 w-10 rounded-full bg-red-500 flex items-center justify-center">
+                  <Flag className="h-6 w-6 text-white" />
+                </div>
               </div>
             </div>
           </div>
-          <div 
-            className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${filtreEstat === 'en_proceso' ? 'ring-2 ring-blue-500' : ''}`}
-            onClick={() => setFiltreEstat('en_proceso')}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">En Procés</p>
-                <p className="text-2xl font-bold text-gray-800">{stats.enProces}</p>
-              </div>
-              <div className="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center">
-                <RefreshCw className="h-6 w-6 text-white" />
-              </div>
-            </div>
-          </div>
-          <div 
-            className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${filtreEstat === 'resuelto' ? 'ring-2 ring-green-500' : ''}`}
-            onClick={() => setFiltreEstat('resuelto')}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Resolts</p>
-                <p className="text-2xl font-bold text-gray-800">{stats.resolts}</p>
-              </div>
-              <div className="h-10 w-10 rounded-full bg-green-500 flex items-center justify-center">
-                <CheckCircle2 className="h-6 w-6 text-white" />
-              </div>
-            </div>
-          </div>
-          <div 
-            className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${filtreEstat === 'rechazado' ? 'ring-2 ring-red-500' : ''}`}
-            onClick={() => setFiltreEstat('rechazado')}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Rebutjats</p>
-                <p className="text-2xl font-bold text-gray-800">{stats.rebutjats}</p>
-              </div>
-              <div className="h-10 w-10 rounded-full bg-red-500 flex items-center justify-center">
-                <XCircle className="h-6 w-6 text-white" />
-              </div>
-            </div>
-          </div>
-        </div>
+        )}
         
         {/* Gràfic d'estat de tiquets */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           <div className="bg-white p-4 rounded-lg shadow">
-            <h2 className="text-lg font-medium mb-4 text-gray-800">Distribució d'Estats</h2>
+            <h2 className="text-lg font-medium mb-4 text-gray-800">
+              {filterMode === 'estat' ? 'Distribució d\'Estats' : 'Distribució de Prioritats'}
+            </h2>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={tiquetsData}
+                    data={filterMode === 'estat' ? tiquetsData : prioritatData}
                     cx="50%"
                     cy="50%"
                     labelLine={false}
@@ -196,8 +338,11 @@ export function GestioTiquets() {
                     fill="#8884d8"
                     dataKey="value"
                   >
-                    {tiquetsData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    {(filterMode === 'estat' ? tiquetsData : prioritatData).map((entry, index) => (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={filterMode === 'estat' ? COLORS_ESTAT[index % COLORS_ESTAT.length] : COLORS_PRIORITAT[index % COLORS_PRIORITAT.length]} 
+                      />
                     ))}
                   </Pie>
                   <Tooltip />
@@ -257,4 +402,25 @@ export function GestioTiquets() {
       <TiquetsList tiquets={tiquetsFiltrats} onTicketStatusChange={handleTiquetUpdated} />
     </div>
   );
+}
+
+// Helper functions
+function getTraduccionEstado(estado) {
+  switch(estado) {
+    case 'abierto': return 'Obert';
+    case 'en_proceso': return 'En procés';
+    case 'resuelto': return 'Resolt';
+    case 'rechazado': return 'Rebutjat';
+    default: return estado;
+  }
+}
+
+function getTraduccionPrioridad(prioridad) {
+  switch(prioridad) {
+    case 'baja': return 'Baixa';
+    case 'normal': return 'Normal';
+    case 'alta': return 'Alta';
+    case 'urgente': return 'Urgent';
+    default: return prioridad;
+  }
 }

@@ -8,7 +8,7 @@ import {
   CircleAlert, Trash2, Database, MapPin, 
   RefreshCw, Filter, DownloadCloud, Settings,
   MessageSquare, CheckCircle2, XCircle, Clock,
-  RecycleIcon, FileText // Añadimos nuevos iconos
+  RecycleIcon, FileText, Flag // Added Flag icon
 } from 'lucide-react';
 import { getAllContenedors, getAllZones, getReportes } from '../../api/zr.api';
 import { useMenu } from '../../context/MenuContext';
@@ -26,10 +26,38 @@ export function DashBoard() {
   const [activeSection, setActiveSection] = useState('reciclaje');
   const [selectedEstat, setSelectedEstat] = useState(null); 
   const [alertaFilter, setAlertaFilter] = useState(false); // New state for alert filtering
-  const [reportStatusFilter, setReportStatusFilter] = useState(null); // New state for report status filtering
+  const [reportStatusFilter, setReportStatusFilter] = useState(null); // State for report status filtering
+  const [reportPriorityFilter, setReportPriorityFilter] = useState(null); // State for report priority filtering
+  const [reportFilterMode, setReportFilterMode] = useState('estat'); // Toggle between 'estat' and 'prioritat'
 
   // Colors per al gràfic
   const COLORS = ['#00C49F', '#FFBB28', '#FF8042'];
+  
+  // Custom chart colors
+  const COLORS_ESTAT = {
+    abierto: '#FFBB28',    // Yellow - Oberts
+    en_proceso: '#0088FE', // Blue - En procés 
+    resuelto: '#00C49F',   // Green - Resolts
+    rechazado: '#FF8042'   // Orange - Rebutjats
+  };
+  
+  const COLORS_PRIORITAT = {
+    baja: '#00C49F',     // Green - Baixa
+    normal: '#0088FE',   // Blue - Normal
+    alta: '#FFBB28',     // Yellow - Alta
+    urgente: '#FF8042'   // Orange - Urgent
+  };
+  
+  // Colors for report types chart
+  const COLORS_TIPO = {
+    'mal_estado': '#8884d8', // Purple
+    'lleno': '#82ca9d',      // Light green
+    'vandalismo': '#ffc658', // Yellow
+    'ubicacion': '#ff7300',  // Orange
+    'olores': '#0088FE',     // Blue
+    'otro': '#FF8042'        // Dark orange
+  };
+  
   const estadosLabels = {
     'ple': 'Ple',
     'mig': 'Mig Ple',
@@ -74,13 +102,19 @@ export function DashBoard() {
     return true;
   });
 
-  // Filtra reports segons el filtre seleccionat i l'estat seleccionat del card
+  // Filtra reports segons el filtre seleccionat i l'estat/prioritat
   const filteredReports = reports.filter(r => {
     // Filter by status dropdown if selected
     if (reportFilter !== 'all' && r.estado !== reportFilter) return false;
     
-    // Filter by card selection if any
+    // Filter by status card if any
     if (reportStatusFilter && r.estado !== reportStatusFilter) return false;
+    
+    // Filter by priority card if any
+    if (reportPriorityFilter) {
+      const reportPriority = r.prioridad || 'normal';
+      if (reportPriority !== reportPriorityFilter) return false;
+    }
     
     return true;
   });
@@ -148,12 +182,28 @@ export function DashBoard() {
     'rechazado': 'Rebutjat'
   };
 
+  // Traductor de prioritats
+  const priorityLabels = {
+    'baja': 'Baixa',
+    'normal': 'Normal',
+    'alta': 'Alta',
+    'urgente': 'Urgent'
+  };
+
   // Configuració de colors per estat de queixa
   const reportStatusColors = {
     'abierto': 'bg-yellow-100 text-yellow-700',
     'en_proceso': 'bg-blue-100 text-blue-700',
     'resuelto': 'bg-green-100 text-green-700',
     'rechazado': 'bg-red-100 text-red-700'
+  };
+
+  // Configuració de colors per prioritat
+  const priorityColors = {
+    'baja': 'bg-green-100 text-green-700',
+    'normal': 'bg-blue-100 text-blue-700',
+    'alta': 'bg-yellow-100 text-yellow-700',
+    'urgente': 'bg-red-100 text-red-700'
   };
 
   // Icones per estat de queixa
@@ -188,26 +238,26 @@ export function DashBoard() {
     </div>
   );
 
-  // Handler for clicking a stat card
   const handleEstatCardClick = (estat) => {
-    // Clear any alert filter first
     setAlertaFilter(false);
-    // Toggle selected state - if already selected, clear the filter
     setSelectedEstat(prevEstat => prevEstat === estat ? null : estat);
   };
 
-  // Handler for clicking alert card
   const handleAlertCardClick = () => {
-    // Clear any estat filter first
     setSelectedEstat(null);
-    // Toggle alert filter
     setAlertaFilter(prev => !prev);
   };
 
-  // Handler for clicking report status card
   const handleReportStatusCardClick = (status) => {
-    // Toggle status filter - if already selected, clear the filter
     setReportStatusFilter(prevStatus => prevStatus === status ? null : status);
+  };
+
+  const handleReportPriorityCardClick = (priority) => {
+    setReportPriorityFilter(prevPriority => prevPriority === priority ? null : priority);
+  };
+
+  const toggleReportFilterMode = () => {
+    setReportFilterMode(prevMode => prevMode === 'estat' ? 'prioritat' : 'estat');
   };
 
   return (
@@ -226,7 +276,7 @@ export function DashBoard() {
           </div>
         </div>
 
-        {/* Botones grandes de sección */}
+        {/* Botones grans de secció */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <button 
             className={`flex items-center justify-center p-8 rounded-lg shadow-md transition-all ${
@@ -263,7 +313,6 @@ export function DashBoard() {
           </button>
         </div>
 
-        {/* Targetes d'estadístiques dinàmiques segons l'active section */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
           {activeSection === 'reciclaje' ? (
             // Contenidors stats
@@ -379,93 +428,189 @@ export function DashBoard() {
                 </div>
               </div>
               
-              <div 
-                className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${
-                  reportStatusFilter === 'abierto' ? 'ring-2 ring-yellow-500' : ''
-                }`}
-                onClick={() => handleReportStatusCardClick('abierto')}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">Pendents</p>
-                    <p className="text-2xl font-bold text-gray-800">
-                      {reports.filter(r => r.estado === 'abierto').length}
-                    </p>
-                    <p className="text-sm text-gray-500 mt-1">
-                      {Math.round(reports.filter(r => r.estado === 'abierto').length / reports.length * 100) || 0}% del total
-                    </p>
+              {reportFilterMode === 'estat' ? (
+                // Status cards
+                <>
+                  <div 
+                    className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${
+                      reportStatusFilter === 'abierto' ? 'ring-2 ring-yellow-500' : ''
+                    }`}
+                    onClick={() => handleReportStatusCardClick('abierto')}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-600">Pendents</p>
+                        <p className="text-2xl font-bold text-gray-800">
+                          {reports.filter(r => r.estado === 'abierto').length}
+                        </p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          {Math.round(reports.filter(r => r.estado === 'abierto').length / reports.length * 100) || 0}% del total
+                        </p>
+                      </div>
+                      <div className="h-10 w-10 rounded-full bg-yellow-100 flex items-center justify-center">
+                        <Clock className="h-6 w-6 text-yellow-600" />
+                      </div>
+                    </div>
                   </div>
-                  <div className="h-10 w-10 rounded-full bg-yellow-100 flex items-center justify-center">
-                    <Clock className="h-6 w-6 text-yellow-600" />
+                  
+                  <div 
+                    className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${
+                      reportStatusFilter === 'en_proceso' ? 'ring-2 ring-blue-500' : ''
+                    }`}
+                    onClick={() => handleReportStatusCardClick('en_proceso')}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-600">En Procés</p>
+                        <p className="text-2xl font-bold text-gray-800">
+                          {reports.filter(r => r.estado === 'en_proceso').length}
+                        </p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          {Math.round(reports.filter(r => r.estado === 'en_proceso').length / reports.length * 100) || 0}% del total
+                        </p>
+                      </div>
+                      <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                        <RefreshCw className="h-6 w-6 text-blue-600" />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-              
-              <div 
-                className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${
-                  reportStatusFilter === 'en_proceso' ? 'ring-2 ring-blue-500' : ''
-                }`}
-                onClick={() => handleReportStatusCardClick('en_proceso')}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">En Procés</p>
-                    <p className="text-2xl font-bold text-gray-800">
-                      {reports.filter(r => r.estado === 'en_proceso').length}
-                    </p>
-                    <p className="text-sm text-gray-500 mt-1">
-                      {Math.round(reports.filter(r => r.estado === 'en_proceso').length / reports.length * 100) || 0}% del total
-                    </p>
+                  
+                  <div 
+                    className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${
+                      reportStatusFilter === 'resuelto' ? 'ring-2 ring-green-500' : ''
+                    }`}
+                    onClick={() => handleReportStatusCardClick('resuelto')}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-600">Resolts</p>
+                        <p className="text-2xl font-bold text-gray-800">
+                          {reports.filter(r => r.estado === 'resuelto').length}
+                        </p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          {Math.round(reports.filter(r => r.estado === 'resuelto').length / reports.length * 100) || 0}% del total
+                        </p>
+                      </div>
+                      <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
+                        <CheckCircle2 className="h-6 w-6 text-green-600" />
+                      </div>
+                    </div>
                   </div>
-                  <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                    <RefreshCw className="h-6 w-6 text-blue-600" />
+                  
+                  <div 
+                    className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${
+                      reportStatusFilter === 'rechazado' ? 'ring-2 ring-red-500' : ''
+                    }`}
+                    onClick={() => handleReportStatusCardClick('rechazado')}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-600">Rebutjats</p>
+                        <p className="text-2xl font-bold text-gray-800">
+                          {reports.filter(r => r.estado === 'rechazado').length}
+                        </p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          {Math.round(reports.filter(r => r.estado === 'rechazado').length / reports.length * 100) || 0}% del total
+                        </p>
+                      </div>
+                      <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center">
+                        <XCircle className="h-6 w-6 text-red-600" />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-              
-              <div 
-                className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${
-                  reportStatusFilter === 'resuelto' ? 'ring-2 ring-green-500' : ''
-                }`}
-                onClick={() => handleReportStatusCardClick('resuelto')}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">Resolts</p>
-                    <p className="text-2xl font-bold text-gray-800">
-                      {reports.filter(r => r.estado === 'resuelto').length}
-                    </p>
-                    <p className="text-sm text-gray-500 mt-1">
-                      {Math.round(reports.filter(r => r.estado === 'resuelto').length / reports.length * 100) || 0}% del total
-                    </p>
+                </>
+              ) : (
+                // Priority cards
+                <>
+                  <div 
+                    className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${
+                      reportPriorityFilter === 'baja' ? 'ring-2 ring-green-500' : ''
+                    }`}
+                    onClick={() => handleReportPriorityCardClick('baja')}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-600">Baixa</p>
+                        <p className="text-2xl font-bold text-gray-800">
+                          {reports.filter(r => r.prioridad === 'baja').length}
+                        </p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          {Math.round(reports.filter(r => r.prioridad === 'baja').length / reports.length * 100) || 0}% del total
+                        </p>
+                      </div>
+                      <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
+                        <Flag className="h-6 w-6 text-green-600" />
+                      </div>
+                    </div>
                   </div>
-                  <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-                    <CheckCircle2 className="h-6 w-6 text-green-600" />
+                  
+                  <div 
+                    className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${
+                      reportPriorityFilter === 'normal' ? 'ring-2 ring-blue-500' : ''
+                    }`}
+                    onClick={() => handleReportPriorityCardClick('normal')}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-600">Normal</p>
+                        <p className="text-2xl font-bold text-gray-800">
+                          {reports.filter(r => !r.prioridad || r.prioridad === 'normal').length}
+                        </p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          {Math.round(reports.filter(r => !r.prioridad || r.prioridad === 'normal').length / reports.length * 100) || 0}% del total
+                        </p>
+                      </div>
+                      <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                        <Flag className="h-6 w-6 text-blue-600" />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-              
-              <div 
-                className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${
-                  reportStatusFilter === 'rechazado' ? 'ring-2 ring-red-500' : ''
-                }`}
-                onClick={() => handleReportStatusCardClick('rechazado')}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">Rebutjats</p>
-                    <p className="text-2xl font-bold text-gray-800">
-                      {reports.filter(r => r.estado === 'rechazado').length}
-                    </p>
-                    <p className="text-sm text-gray-500 mt-1">
-                      {Math.round(reports.filter(r => r.estado === 'rechazado').length / reports.length * 100) || 0}% del total
-                    </p>
+                  
+                  <div 
+                    className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${
+                      reportPriorityFilter === 'alta' ? 'ring-2 ring-yellow-500' : ''
+                    }`}
+                    onClick={() => handleReportPriorityCardClick('alta')}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-600">Alta</p>
+                        <p className="text-2xl font-bold text-gray-800">
+                          {reports.filter(r => r.prioridad === 'alta').length}
+                        </p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          {Math.round(reports.filter(r => r.prioridad === 'alta').length / reports.length * 100) || 0}% del total
+                        </p>
+                      </div>
+                      <div className="h-10 w-10 rounded-full bg-yellow-100 flex items-center justify-center">
+                        <Flag className="h-6 w-6 text-yellow-600" />
+                      </div>
+                    </div>
                   </div>
-                  <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center">
-                    <XCircle className="h-6 w-6 text-red-600" />
+                  
+                  <div 
+                    className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${
+                      reportPriorityFilter === 'urgente' ? 'ring-2 ring-red-500' : ''
+                    }`}
+                    onClick={() => handleReportPriorityCardClick('urgente')}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-600">Urgent</p>
+                        <p className="text-2xl font-bold text-gray-800">
+                          {reports.filter(r => r.prioridad === 'urgente').length}
+                        </p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          {Math.round(reports.filter(r => r.prioridad === 'urgente').length / reports.length * 100) || 0}% del total
+                        </p>
+                      </div>
+                      <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center">
+                        <Flag className="h-6 w-6 text-red-600" />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
+                </>
+              )}
             </>
           )}
         </div>
@@ -504,16 +649,31 @@ export function DashBoard() {
                 </>
               )}
               
-              {activeSection === 'reportes' && reportStatusFilter && (
-                <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
-                  Estat: {reportStatusLabels[reportStatusFilter]}
-                  <button
-                    className="ml-1 text-blue-500 hover:text-blue-700"
-                    onClick={() => setReportStatusFilter(null)}
-                  >
-                    ×
-                  </button>
-                </span>
+              {activeSection === 'reportes' && (
+                <>
+                  {reportStatusFilter && (
+                    <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                      Estat: {reportStatusLabels[reportStatusFilter]}
+                      <button
+                        className="ml-1 text-blue-500 hover:text-blue-700"
+                        onClick={() => setReportStatusFilter(null)}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )}
+                  {reportPriorityFilter && (
+                    <span className="ml-2 px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs">
+                      Prioritat: {priorityLabels[reportPriorityFilter]}
+                      <button
+                        className="ml-1 text-purple-500 hover:text-purple-700"
+                        onClick={() => setReportPriorityFilter(null)}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )}
+                </>
               )}
             </div>
             <div className="flex flex-wrap gap-4">
@@ -536,21 +696,32 @@ export function DashBoard() {
                 </div>
               )}
               {activeSection === 'reportes' && (
-                <div>
-                  <label htmlFor="report-filter" className="block text-sm text-gray-600 mb-1">Estat:</label>
-                  <select 
-                    id="report-filter" 
-                    className="border rounded px-3 py-1 text-gray-800"
-                    value={reportFilter}
-                    onChange={(e) => setReportFilter(e.target.value)}
-                  >
-                    <option value="all">Tots els estats</option>
-                    <option value="abierto">Oberts</option>
-                    <option value="en_proceso">En procés</option>
-                    <option value="resuelto">Resolts</option>
-                    <option value="rechazado">Rebutjats</option>
-                  </select>
-                </div>
+                <>
+                  <div>
+                    <label htmlFor="report-filter" className="block text-sm text-gray-600 mb-1">Estat:</label>
+                    <select 
+                      id="report-filter" 
+                      className="border rounded px-3 py-1 text-gray-800"
+                      value={reportFilter}
+                      onChange={(e) => setReportFilter(e.target.value)}
+                    >
+                      <option value="all">Tots els estats</option>
+                      <option value="abierto">Oberts</option>
+                      <option value="en_proceso">En procés</option>
+                      <option value="resuelto">Resolts</option>
+                      <option value="rechazado">Rebutjats</option>
+                    </select>
+                  </div>
+                  <div>
+                    <button 
+                      className="flex items-center mt-5 bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1 rounded"
+                      onClick={toggleReportFilterMode}
+                    >
+                      <Filter className="h-4 w-4 mr-2" />
+                      {reportFilterMode === 'estat' ? 'Veure per prioritat' : 'Veure per estat'}
+                    </button>
+                  </div>
+                </>
               )}
               <div>
                 <label htmlFor="time-range" className="block text-sm text-gray-600 mb-1">Període:</label>
@@ -748,18 +919,25 @@ export function DashBoard() {
           <>
             {/* Estadístiques de reportes */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-              {/* Gráfico de estados de reportes */}
+              {/* Gráfico de estados de reportes/prioridades */}
               <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                <h2 className="text-lg font-medium mb-4 text-gray-800">Estat dels Reportes</h2>
+                <h2 className="text-lg font-medium mb-4 text-gray-800">
+                  {reportFilterMode === 'estat' ? 'Estat dels Reportes' : 'Prioritat dels Reportes'}
+                </h2>
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
-                        data={[
-                          { name: 'Oberts', value: reports.filter(r => r.estado === 'abierto').length },
-                          { name: 'En procés', value: reports.filter(r => r.estado === 'en_proceso').length },
-                          { name: 'Resolts', value: reports.filter(r => r.estado === 'resuelto').length },
-                          { name: 'Rebutjats', value: reports.filter(r => r.estado === 'rechazado').length }
+                        data={reportFilterMode === 'estat' ? [
+                          { name: 'Oberts', value: reports.filter(r => r.estado === 'abierto').length, estado: 'abierto' },
+                          { name: 'En procés', value: reports.filter(r => r.estado === 'en_proceso').length, estado: 'en_proceso' },
+                          { name: 'Resolts', value: reports.filter(r => r.estado === 'resuelto').length, estado: 'resuelto' },
+                          { name: 'Rebutjats', value: reports.filter(r => r.estado === 'rechazado').length, estado: 'rechazado' }
+                        ] : [
+                          { name: 'Baixa', value: reports.filter(r => r.prioridad === 'baja').length, prioridad: 'baja' },
+                          { name: 'Normal', value: reports.filter(r => !r.prioridad || r.prioridad === 'normal').length, prioridad: 'normal' },
+                          { name: 'Alta', value: reports.filter(r => r.prioridad === 'alta').length, prioridad: 'alta' },
+                          { name: 'Urgent', value: reports.filter(r => r.prioridad === 'urgente').length, prioridad: 'urgente' }
                         ]}
                         cx="50%"
                         cy="50%"
@@ -769,52 +947,81 @@ export function DashBoard() {
                         fill="#8884d8"
                         dataKey="value"
                       >
-                        <Cell fill="#FFBB28" /> {/* Oberts - Amarillo */}
-                        <Cell fill="#0088FE" /> {/* En procés - Azul */}
-                        <Cell fill="#00C49F" /> {/* Resolts - Verde */}
-                        <Cell fill="#FF8042" /> {/* Rebutjats - Naranja */}
+                        {reportFilterMode === 'estat' ? (
+                          // Map each slice directly to its corresponding color from COLORS_ESTAT
+                          [
+                            { name: 'Oberts', value: reports.filter(r => r.estado === 'abierto').length, estado: 'abierto' },
+                            { name: 'En procés', value: reports.filter(r => r.estado === 'en_proceso').length, estado: 'en_proceso' },
+                            { name: 'Resolts', value: reports.filter(r => r.estado === 'resuelto').length, estado: 'resuelto' },
+                            { name: 'Rebutjats', value: reports.filter(r => r.estado === 'rechazado').length, estado: 'rechazado' }
+                          ].map((entry, index) => (
+                            <Cell key={`cell-estat-${index}`} fill={COLORS_ESTAT[entry.estado]} />
+                          ))
+                        ) : (
+                          // Map each slice directly to its corresponding color from COLORS_PRIORITAT
+                          [
+                            { name: 'Baixa', value: reports.filter(r => r.prioridad === 'baja').length, prioridad: 'baja' },
+                            { name: 'Normal', value: reports.filter(r => !r.prioridad || r.prioridad === 'normal').length, prioridad: 'normal' },
+                            { name: 'Alta', value: reports.filter(r => r.prioridad === 'alta').length, prioridad: 'alta' },
+                            { name: 'Urgent', value: reports.filter(r => r.prioridad === 'urgente').length, prioridad: 'urgente' }
+                          ].map((entry, index) => (
+                            <Cell key={`cell-prio-${index}`} fill={COLORS_PRIORITAT[entry.prioridad]} />
+                          ))
+                        )}
                       </Pie>
-                      <Tooltip />
+                      <Tooltip formatter={(value, name) => [`${value} reportes`, name]} />
                       <Legend />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
               </div>
 
-              {/* Gráfico de tipos de reportes */}
+              {/* Gráfico de tipos de reportes - FIXED */}
               <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
                 <h2 className="text-lg font-medium mb-4 text-gray-800">Tipus de Reportes</h2>
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={[
-                        { name: 'Mal estat', value: reports.filter(r => r.tipo === 'mal_estado').length },
-                        { name: 'Ple', value: reports.filter(r => r.tipo === 'lleno').length },
-                        { name: 'Vandalisme', value: reports.filter(r => r.tipo === 'vandalismo').length },
-                        { name: 'Ubicació', value: reports.filter(r => r.tipo === 'ubicacion').length },
-                        { name: 'Olors', value: reports.filter(r => r.tipo === 'olores').length },
-                        { name: 'Altres', value: reports.filter(r => r.tipo === 'otro').length }
+                        { name: 'Mal estat', value: reports.filter(r => r.tipo === 'mal_estado').length, tipo: 'mal_estado' },
+                        { name: 'Ple', value: reports.filter(r => r.tipo === 'lleno').length, tipo: 'lleno' },
+                        { name: 'Vandalisme', value: reports.filter(r => r.tipo === 'vandalismo').length, tipo: 'vandalismo' },
+                        { name: 'Ubicació', value: reports.filter(r => r.tipo === 'ubicacion').length, tipo: 'ubicacion' },
+                        { name: 'Olors', value: reports.filter(r => r.tipo === 'olores').length, tipo: 'olores' },
+                        { name: 'Altres', value: reports.filter(r => r.tipo === 'otro').length, tipo: 'otro' }
                       ]}
                       margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="name" />
                       <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="value" name="Quantitat" fill="#8884d8" />
+                      <Tooltip 
+                        formatter={(value) => `${value} reportes`}
+                      />
+                      <Legend />
+                      <Bar dataKey="value" name="Quantitat">
+                        {/* Correctly map each bar to its color */}
+                        <Cell key="cell-mal_estado" fill={COLORS_TIPO['mal_estado']} />
+                        <Cell key="cell-lleno" fill={COLORS_TIPO['lleno']} />
+                        <Cell key="cell-vandalismo" fill={COLORS_TIPO['vandalismo']} />
+                        <Cell key="cell-ubicacion" fill={COLORS_TIPO['ubicacion']} />
+                        <Cell key="cell-olores" fill={COLORS_TIPO['olores']} />
+                        <Cell key="cell-otro" fill={COLORS_TIPO['otro']} />
+                      </Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
               </div>
             </div>
-
+            
             {/* Secció de Queixes i Reportes */}
             <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-medium text-gray-800">
                   Queixes i Reportes dels Usuaris
                   {reportStatusFilter ? ` - ${reportStatusLabels[reportStatusFilter]}` : ''}
-                  {reportStatusFilter && <span className="text-sm text-gray-500 ml-2">({filteredReports.length} reportes)</span>}
+                  {reportPriorityFilter ? ` - Prioritat: ${priorityLabels[reportPriorityFilter]}` : ''}
+                  {(reportStatusFilter || reportPriorityFilter) && <span className="text-sm text-gray-500 ml-2">({filteredReports.length} reportes)</span>}
                 </h2>
                 <button 
                   className="flex items-center bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded"
@@ -840,12 +1047,12 @@ export function DashBoard() {
                 <table className="min-w-full bg-white">
                   <thead className="bg-gray-100">
                     <tr>
-                      {/* ID column removed */}
                       <th className="py-2 px-4 text-left text-gray-700">Data</th>
                       <th className="py-2 px-4 text-left text-gray-700">Tipus</th>
                       <th className="py-2 px-4 text-left text-gray-700">Descripció</th>
                       <th className="py-2 px-4 text-left text-gray-700">Contenidor/Zona</th>
                       <th className="py-2 px-4 text-left text-gray-700">Estat</th>
+                      <th className="py-2 px-4 text-left text-gray-700">Prioritat</th>
                       <th className="py-2 px-4 text-left text-gray-700">Accions</th>
                     </tr>
                   </thead>
@@ -857,9 +1064,12 @@ export function DashBoard() {
                     
                       const zonaName = report.contenedor && contenidors.find(c => c.id === report.contenedor)?.zona_nombre;
                       
+                      // Priority display
+                      const priority = report.prioridad || 'normal';
+                      const priorityStyle = priorityColors[priority];
+                      
                       return (
                         <tr key={report.id} className="border-b hover:bg-gray-50">
-                          {/* ID cell removed */}
                           <td className="py-2 px-4 text-gray-800">{new Date(report.fecha).toLocaleDateString()}</td>
                           <td className="py-2 px-4 text-gray-800">
                             {reportTypesLabels[report.tipo] || report.tipo}
@@ -874,6 +1084,11 @@ export function DashBoard() {
                             <span className={`px-2 py-1 rounded-full text-xs font-medium flex items-center ${reportStatusColors[report.estado]}`}>
                               {reportStatusIcons[report.estado]}
                               {reportStatusLabels[report.estado] || report.estado}
+                            </span>
+                          </td>
+                          <td className="py-2 px-4">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${priorityStyle}`}>
+                              {priorityLabels[priority]}
                             </span>
                           </td>
                           <td className="py-2 px-4">

@@ -3,6 +3,15 @@ from .models import ZonesReciclatge, Contenedor, ReporteContenedor, Notificacion
 from accounts.models import Empresa  
 from django.contrib.auth import get_user_model
 
+# Get the custom user model
+CustomUser = get_user_model()
+
+# Serializer for User (Basic information)
+class UserBasicSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomUser
+        fields = ['id', 'username', 'email', 'first_name', 'last_name']  # Basic user fields
+
 # Serializer para el modelo Empresa (Solo lectura)
 class EmpresaSerializer(serializers.ModelSerializer):
     class Meta:
@@ -45,16 +54,11 @@ class ContenedorSerializer(serializers.ModelSerializer):
         user = self.context['request'].user
         validated_data['empresa'] = user.empresa
         return super().create(validated_data)
-class ReporteContenedorSerializer(serializers.ModelSerializer):
-    usuario = serializers.HiddenField(default=serializers.CurrentUserDefault())
 
-    class Meta:
-        model = ReporteContenedor
-        fields = '__all__'
-CustomUser = get_user_model()
 
 class ReporteContenedorSerializer(serializers.ModelSerializer):
     usuario = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    usuario_data = UserBasicSerializer(source='usuario', read_only=True)
     tipo_objeto = serializers.ChoiceField(
         choices=[('contenedor', 'Contenedor'), ('zona', 'Zona')],
         write_only=True,
@@ -66,7 +70,7 @@ class ReporteContenedorSerializer(serializers.ModelSerializer):
         model = ReporteContenedor
         fields = [
             'id', 'tipo', 'prioridad', 'descripcion', 'imagen', 
-            'estado', 'fecha', 'usuario', 'tipo_objeto', 'objeto_id',
+            'estado', 'fecha', 'usuario', 'usuario_data','tipo_objeto', 'objeto_id',
             'contenedor', 'zona'
         ]
         read_only_fields = ['id', 'fecha', 'estado', 'contenedor', 'zona']
@@ -109,8 +113,6 @@ class ReporteContenedorSerializer(serializers.ModelSerializer):
             validated_data['empresa'] = validated_data['contenedor'].empresa
         elif 'zona' in validated_data:
             validated_data['empresa'] = validated_data['zona'].empresa
-            
-        return super().create(validated_data)
             
         return super().create(validated_data)
 

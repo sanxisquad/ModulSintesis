@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getReporte, resolveReporte, rejectReporte, processReporte, reopenTicket, updateReporte } from '../../api/zr.api';
+import { getUser } from '../../api/user.api'; // Import getUser from user API
 import { 
   Clock, RefreshCw, CheckCircle2, XCircle, 
   User, Calendar, MapPin, MessageSquare,
-  ArrowLeft, AlertTriangle, Tag, Save
+  ArrowLeft, AlertTriangle, Tag, Save,
+  Flag
 } from 'lucide-react';
 import { useConfirm } from '../common/ConfirmDialog';
 
@@ -16,6 +18,8 @@ export function TiquetView() {
   const [updating, setUpdating] = useState(false);
   const [comentario, setComentario] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
+  const [userData, setUserData] = useState(null);
+  const [loadingUser, setLoadingUser] = useState(false);
   const confirm = useConfirm();
   
   useEffect(() => {
@@ -25,6 +29,12 @@ export function TiquetView() {
         const response = await getReporte(id);
         setTiquet(response.data);
         setSelectedStatus(response.data.estado); // Initialize dropdown with current status
+        
+        // If there's a user ID but no name, fetch the user data
+        if (response.data.usuario && !response.data.usuario_nombre) {
+          fetchUserData(response.data.usuario);
+        }
+        
         setLoading(false);
       } catch (error) {
         console.error("Error carregant tiquet:", error);
@@ -34,6 +44,78 @@ export function TiquetView() {
     
     fetchTiquet();
   }, [id]);
+  
+  // Function to fetch user data - improved with debugging
+  const fetchUserData = async (userId) => {
+    try {
+      setLoadingUser(true);
+      console.log(`Attempting to fetch user data for ID: ${userId}`);
+      
+      // Use the getUser function from the user API
+      const response = await getUser(userId);
+      console.log('User data received:', response.data);
+      setUserData(response.data);
+      setLoadingUser(false);
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+      if (error.response) {
+        console.error("Response status:", error.response.status);
+        console.error("Response data:", error.response.data);
+      } else if (error.request) {
+        console.error("No response received:", error.request);
+      } else {
+        console.error("Error message:", error.message);
+      }
+      setLoadingUser(false);
+    }
+  };
+  
+  // Helper function to get username - with more fallbacks
+  const getUserName = () => {
+    // Check directly from ticket data
+    if (tiquet.usuario_data.first_name && tiquet.usuario_data.last_name) {
+      return `${tiquet.usuario_data.first_name} ${tiquet.usuario_data.last_name}`;
+    }
+    
+    // Check directly from resuelto_por if available
+    if (tiquet.resuelto_por && typeof tiquet.resuelto_por === 'string') {
+      return tiquet.resuelto_por;
+    }
+    
+    // Check from fetched user data
+    if (userData) {
+      if (userData.username) return userData.username;
+      if (userData.email) return userData.email;
+      if (userData.first_name && userData.last_name) {
+        return `${userData.first_name} ${userData.last_name}`;
+      }
+    }
+    
+    // Default fallback
+    return `Usuari #${tiquet.usuario}`;
+  };
+  
+  // Function to get priority color
+  const getPriorityColor = (priority) => {
+    switch(priority) {
+      case 'baja': return 'bg-green-100 text-green-800';
+      case 'normal': return 'bg-blue-100 text-blue-800';
+      case 'alta': return 'bg-yellow-100 text-yellow-800';
+      case 'urgente': return 'bg-red-100 text-red-800';
+      default: return 'bg-blue-100 text-blue-800'; // Default to normal
+    }
+  };
+  
+  // Function to get priority name
+  const getPriorityName = (priority) => {
+    switch(priority) {
+      case 'baja': return 'Baixa';
+      case 'normal': return 'Normal';
+      case 'alta': return 'Alta'; 
+      case 'urgente': return 'Urgent';
+      default: return 'Normal';
+    }
+  };
   
   const getTraduccionTipo = (tipo) => {
     switch(tipo) {
@@ -203,9 +285,17 @@ export function TiquetView() {
         Tornar a la llista
       </button>
       
-      {/* Encabezado - UPDATED: status changed to dropdown */}
-      <div className="bg-white p-6 rounded-t-lg shadow-md border border-gray-200">
-        <div className="flex justify-between items-start">
+      {/* Encabezado with priority indicator */}
+      <div className="bg-white p-6 rounded-t-lg shadow-md border border-gray-200 relative">
+        {/* Priority color strip at the top */}
+        <div className={`absolute top-0 left-0 w-full h-1.5 rounded-t-lg ${
+          tiquet.prioridad === 'baja' ? 'bg-green-500' : 
+          tiquet.prioridad === 'alta' ? 'bg-yellow-500' : 
+          tiquet.prioridad === 'urgente' ? 'bg-red-500' : 
+          'bg-blue-500'
+        }`}></div>
+        
+        <div className="flex justify-between items-start mt-1">
           <h1 className="text-2xl font-bold text-gray-800">
             Tiquet #{tiquet.id} - {getTraduccionTipo(tiquet.tipo)}
           </h1>
@@ -233,7 +323,7 @@ export function TiquetView() {
         <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-600">
           <div className="flex items-center">
             <User className="h-5 w-5 mr-2 text-gray-500" />
-            <span><strong>Usuari:</strong> {tiquet.usuario_nombre || `Usuari #${tiquet.usuario}`}</span>
+            <span><strong>Usuari:</strong> {loadingUser ? 'Carregant...' : getUserName()}</span>
           </div>
           <div className="flex items-center">
             <Calendar className="h-5 w-5 mr-2 text-gray-500" />
@@ -249,8 +339,13 @@ export function TiquetView() {
             </span>
           </div>
           <div className="flex items-center">
-            <Tag className="h-5 w-5 mr-2 text-gray-500" />
-            <span><strong>Prioritat:</strong> {tiquet.prioridad || 'Normal'}</span>
+            <Flag className="h-5 w-5 mr-2 text-gray-500" />
+            <span className="flex items-center">
+              <strong className="mr-2">Prioritat:</strong> 
+              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getPriorityColor(tiquet.prioridad)}`}>
+                {getPriorityName(tiquet.prioridad || 'normal')}
+              </span>
+            </span>
           </div>
         </div>
       </div>
@@ -295,4 +390,40 @@ export function TiquetView() {
         </div>
       )}
       
-      {/* Gestión del tiquet - ALWAYS SHOW COMMENT FIELD FOR OPEN OR IN PROCES
+      {/* Comment section */}
+      <div className="bg-white p-6 border-b border-l border-r rounded-b-lg border-gray-200">
+        <h2 className="text-lg font-semibold text-gray-800 mb-2">Afegir comentari</h2>
+        <textarea
+          value={comentario}
+          onChange={(e) => setComentario(e.target.value)}
+          className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          rows="3"
+          placeholder="Afegeix un comentari opcional..."
+        ></textarea>
+        
+        <div className="mt-4 flex justify-end">
+          <button
+            onClick={handleUpdateState}
+            disabled={updating}
+            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-300"
+          >
+            {updating ? (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                Actualitzant...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4 mr-2" />
+                {selectedStatus !== tiquet.estado 
+                  ? `Canviar estat a ${getTraduccionEstado(selectedStatus)}`
+                  : "Desar comentari"}
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+

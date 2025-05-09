@@ -1,15 +1,17 @@
 import { 
   Clock, RefreshCw, CheckCircle2, XCircle, 
-  User, Calendar, MapPin, MessageSquare, ExternalLink
+  User, Calendar, MapPin, MessageSquare,
+  Flag
 } from 'lucide-react';
 import { useState } from 'react';
 import { resolveReporte, rejectReporte, processReporte } from '../../api/zr.api';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useConfirm } from '../common/ConfirmDialog';
 
 export function TiquetCard({ tiquet, onUpdateTiquet }) {
   const [loading, setLoading] = useState(false);
   const confirm = useConfirm();
+  const navigate = useNavigate();
   
   const getTraduccionTipo = (tipo) => {
     switch(tipo) {
@@ -53,7 +55,10 @@ export function TiquetCard({ tiquet, onUpdateTiquet }) {
     }
   };
   
-  const handleUpdateState = async (newState) => {
+  const handleUpdateState = async (newState, e) => {
+    // Prevent navigation when clicking buttons
+    if (e) e.stopPropagation();
+    
     try {
       // Check if the ticket is already in a terminal state
       if (tiquet.estado === 'resuelto' || tiquet.estado === 'rechazado') {
@@ -116,21 +121,65 @@ export function TiquetCard({ tiquet, onUpdateTiquet }) {
     }
   };
   
+  // Funciones para prioridad
+  const getPrioridadColor = (prioridad) => {
+    switch(prioridad) {
+      case 'baja': return 'bg-green-500';
+      case 'normal': 
+      case null:
+      case undefined: return 'bg-blue-500';
+      case 'alta': return 'bg-yellow-500';
+      case 'urgente': return 'bg-red-500';
+      default: return 'bg-blue-500';
+    }
+  };
+  
+  const getTraduccionPrioridad = (prioridad) => {
+    switch(prioridad) {
+      case 'baja': return 'Baixa';
+      case 'normal': return 'Normal';
+      case 'alta': return 'Alta';
+      case 'urgente': return 'Urgent';
+      default: return 'Normal';
+    }
+  };
+  
   // Prevent actions on tickets that are already in terminal states
   const isTerminalState = tiquet.estado === 'resuelto' || tiquet.estado === 'rechazado';
   
+  const handleCardClick = () => {
+    navigate(`/gestor/tiquets/${tiquet.id}`);
+  };
+  
   return (
-    <div className="bg-white p-4 rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition-shadow duration-200">
-      <div className="flex justify-between items-start mb-3">
+    <div 
+      className="bg-white p-4 rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition-shadow duration-200 cursor-pointer relative"
+      onClick={handleCardClick}
+    >
+      {/* Priority indicator strip at the top */}
+      <div 
+        className={`absolute top-0 left-0 w-full h-1.5 rounded-t-lg ${getPrioridadColor(tiquet.prioridad)}`}
+      ></div>
+      
+      <div className="flex justify-between items-start mb-3 mt-1">
         <h2 className="text-lg font-bold text-gray-800">
           Tiquet #{tiquet.id} - {getTraduccionTipo(tiquet.tipo)}
         </h2>
-        <span 
-          className={`${getColorEstado(tiquet.estado)} flex items-center text-xs font-medium px-2 py-1 rounded-full`}
-        >
-          {getIconoEstado(tiquet.estado)}
-          {getTraduccionEstado(tiquet.estado)}
-        </span>
+        <div className="flex items-center space-x-2">
+          {/* Priority badge */}
+          <span className="flex items-center text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
+            <Flag className="h-3 w-3 mr-1" />
+            {getTraduccionPrioridad(tiquet.prioridad)}
+          </span>
+          
+          {/* Status badge */}
+          <span 
+            className={`${getColorEstado(tiquet.estado)} flex items-center text-xs font-medium px-2 py-1 rounded-full`}
+          >
+            {getIconoEstado(tiquet.estado)}
+            {getTraduccionEstado(tiquet.estado)}
+          </span>
+        </div>
       </div>
       
       <div className="mb-3 text-gray-600">
@@ -142,7 +191,7 @@ export function TiquetCard({ tiquet, onUpdateTiquet }) {
         <div className="grid grid-cols-2 gap-2 text-sm mt-2">
           <div className="flex items-center">
             <User className="h-4 w-4 mr-1 text-gray-500" />
-            <span>{tiquet.usuario_nombre || 'Usuari #' + tiquet.usuario}</span>
+            <span>{tiquet.usuario_data.first_name +" "+ tiquet.usuario_data.last_name || 'Usuari #' + tiquet.usuario}</span>
           </div>
           <div className="flex items-center">
             <Calendar className="h-4 w-4 mr-1 text-gray-500" />
@@ -168,21 +217,13 @@ export function TiquetCard({ tiquet, onUpdateTiquet }) {
         </div>
       )}
       
-      <div className="flex justify-between items-center mt-4">
-        <Link 
-          to={`/gestor/tiquets/${tiquet.id}`} 
-          className="text-blue-500 hover:text-blue-700 flex items-center text-sm"
-        >
-          <ExternalLink className="h-3 w-3 mr-1" />
-          Veure detalls
-        </Link>
-        
+      <div className="flex justify-end items-center mt-4">
         {!isTerminalState && (
           <div className="flex space-x-2">
             {tiquet.estado === 'abierto' && (
               <button
                 disabled={loading}
-                onClick={() => handleUpdateState('en_proceso')}
+                onClick={(e) => handleUpdateState('en_proceso', e)}
                 className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm flex items-center"
               >
                 <RefreshCw className={`h-3 w-3 mr-1 ${loading ? 'animate-spin' : ''}`} />
@@ -191,7 +232,7 @@ export function TiquetCard({ tiquet, onUpdateTiquet }) {
             )}
             <button
               disabled={loading}
-              onClick={() => handleUpdateState('resuelto')}
+              onClick={(e) => handleUpdateState('resuelto', e)}
               className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm flex items-center"
             >
               <CheckCircle2 className="h-3 w-3 mr-1" />
@@ -199,7 +240,7 @@ export function TiquetCard({ tiquet, onUpdateTiquet }) {
             </button>
             <button
               disabled={loading}
-              onClick={() => handleUpdateState('rechazado')}
+              onClick={(e) => handleUpdateState('rechazado', e)}
               className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm flex items-center"
             >
               <XCircle className="h-3 w-3 mr-1" />

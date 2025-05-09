@@ -15,10 +15,10 @@ import {
   FaBell,
   FaHome,
   FaUsers,
-  FaFlask,
+  FaTrashAlt,      // Changed from FaFlask to FaTrashAlt
   FaChartBar,
-  FaTicketAlt,
-  FaMap
+  FaExclamationTriangle, // Added for reports/complaints
+  FaRecycle,       // Added for recycling zones
 } from "react-icons/fa";
 import { MdManageAccounts } from "react-icons/md";
 
@@ -103,6 +103,20 @@ export function Navigation() {
         </Link>
       </li>
     );
+
+    // Added effect to adjust body padding when menu is open
+    useEffect(() => {
+        if (menuOpen && (canMenu || menuUser)) {
+            document.body.style.paddingLeft = menuOpen ? '16rem' : '0';
+            document.body.style.transition = 'padding-left 0.3s';
+        } else {
+            document.body.style.paddingLeft = '0';
+        }
+        
+        return () => {
+            document.body.style.paddingLeft = '0';
+        };
+    }, [menuOpen, canMenu, menuUser]);
 
     return (
         <div className="w-full sticky top-0 z-50">
@@ -244,140 +258,135 @@ export function Navigation() {
             </div>
 
             {/* Menú lateral desplegable */}
-            {(menuOpen && (canMenu || menuUser)) && (
-                <div
+            {(canMenu || menuUser) && (
+                <aside
                     ref={menuRef}
-                    className={`fixed md:absolute left-0 top-16 h-[calc(100vh-4rem)] md:h-auto w-full md:w-64 bg-black text-white shadow-lg p-4 z-40`}
+                    className={`fixed top-0 left-0 z-40 h-screen pt-16 transition-transform duration-300 bg-gray-900 text-white w-64 ${
+                        menuOpen ? "translate-x-0" : "-translate-x-full"
+                    }`}
                 >
-                    <ul className="space-y-2">
-                        {/* Contenido del menú para gestores */}
-                        {canMenu && (
-                            <>
-                                <li>
-                                    <Link 
-                                        to="/gestor-dashboard" 
-                                        className="block py-3 px-4 hover:bg-gray-800 rounded-lg"
-                                        onClick={() => {
-                                            setGestionExpanded(false);
-                                            toggleMenu();
-                                        }}
-                                    >
-                                        <FaChartBar className="w-5 h-5 inline-block mr-2" />
-                                        Dashboard
-                                    </Link>
-                                </li>
-                                
-                                <li>
-                                    <button
-                                        className="flex justify-between items-center w-full py-3 px-4 hover:bg-gray-800 rounded-lg text-left"
-                                        onClick={() => setGestionExpanded(!gestionExpanded)}
-                                    >
-                                        <span className="flex items-center">
-                                            <FaFlask className="w-5 h-5 mr-2" />
-                                            Gestió
-                                        </span>
-                                        {gestionExpanded ? <FaChevronUp /> : <FaChevronDown />}
-                                    </button>
-                                    {gestionExpanded && (
-                                        <div className="ml-4 mt-1">
-                                            <ul className="space-y-2">
-                                            <li>
-                                                <Link 
-                                                    to="/gestor-usuaris" 
-                                                    className="flex items-center py-2 px-4 hover:bg-gray-800 rounded-lg"
-                                                    onClick={toggleMenu}
-                                                >
-                                                    <FaUsers className="w-5 h-5 mr-2" />
-                                                    Usuaris
-                                                </Link>
+                    <div className="h-full px-3 py-4 overflow-y-auto">
+                        <ul className="space-y-2 font-medium">
+                            {/* Menu for administrators/managers */}
+                            {canMenu && (
+                                <>
+                                    <li>
+                                        <Link 
+                                            to="/gestor-dashboard" 
+                                            className="flex items-center p-2 rounded-lg hover:bg-gray-800 group"
+                                            onClick={() => toggleMenu()}
+                                        >
+                                            <FaChartBar className="w-5 h-5 text-gray-400 group-hover:text-white" />
+                                            <span className="ml-3">Dashboard</span>
+                                        </Link>
+                                    </li>
+                                    
+                                    {/* Gestio dropdown with better styling */}
+                                    <li>
+                                        <button
+                                            type="button"
+                                            className="flex items-center w-full p-2 text-left rounded-lg hover:bg-gray-800 group"
+                                            onClick={() => setGestionExpanded(!gestionExpanded)}
+                                        >
+                                            <MdManageAccounts className="w-5 h-5 text-gray-400 group-hover:text-white" />
+                                            <span className="flex-1 ml-3 whitespace-nowrap">Gestió</span>
+                                            {gestionExpanded ? 
+                                                <FaChevronUp className="w-3 h-3" /> : 
+                                                <FaChevronDown className="w-3 h-3" />
+                                            }
+                                        </button>
+                                        {gestionExpanded && (
+                                            <ul className="py-2 space-y-2 pl-4">
+                                                <li>
+                                                    <Link 
+                                                        to="/gestor-usuaris" 
+                                                        className="flex items-center p-2 rounded-lg hover:bg-gray-800 group"
+                                                        onClick={() => toggleMenu()}
+                                                    >
+                                                        <FaUsers className="w-4 h-4 text-gray-400 group-hover:text-white" />
+                                                        <span className="ml-3">Usuaris</span>
+                                                    </Link>
                                                 </li>
                                                 <li>
                                                     <Link 
                                                         to="/gestor-contenedors" 
-                                                        className="block py-2 px-4 hover:bg-gray-800 rounded-lg"
-                                                        onClick={toggleMenu}
+                                                        className="flex items-center p-2 rounded-lg hover:bg-gray-800 group"
+                                                        onClick={() => toggleMenu()}
                                                     >
-                                                        <FaFlask className="w-5 h-5 mr-2" />
-                                                        Contenidors
+                                                        <FaTrashAlt className="w-4 h-4 text-gray-400 group-hover:text-white" />
+                                                        <span className="ml-3">Contenidors</span>
                                                     </Link>
                                                 </li>
                                                 <li>
                                                     <Link 
                                                         to="/gestor-zones" 
-                                                        className="block py-2 px-4 hover:bg-gray-800 rounded-lg"
-                                                        onClick={toggleMenu}
+                                                        className="flex items-center p-2 rounded-lg hover:bg-gray-800 group"
+                                                        onClick={() => toggleMenu()}
                                                     >
-                                                        <FaMap className="w-5 h-5 mr-2" />
-                                                        Zones de reciclatge
+                                                        <FaRecycle className="w-4 h-4 text-gray-400 group-hover:text-white" />
+                                                        <span className="ml-3">Zones</span>
                                                     </Link>
                                                 </li>
                                                 <li>
                                                     <Link 
                                                         to="/gestor-tiquets" 
-                                                        className="block py-2 px-4 hover:bg-gray-800 rounded-lg"
-                                                        onClick={toggleMenu}
+                                                        className="flex items-center p-2 rounded-lg hover:bg-gray-800 group"
+                                                        onClick={() => toggleMenu()}
                                                     >
-                                                        <FaTicketAlt className="w-5 h-5 mr-2" />
-                                                        Tiquets
+                                                        <FaExclamationTriangle className="w-4 h-4 text-gray-400 group-hover:text-white" />
+                                                        <span className="ml-3">Tiquets</span>
                                                     </Link>
                                                 </li>
                                             </ul>
-                                        </div>
-                                    )}
-                                </li>
-                                
+                                        )}
+                                    </li>
+                                </>
+                            )}
+                            
+                            {/* User menu items */}
+                            {menuUser && isUser && (
                                 <li>
                                     <Link 
-                                        to="/estadisticas" 
-                                        className="block py-3 px-4 hover:bg-gray-800 rounded-lg"
-                                        onClick={toggleMenu}
+                                        to="/tasks" 
+                                        className="flex items-center p-2 text-white bg-green-600 rounded-lg hover:bg-green-700 group"
+                                        onClick={() => toggleMenu()}
                                     >
-                                        Estadístiques
+                                        <FaQrcode className="w-5 h-5" />
+                                        <span className="ml-3">Escanejar Codi QR</span>
                                     </Link>
                                 </li>
-                            </>
-                        )}
-                        
-                        {/* Contenido del menú para usuarios normales */}
-                        {menuUser && isUser && (
-                            <li>
-                                <Link 
-                                    to="/tasks" 
-                                    className=" py-3 px-4 bg-green-600 rounded-lg flex items-center justify-center"
-                                    onClick={toggleMenu}
-                                >
-                                    <FaQrcode className="mr-2" /> Escanejar Codi QR
-                                </Link>
-                            </li>
-                        )}
-                        
-                        {/* Opciones comunes */}
-                        {isAuthenticated && (
-                            <>
-                                <li>
-                                    <Link 
-                                        to="/profile" 
-                                        className="py-3 px-4 hover:bg-gray-800 rounded-lg flex items-center"
-                                        onClick={toggleMenu}
-                                    >
-                                        <FaUser className="mr-2" /> El meu perfil
-                                    </Link>
-                                </li>
-                                <li>
-                                    <button
-                                        onClick={() => {
-                                            logout();
-                                            toggleMenu();
-                                        }}
-                                        className="w-full text-left py-3 px-4 hover:bg-gray-800 rounded-lg flex items-center"
-                                    >
-                                        <FaSignOutAlt className="mr-2" /> Tancar sessió
-                                    </button>
-                                </li>
-                            </>
-                        )}
-                    </ul>
-                </div>
+                            )}
+                            
+                            {/* Common options for all authenticated users */}
+                            {isAuthenticated && (
+                                <>
+                                    <li className="border-t border-gray-700 pt-2 mt-2">
+                                        <Link 
+                                            to="/profile" 
+                                            className="flex items-center p-2 rounded-lg hover:bg-gray-800 group"
+                                            onClick={() => toggleMenu()}
+                                        >
+                                            <FaUser className="w-5 h-5 text-gray-400 group-hover:text-white" />
+                                            <span className="ml-3">El meu perfil</span>
+                                        </Link>
+                                    </li>
+                                    <li>
+                                        <button
+                                            onClick={() => {
+                                                logout();
+                                                toggleMenu();
+                                            }}
+                                            className="flex items-center w-full p-2 text-left rounded-lg hover:bg-gray-800 group"
+                                        >
+                                            <FaSignOutAlt className="w-5 h-5 text-gray-400 group-hover:text-white" />
+                                            <span className="ml-3">Tancar sessió</span>
+                                        </button>
+                                    </li>
+                                </>
+                            )}
+                        </ul>
+                    </div>
+                </aside>
             )}
 
             {/* Espacio para el contenido cuando el menú está abierto */}
