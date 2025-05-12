@@ -102,7 +102,7 @@ export function GestioTiquets() {
   if (loading) return <div className="text-center p-8">Carregant dades...</div>;
 
   return (
-    <div className={`transition-all duration-300 ease-in-out ${menuOpen ? 'ml-64' : 'ml-0'}`}>
+    <div className="bg-gray-50 min-h-screen px-4 sm:px-6 md:px-8 py-6">
       <h1 className="text-3xl font-bold text-center m-10">Gestió de Tiquets</h1>
       
       {/* Panell d'estadístiques de tiquets */}

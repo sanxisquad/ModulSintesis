@@ -261,7 +261,7 @@ export function DashBoard() {
   };
 
   return (
-    <div className={`transition-all duration-300 ease-in-out bg-gray-50 min-h-screen ${menuOpen ? 'ml-64' : 'ml-0'} px-4 sm:px-6 md:px-8 py-6`}>
+    <div className="bg-gray-50 min-h-screen px-4 sm:px-6 md:px-8 py-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="pb-5 border-b border-gray-200 mb-6">

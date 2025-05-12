@@ -15,10 +15,10 @@ import {
   FaBell,
   FaHome,
   FaUsers,
-  FaTrashAlt,      // Changed from FaFlask to FaTrashAlt
+  FaTrashAlt,
   FaChartBar,
-  FaExclamationTriangle, // Added for reports/complaints
-  FaRecycle,       // Added for recycling zones
+  FaExclamationTriangle,
+  FaRecycle,
 } from "react-icons/fa";
 import { MdManageAccounts } from "react-icons/md";
 
@@ -107,24 +107,10 @@ export function Navigation() {
       </li>
     );
 
-    // Added effect to adjust body padding when menu is open
-    useEffect(() => {
-        if (menuOpen && (canMenu || menuUser)) {
-            document.body.style.paddingLeft = menuOpen ? '16rem' : '0';
-            document.body.style.transition = 'padding-left 0.3s';
-        } else {
-            document.body.style.paddingLeft = '0';
-        }
-        
-        return () => {
-            document.body.style.paddingLeft = '0';
-        };
-    }, [menuOpen, canMenu, menuUser]);
-
     return (
         <div className="w-full sticky top-0 z-50">
-            {/* Barra de navegación superior */}
-            <div className="bg-black text-white py-3 px-4 flex items-center justify-between">
+            {/* Barra de navegación superior - increased z-index to ensure it stays on top */}
+            <div className="bg-black text-white py-3 px-4 flex items-center justify-between relative z-50">
                 {/* Menú hamburguesa y logo */}
                 <div className="flex items-center">
                     {(canMenu || menuUser) && (
@@ -260,7 +246,7 @@ export function Navigation() {
                 </nav>
             </div>
 
-            {/* Menú lateral desplegable */}
+            {/* Menú lateral desplegable - ensure it overlays without pushing content */}
             {(canMenu || menuUser) && (
                 <aside
                     ref={menuRef}
@@ -390,13 +376,6 @@ export function Navigation() {
                         </ul>
                     </div>
                 </aside>
-            )}
-
-            {/* Espacio para el contenido cuando el menú está abierto */}
-            {menuOpen && (
-                <div className="md:pl-64 transition-all duration-300">
-                    {/* Este div empuja el contenido cuando el menú lateral está abierto */}
-                </div>
             )}
         </div>
     );
