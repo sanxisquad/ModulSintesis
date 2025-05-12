@@ -43,16 +43,19 @@ export function Navigation() {
         marcarTodasNotificacionesLeidas 
     } = useNotification();
 
-    // Cerrar menús al hacer clic fuera
+    // Cerrar menús al hacer clic fuera - modified to close menu when clicking outside
     useEffect(() => {
         function handleClickOutside(event) {
             if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
                 setUserMenuOpen(false);
             }
             
-            if (menuRef.current && !menuRef.current.contains(event.target) && 
+            // Re-added menu closing logic but only when menu is open
+            if (menuOpen && 
+                menuRef.current && 
+                !menuRef.current.contains(event.target) && 
                 !event.target.closest('button[aria-label="Toggle menu"]')) {
-                toggleMenu(false);
+                toggleMenu(false); // Only closes the menu, never opens it
             }
             
             if (notificacionesRef.current && !notificacionesRef.current.contains(event.target) &&
@@ -65,7 +68,7 @@ export function Navigation() {
         return () => {
             document.removeEventListener("mousedown", handleClickOutside);
         };
-    }, [toggleMenu]);
+    }, [toggleMenu, menuOpen]); // Added menuOpen as a dependency
 
     // Función auxiliar para formatear fechas sin date-fns
     const formatearFechaRelativa = (fecha) => {
