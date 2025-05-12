@@ -25,6 +25,27 @@ SET time_zone = "+00:00";
 
 --
 -- Estructura de la taula `accounts_customuser`
+--
+
+CREATE TABLE `accounts_customuser` (
+  `id` bigint(20) NOT NULL,
+  `password` varchar(128) NOT NULL,
+  `last_login` datetime(6) DEFAULT NULL,
+  `is_superuser` tinyint(1) NOT NULL,
+  `username` varchar(150) NOT NULL,
+  `first_name` varchar(150) NOT NULL,
+  `last_name` varchar(150) NOT NULL,
+  `email` varchar(254) NOT NULL,
+  `is_staff` tinyint(1) NOT NULL,
+  `is_active` tinyint(1) NOT NULL,
+  `date_joined` datetime(6) NOT NULL,
+  `age` int(10) UNSIGNED DEFAULT NULL CHECK (`age` >= 0),
+  `location` varchar(255) DEFAULT NULL,
+  `role_id` bigint(20) DEFAULT NULL,
+  `score` int(11) NOT NULL,
+  `empresa_id` bigint(20) DEFAULT NULL,
+  `CP` varchar(5) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Bolcament de dades per a la taula `accounts_customuser`
@@ -44,6 +65,11 @@ INSERT INTO `accounts_customuser` (`id`, `password`, `last_login`, `is_superuser
 -- Estructura de la taula `accounts_customuser_groups`
 --
 
+CREATE TABLE `accounts_customuser_groups` (
+  `id` bigint(20) NOT NULL,
+  `customuser_id` bigint(20) NOT NULL,
+  `group_id` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -51,12 +77,27 @@ INSERT INTO `accounts_customuser` (`id`, `password`, `last_login`, `is_superuser
 -- Estructura de la taula `accounts_customuser_user_permissions`
 --
 
+CREATE TABLE `accounts_customuser_user_permissions` (
+  `id` bigint(20) NOT NULL,
+  `customuser_id` bigint(20) NOT NULL,
+  `permission_id` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 -- --------------------------------------------------------
 
 --
 -- Estructura de la taula `accounts_empresa`
 --
 
+CREATE TABLE `accounts_empresa` (
+  `id` bigint(20) NOT NULL,
+  `nom` varchar(255) NOT NULL,
+  `NIF` varchar(9) NOT NULL,
+  `direccio` varchar(255) NOT NULL,
+  `telefon` varchar(20) DEFAULT NULL,
+  `email` varchar(255) DEFAULT NULL,
+  `CP` varchar(5) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Bolcament de dades per a la taula `accounts_empresa`
@@ -79,7 +120,7 @@ CREATE TABLE `accounts_role` (
 
 --
 -- Bolcament de dades per a la taula `accounts_role`
-
+--
 
 INSERT INTO `accounts_role` (`id`, `name`) VALUES
 (2, 'ADMIN'),
@@ -93,11 +134,22 @@ INSERT INTO `accounts_role` (`id`, `name`) VALUES
 -- Estructura de la taula `auth_group`
 --
 
+CREATE TABLE `auth_group` (
+  `id` int(11) NOT NULL,
+  `name` varchar(150) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 -- --------------------------------------------------------
 
 --
 -- Estructura de la taula `auth_group_permissions`
 --
+
+CREATE TABLE `auth_group_permissions` (
+  `id` bigint(20) NOT NULL,
+  `group_id` int(11) NOT NULL,
+  `permission_id` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -105,7 +157,12 @@ INSERT INTO `accounts_role` (`id`, `name`) VALUES
 -- Estructura de la taula `auth_permission`
 --
 
-
+CREATE TABLE `auth_permission` (
+  `id` int(11) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `content_type_id` int(11) NOT NULL,
+  `codename` varchar(100) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Bolcament de dades per a la taula `auth_permission`
@@ -180,6 +237,16 @@ INSERT INTO `auth_permission` (`id`, `name`, `content_type_id`, `codename`) VALU
 -- Estructura de la taula `django_admin_log`
 --
 
+CREATE TABLE `django_admin_log` (
+  `id` int(11) NOT NULL,
+  `action_time` datetime(6) NOT NULL,
+  `object_id` longtext DEFAULT NULL,
+  `object_repr` varchar(200) NOT NULL,
+  `action_flag` smallint(5) UNSIGNED NOT NULL CHECK (`action_flag` >= 0),
+  `change_message` longtext NOT NULL,
+  `content_type_id` int(11) DEFAULT NULL,
+  `user_id` bigint(20) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Bolcament de dades per a la taula `django_admin_log`
@@ -216,6 +283,11 @@ INSERT INTO `django_admin_log` (`id`, `action_time`, `object_id`, `object_repr`,
 -- Estructura de la taula `django_content_type`
 --
 
+CREATE TABLE `django_content_type` (
+  `id` int(11) NOT NULL,
+  `app_label` varchar(100) NOT NULL,
+  `model` varchar(100) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Bolcament de dades per a la taula `django_content_type`
@@ -244,6 +316,12 @@ INSERT INTO `django_content_type` (`id`, `app_label`, `model`) VALUES
 -- Estructura de la taula `django_migrations`
 --
 
+CREATE TABLE `django_migrations` (
+  `id` bigint(20) NOT NULL,
+  `app` varchar(255) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `applied` datetime(6) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Bolcament de dades per a la taula `django_migrations`
@@ -297,6 +375,11 @@ INSERT INTO `django_migrations` (`id`, `app`, `name`, `applied`) VALUES
 -- Estructura de la taula `django_session`
 --
 
+CREATE TABLE `django_session` (
+  `session_key` varchar(40) NOT NULL,
+  `session_data` longtext NOT NULL,
+  `expire_date` datetime(6) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Bolcament de dades per a la taula `django_session`
@@ -313,6 +396,11 @@ INSERT INTO `django_session` (`session_key`, `session_data`, `expire_date`) VALU
 -- Estructura de la taula `token_blacklist_blacklistedtoken`
 --
 
+CREATE TABLE `token_blacklist_blacklistedtoken` (
+  `id` bigint(20) NOT NULL,
+  `blacklisted_at` datetime(6) NOT NULL,
+  `token_id` bigint(20) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Bolcament de dades per a la taula `token_blacklist_blacklistedtoken`
@@ -401,6 +489,14 @@ INSERT INTO `token_blacklist_blacklistedtoken` (`id`, `blacklisted_at`, `token_i
 -- Estructura de la taula `token_blacklist_outstandingtoken`
 --
 
+CREATE TABLE `token_blacklist_outstandingtoken` (
+  `id` bigint(20) NOT NULL,
+  `token` longtext NOT NULL,
+  `created_at` datetime(6) DEFAULT NULL,
+  `expires_at` datetime(6) NOT NULL,
+  `user_id` bigint(20) DEFAULT NULL,
+  `jti` varchar(255) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Bolcament de dades per a la taula `token_blacklist_outstandingtoken`
@@ -554,6 +650,21 @@ INSERT INTO `token_blacklist_outstandingtoken` (`id`, `token`, `created_at`, `ex
 -- Estructura de la taula `zonesreciclatge_contenedor`
 --
 
+CREATE TABLE `zonesreciclatge_contenedor` (
+  `id` bigint(20) NOT NULL,
+  `tipus` varchar(100) NOT NULL,
+  `estat` varchar(100) NOT NULL,
+  `latitud` double NOT NULL,
+  `longitud` double NOT NULL,
+  `ciutat` varchar(255) NOT NULL,
+  `empresa_id` bigint(20) NOT NULL,
+  `zona_id` bigint(20) DEFAULT NULL,
+  `cod` varchar(255) NOT NULL,
+  `alerta` tinyint(1) NOT NULL,
+  `fecha_ultimo_vaciado` datetime(6) DEFAULT NULL,
+  `motivo_alerta` varchar(255) DEFAULT NULL,
+  `ultima_revision` datetime(6) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Bolcament de dades per a la taula `zonesreciclatge_contenedor`
@@ -574,6 +685,15 @@ INSERT INTO `zonesreciclatge_contenedor` (`id`, `tipus`, `estat`, `latitud`, `lo
 -- Estructura de la taula `zonesreciclatge_historialcontenedor`
 --
 
+CREATE TABLE `zonesreciclatge_historialcontenedor` (
+  `id` bigint(20) NOT NULL,
+  `fecha` datetime(6) NOT NULL,
+  `estado_anterior` varchar(100) NOT NULL,
+  `estado_actual` varchar(100) NOT NULL,
+  `nivel_llenado` int(11) DEFAULT NULL,
+  `cambiado_por_id` bigint(20) DEFAULT NULL,
+  `contenedor_id` bigint(20) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -581,6 +701,18 @@ INSERT INTO `zonesreciclatge_contenedor` (`id`, `tipus`, `estat`, `latitud`, `lo
 -- Estructura de la taula `zonesreciclatge_notificacion`
 --
 
+CREATE TABLE `zonesreciclatge_notificacion` (
+  `id` bigint(20) NOT NULL,
+  `tipo` varchar(50) NOT NULL,
+  `titulo` varchar(100) NOT NULL,
+  `mensaje` longtext NOT NULL,
+  `fecha` datetime(6) NOT NULL,
+  `leida` tinyint(1) NOT NULL,
+  `relacion_contenedor_id` bigint(20) DEFAULT NULL,
+  `relacion_zona_id` bigint(20) DEFAULT NULL,
+  `usuario_id` bigint(20) NOT NULL,
+  `relacion_reporte_id` bigint(20) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Bolcament de dades per a la taula `zonesreciclatge_notificacion`
@@ -613,6 +745,24 @@ INSERT INTO `zonesreciclatge_notificacion` (`id`, `tipo`, `titulo`, `mensaje`, `
 -- Estructura de la taula `zonesreciclatge_reportecontenedor`
 --
 
+CREATE TABLE `zonesreciclatge_reportecontenedor` (
+  `id` bigint(20) NOT NULL,
+  `fecha` datetime(6) NOT NULL,
+  `ultima_actualizacion` datetime(6) NOT NULL,
+  `tipo` varchar(50) NOT NULL,
+  `prioridad` varchar(50) NOT NULL,
+  `descripcion` longtext NOT NULL,
+  `imagen` varchar(100) DEFAULT NULL,
+  `estado` varchar(50) NOT NULL,
+  `fecha_resolucion` datetime(6) DEFAULT NULL,
+  `comentario_cierre` longtext DEFAULT NULL,
+  `contenedor_id` bigint(20) DEFAULT NULL,
+  `gestor_asignado_id` bigint(20) DEFAULT NULL,
+  `resuelto_por_id` bigint(20) DEFAULT NULL,
+  `usuario_id` bigint(20) DEFAULT NULL,
+  `zona_id` bigint(20) DEFAULT NULL,
+  `empresa_id` bigint(20) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Bolcament de dades per a la taula `zonesreciclatge_reportecontenedor`
@@ -631,6 +781,15 @@ INSERT INTO `zonesreciclatge_reportecontenedor` (`id`, `fecha`, `ultima_actualiz
 -- Estructura de la taula `zonesreciclatge_zonesreciclatge`
 --
 
+CREATE TABLE `zonesreciclatge_zonesreciclatge` (
+  `id` bigint(20) NOT NULL,
+  `nom` varchar(255) NOT NULL,
+  `ciutat` varchar(255) NOT NULL,
+  `latitud` double NOT NULL,
+  `longitud` double NOT NULL,
+  `descripcio` longtext DEFAULT NULL,
+  `empresa_id` bigint(20) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Bolcament de dades per a la taula `zonesreciclatge_zonesreciclatge`
@@ -647,6 +806,362 @@ INSERT INTO `zonesreciclatge_zonesreciclatge` (`id`, `nom`, `ciutat`, `latitud`,
 --
 -- Índexs per a la taula `accounts_customuser`
 --
+ALTER TABLE `accounts_customuser`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `username` (`username`),
+  ADD UNIQUE KEY `accounts_customuser_email_4fd8e7ce_uniq` (`email`),
+  ADD KEY `accounts_customuser_role_id_fb692466_fk_accounts_role_id` (`role_id`),
+  ADD KEY `accounts_customuser_empresa_id_3fd0676e_fk_accounts_empresa_id` (`empresa_id`);
+
+--
+-- Índexs per a la taula `accounts_customuser_groups`
+--
+ALTER TABLE `accounts_customuser_groups`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `accounts_customuser_groups_customuser_id_group_id_c074bdcb_uniq` (`customuser_id`,`group_id`),
+  ADD KEY `accounts_customuser_groups_group_id_86ba5f9e_fk_auth_group_id` (`group_id`);
+
+--
+-- Índexs per a la taula `accounts_customuser_user_permissions`
+--
+ALTER TABLE `accounts_customuser_user_permissions`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `accounts_customuser_user_customuser_id_permission_9632a709_uniq` (`customuser_id`,`permission_id`),
+  ADD KEY `accounts_customuser__permission_id_aea3d0e5_fk_auth_perm` (`permission_id`);
+
+--
+-- Índexs per a la taula `accounts_empresa`
+--
+ALTER TABLE `accounts_empresa`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `NIF` (`NIF`);
+
+--
+-- Índexs per a la taula `accounts_role`
+--
+ALTER TABLE `accounts_role`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `name` (`name`);
+
+--
+-- Índexs per a la taula `auth_group`
+--
+ALTER TABLE `auth_group`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `name` (`name`);
+
+--
+-- Índexs per a la taula `auth_group_permissions`
+--
+ALTER TABLE `auth_group_permissions`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `auth_group_permissions_group_id_permission_id_0cd325b0_uniq` (`group_id`,`permission_id`),
+  ADD KEY `auth_group_permissio_permission_id_84c5c92e_fk_auth_perm` (`permission_id`);
+
+--
+-- Índexs per a la taula `auth_permission`
+--
+ALTER TABLE `auth_permission`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `auth_permission_content_type_id_codename_01ab375a_uniq` (`content_type_id`,`codename`);
+
+--
+-- Índexs per a la taula `django_admin_log`
+--
+ALTER TABLE `django_admin_log`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `django_admin_log_content_type_id_c4bce8eb_fk_django_co` (`content_type_id`),
+  ADD KEY `django_admin_log_user_id_c564eba6_fk_accounts_customuser_id` (`user_id`);
+
+--
+-- Índexs per a la taula `django_content_type`
+--
+ALTER TABLE `django_content_type`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `django_content_type_app_label_model_76bd3d3b_uniq` (`app_label`,`model`);
+
+--
+-- Índexs per a la taula `django_migrations`
+--
+ALTER TABLE `django_migrations`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Índexs per a la taula `django_session`
+--
+ALTER TABLE `django_session`
+  ADD PRIMARY KEY (`session_key`),
+  ADD KEY `django_session_expire_date_a5c62663` (`expire_date`);
+
+--
+-- Índexs per a la taula `token_blacklist_blacklistedtoken`
+--
+ALTER TABLE `token_blacklist_blacklistedtoken`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `token_id` (`token_id`);
+
+--
+-- Índexs per a la taula `token_blacklist_outstandingtoken`
+--
+ALTER TABLE `token_blacklist_outstandingtoken`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `token_blacklist_outstandingtoken_jti_hex_d9bdf6f7_uniq` (`jti`),
+  ADD KEY `token_blacklist_outs_user_id_83bc629a_fk_accounts_` (`user_id`);
+
+--
+-- Índexs per a la taula `zonesreciclatge_contenedor`
+--
+ALTER TABLE `zonesreciclatge_contenedor`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `zonesreciclatge_cont_empresa_id_9b44b9df_fk_accounts_` (`empresa_id`),
+  ADD KEY `zonesreciclatge_cont_zona_id_dfbc1734_fk_zonesreci` (`zona_id`);
+
+--
+-- Índexs per a la taula `zonesreciclatge_historialcontenedor`
+--
+ALTER TABLE `zonesreciclatge_historialcontenedor`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `zonesreciclatge_hist_cambiado_por_id_fdb46e31_fk_accounts_` (`cambiado_por_id`),
+  ADD KEY `zonesrecicl_contene_b33d5a_idx` (`contenedor_id`,`fecha`);
+
+--
+-- Índexs per a la taula `zonesreciclatge_notificacion`
+--
+ALTER TABLE `zonesreciclatge_notificacion`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `zonesreciclatge_noti_relacion_contenedor__86c79995_fk_zonesreci` (`relacion_contenedor_id`),
+  ADD KEY `zonesreciclatge_noti_relacion_zona_id_23f8688b_fk_zonesreci` (`relacion_zona_id`),
+  ADD KEY `zonesreciclatge_noti_usuario_id_a29535a5_fk_accounts_` (`usuario_id`),
+  ADD KEY `zonesreciclatge_noti_relacion_reporte_id_79c555df_fk_zonesreci` (`relacion_reporte_id`);
+
+--
+-- Índexs per a la taula `zonesreciclatge_reportecontenedor`
+--
+ALTER TABLE `zonesreciclatge_reportecontenedor`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `zonesreciclatge_repo_contenedor_id_4be4dd1d_fk_zonesreci` (`contenedor_id`),
+  ADD KEY `zonesreciclatge_repo_gestor_asignado_id_86371f28_fk_accounts_` (`gestor_asignado_id`),
+  ADD KEY `zonesreciclatge_repo_resuelto_por_id_66600f25_fk_accounts_` (`resuelto_por_id`),
+  ADD KEY `zonesreciclatge_repo_usuario_id_683c3bce_fk_accounts_` (`usuario_id`),
+  ADD KEY `zonesreciclatge_repo_zona_id_71a6e1a3_fk_zonesreci` (`zona_id`),
+  ADD KEY `zonesreciclatge_repo_empresa_id_466cff67_fk_accounts_` (`empresa_id`);
+
+--
+-- Índexs per a la taula `zonesreciclatge_zonesreciclatge`
+--
+ALTER TABLE `zonesreciclatge_zonesreciclatge`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `zonesreciclatge_zone_empresa_id_9fffbe34_fk_accounts_` (`empresa_id`);
+
+--
+-- AUTO_INCREMENT per les taules bolcades
+--
+
+--
+-- AUTO_INCREMENT per la taula `accounts_customuser`
+--
+ALTER TABLE `accounts_customuser`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+
+--
+-- AUTO_INCREMENT per la taula `accounts_customuser_groups`
+--
+ALTER TABLE `accounts_customuser_groups`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT per la taula `accounts_customuser_user_permissions`
+--
+ALTER TABLE `accounts_customuser_user_permissions`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT per la taula `accounts_empresa`
+--
+ALTER TABLE `accounts_empresa`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- AUTO_INCREMENT per la taula `accounts_role`
+--
+ALTER TABLE `accounts_role`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=246;
+
+--
+-- AUTO_INCREMENT per la taula `auth_group`
+--
+ALTER TABLE `auth_group`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT per la taula `auth_group_permissions`
+--
+ALTER TABLE `auth_group_permissions`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT per la taula `auth_permission`
+--
+ALTER TABLE `auth_permission`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=62;
+
+--
+-- AUTO_INCREMENT per la taula `django_admin_log`
+--
+ALTER TABLE `django_admin_log`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
+
+--
+-- AUTO_INCREMENT per la taula `django_content_type`
+--
+ALTER TABLE `django_content_type`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+
+--
+-- AUTO_INCREMENT per la taula `django_migrations`
+--
+ALTER TABLE `django_migrations`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
+
+--
+-- AUTO_INCREMENT per la taula `token_blacklist_blacklistedtoken`
+--
+ALTER TABLE `token_blacklist_blacklistedtoken`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=76;
+
+--
+-- AUTO_INCREMENT per la taula `token_blacklist_outstandingtoken`
+--
+ALTER TABLE `token_blacklist_outstandingtoken`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=141;
+
+--
+-- AUTO_INCREMENT per la taula `zonesreciclatge_contenedor`
+--
+ALTER TABLE `zonesreciclatge_contenedor`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+
+--
+-- AUTO_INCREMENT per la taula `zonesreciclatge_historialcontenedor`
+--
+ALTER TABLE `zonesreciclatge_historialcontenedor`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT per la taula `zonesreciclatge_notificacion`
+--
+ALTER TABLE `zonesreciclatge_notificacion`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+
+--
+-- AUTO_INCREMENT per la taula `zonesreciclatge_reportecontenedor`
+--
+ALTER TABLE `zonesreciclatge_reportecontenedor`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
+-- AUTO_INCREMENT per la taula `zonesreciclatge_zonesreciclatge`
+--
+ALTER TABLE `zonesreciclatge_zonesreciclatge`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+
+--
+-- Restriccions per a les taules bolcades
+--
+
+--
+-- Restriccions per a la taula `accounts_customuser`
+--
+ALTER TABLE `accounts_customuser`
+  ADD CONSTRAINT `accounts_customuser_empresa_id_3fd0676e_fk_accounts_empresa_id` FOREIGN KEY (`empresa_id`) REFERENCES `accounts_empresa` (`id`),
+  ADD CONSTRAINT `accounts_customuser_role_id_fb692466_fk_accounts_role_id` FOREIGN KEY (`role_id`) REFERENCES `accounts_role` (`id`);
+
+--
+-- Restriccions per a la taula `accounts_customuser_groups`
+--
+ALTER TABLE `accounts_customuser_groups`
+  ADD CONSTRAINT `accounts_customuser__customuser_id_bc55088e_fk_accounts_` FOREIGN KEY (`customuser_id`) REFERENCES `accounts_customuser` (`id`),
+  ADD CONSTRAINT `accounts_customuser_groups_group_id_86ba5f9e_fk_auth_group_id` FOREIGN KEY (`group_id`) REFERENCES `auth_group` (`id`);
+
+--
+-- Restriccions per a la taula `accounts_customuser_user_permissions`
+--
+ALTER TABLE `accounts_customuser_user_permissions`
+  ADD CONSTRAINT `accounts_customuser__customuser_id_0deaefae_fk_accounts_` FOREIGN KEY (`customuser_id`) REFERENCES `accounts_customuser` (`id`),
+  ADD CONSTRAINT `accounts_customuser__permission_id_aea3d0e5_fk_auth_perm` FOREIGN KEY (`permission_id`) REFERENCES `auth_permission` (`id`);
+
+--
+-- Restriccions per a la taula `auth_group_permissions`
+--
+ALTER TABLE `auth_group_permissions`
+  ADD CONSTRAINT `auth_group_permissio_permission_id_84c5c92e_fk_auth_perm` FOREIGN KEY (`permission_id`) REFERENCES `auth_permission` (`id`),
+  ADD CONSTRAINT `auth_group_permissions_group_id_b120cbf9_fk_auth_group_id` FOREIGN KEY (`group_id`) REFERENCES `auth_group` (`id`);
+
+--
+-- Restriccions per a la taula `auth_permission`
+--
+ALTER TABLE `auth_permission`
+  ADD CONSTRAINT `auth_permission_content_type_id_2f476e4b_fk_django_co` FOREIGN KEY (`content_type_id`) REFERENCES `django_content_type` (`id`);
+
+--
+-- Restriccions per a la taula `django_admin_log`
+--
+ALTER TABLE `django_admin_log`
+  ADD CONSTRAINT `django_admin_log_content_type_id_c4bce8eb_fk_django_co` FOREIGN KEY (`content_type_id`) REFERENCES `django_content_type` (`id`),
+  ADD CONSTRAINT `django_admin_log_user_id_c564eba6_fk_accounts_customuser_id` FOREIGN KEY (`user_id`) REFERENCES `accounts_customuser` (`id`);
+
+--
+-- Restriccions per a la taula `token_blacklist_blacklistedtoken`
+--
+ALTER TABLE `token_blacklist_blacklistedtoken`
+  ADD CONSTRAINT `token_blacklist_blacklistedtoken_token_id_3cc7fe56_fk` FOREIGN KEY (`token_id`) REFERENCES `token_blacklist_outstandingtoken` (`id`);
+
+--
+-- Restriccions per a la taula `token_blacklist_outstandingtoken`
+--
+ALTER TABLE `token_blacklist_outstandingtoken`
+  ADD CONSTRAINT `token_blacklist_outs_user_id_83bc629a_fk_accounts_` FOREIGN KEY (`user_id`) REFERENCES `accounts_customuser` (`id`);
+
+--
+-- Restriccions per a la taula `zonesreciclatge_contenedor`
+--
+ALTER TABLE `zonesreciclatge_contenedor`
+  ADD CONSTRAINT `zonesreciclatge_cont_empresa_id_9b44b9df_fk_accounts_` FOREIGN KEY (`empresa_id`) REFERENCES `accounts_empresa` (`id`),
+  ADD CONSTRAINT `zonesreciclatge_cont_zona_id_dfbc1734_fk_zonesreci` FOREIGN KEY (`zona_id`) REFERENCES `zonesreciclatge_zonesreciclatge` (`id`);
+
+--
+-- Restriccions per a la taula `zonesreciclatge_historialcontenedor`
+--
+ALTER TABLE `zonesreciclatge_historialcontenedor`
+  ADD CONSTRAINT `zonesreciclatge_hist_cambiado_por_id_fdb46e31_fk_accounts_` FOREIGN KEY (`cambiado_por_id`) REFERENCES `accounts_customuser` (`id`),
+  ADD CONSTRAINT `zonesreciclatge_hist_contenedor_id_f623d845_fk_zonesreci` FOREIGN KEY (`contenedor_id`) REFERENCES `zonesreciclatge_contenedor` (`id`);
+
+--
+-- Restriccions per a la taula `zonesreciclatge_notificacion`
+--
+ALTER TABLE `zonesreciclatge_notificacion`
+  ADD CONSTRAINT `zonesreciclatge_noti_relacion_contenedor__86c79995_fk_zonesreci` FOREIGN KEY (`relacion_contenedor_id`) REFERENCES `zonesreciclatge_contenedor` (`id`),
+  ADD CONSTRAINT `zonesreciclatge_noti_relacion_reporte_id_79c555df_fk_zonesreci` FOREIGN KEY (`relacion_reporte_id`) REFERENCES `zonesreciclatge_reportecontenedor` (`id`),
+  ADD CONSTRAINT `zonesreciclatge_noti_relacion_zona_id_23f8688b_fk_zonesreci` FOREIGN KEY (`relacion_zona_id`) REFERENCES `zonesreciclatge_zonesreciclatge` (`id`),
+  ADD CONSTRAINT `zonesreciclatge_noti_usuario_id_a29535a5_fk_accounts_` FOREIGN KEY (`usuario_id`) REFERENCES `accounts_customuser` (`id`);
+
+--
+-- Restriccions per a la taula `zonesreciclatge_reportecontenedor`
+--
+ALTER TABLE `zonesreciclatge_reportecontenedor`
+  ADD CONSTRAINT `zonesreciclatge_repo_contenedor_id_4be4dd1d_fk_zonesreci` FOREIGN KEY (`contenedor_id`) REFERENCES `zonesreciclatge_contenedor` (`id`),
+  ADD CONSTRAINT `zonesreciclatge_repo_empresa_id_466cff67_fk_accounts_` FOREIGN KEY (`empresa_id`) REFERENCES `accounts_empresa` (`id`),
+  ADD CONSTRAINT `zonesreciclatge_repo_gestor_asignado_id_86371f28_fk_accounts_` FOREIGN KEY (`gestor_asignado_id`) REFERENCES `accounts_customuser` (`id`),
+  ADD CONSTRAINT `zonesreciclatge_repo_resuelto_por_id_66600f25_fk_accounts_` FOREIGN KEY (`resuelto_por_id`) REFERENCES `accounts_customuser` (`id`),
+  ADD CONSTRAINT `zonesreciclatge_repo_usuario_id_683c3bce_fk_accounts_` FOREIGN KEY (`usuario_id`) REFERENCES `accounts_customuser` (`id`),
+  ADD CONSTRAINT `zonesreciclatge_repo_zona_id_71a6e1a3_fk_zonesreci` FOREIGN KEY (`zona_id`) REFERENCES `zonesreciclatge_zonesreciclatge` (`id`);
+
+--
+-- Restriccions per a la taula `zonesreciclatge_zonesreciclatge`
+--
+ALTER TABLE `zonesreciclatge_zonesreciclatge`
+  ADD CONSTRAINT `zonesreciclatge_zone_empresa_id_9fffbe34_fk_accounts_` FOREIGN KEY (`empresa_id`) REFERENCES `accounts_empresa` (`id`);
+COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
