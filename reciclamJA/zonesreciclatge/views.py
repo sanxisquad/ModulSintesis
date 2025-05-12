@@ -1,68 +1,365 @@
 from rest_framework.exceptions import PermissionDenied
-from rest_framework import viewsets
-from .models import Contenedor, ZonesReciclatge
-from .serializer import ContenedorSerializer, ZonesReciclatgeSerializer
-from .permissions import IsEmpresaMember  
-from accounts.models import CustomUser  # Importamos el modelo de usuario si es necesario
+from rest_framework import viewsets, permissions, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from .models import Contenedor, ZonesReciclatge,ReporteContenedor, Notificacion
+from .serializer import ContenedorSerializer, ZonesReciclatgeSerializer, ReporteContenedorSerializer, NotificacionSerializer
+from accounts.permissions import IsSuperAdmin, IsAdminEmpresa, IsGestor, CombinedPermission
+from accounts.models import CustomUser
+from django.db.models import Q
+from django.utils import timezone
+from django.db import models
 
 class ContenedorViewSet(viewsets.ModelViewSet):
     serializer_class = ContenedorSerializer
-    permission_classes = [IsEmpresaMember]
+
+    def get_permissions(self):
+        return [CombinedPermission(IsSuperAdmin, IsAdminEmpresa, IsGestor)]
 
     def get_queryset(self):
-        """Los gestores ven solo los contenedores de su empresa. Los usuarios normales ven todos."""
         user = self.request.user
-        if user.is_staff or not user.is_gestor():  # Admins y usuarios normales ven todo
+
+        if not user.is_authenticated:
+            raise PermissionDenied("Debes estar autenticado para ver los contenedores.")
+
+        if user.is_superadmin():
             return Contenedor.objects.all()
-        return Contenedor.objects.filter(empresa=user.empresa)  # Gestores solo ven los suyos
+
+        if user.is_user():
+            return Contenedor.objects.none()
+
+        if getattr(user, 'empresa', None):
+            return Contenedor.objects.filter(empresa=user.empresa)
+
+        return Contenedor.objects.none()
+
 
     def perform_create(self, serializer):
-        """Solo gestores pueden crear, y solo dentro de su empresa."""
-        if self.request.user.is_gestor():  
-            serializer.save(empresa=self.request.user.empresa)
+        user = self.request.user
+        if user.is_superadmin() or user.is_admin() or user.is_gestor():
+            if not user.is_superadmin():
+                serializer.save(empresa=user.empresa)
+            else:
+                serializer.save()
         else:
-            raise PermissionDenied("No tienes permisos para crear contenedores.")
+            raise PermissionDenied("No tienes permisos para crear este recurso.")
 
     def perform_update(self, serializer):
-        """Solo gestores pueden modificar sus contenedores. Usuarios normales no pueden editar."""
+        user = self.request.user
         instance = self.get_object()
-        if not self.request.user.is_gestor() or instance.empresa != self.request.user.empresa:
-            raise PermissionDenied("No tienes permisos para modificar este contenedor.")
-        serializer.save()
+        
+        if user.is_superadmin():
+            serializer.save()
+        elif user.is_admin() or user.is_gestor():
+            if instance.empresa == user.empresa:
+                serializer.save()
+            else:
+                raise PermissionDenied("No tienes permisos para modificar este recurso.")
+        else:
+            raise PermissionDenied("No tienes permisos para modificar este recurso.")
 
     def perform_destroy(self, instance):
-        """Solo gestores pueden eliminar sus contenedores. Usuarios normales no pueden borrar."""
-        if not self.request.user.is_gestor() or instance.empresa != self.request.user.empresa:
-            raise PermissionDenied("No tienes permisos para eliminar este contenedor.")
-        instance.delete()
+        user = self.request.user
+        if user.is_superadmin():
+            instance.delete()
+        elif user.is_admin() or user.is_gestor():
+            if instance.empresa == user.empresa:
+                instance.delete()
+            else:
+                raise PermissionDenied("No tienes permisos para eliminar este recurso.")
+        else:
+            raise PermissionDenied("No tienes permisos para eliminar este recurso.")
+
 
 class ZonesReciclatgeViewSet(viewsets.ModelViewSet):
     serializer_class = ZonesReciclatgeSerializer
-    permission_classes = [IsEmpresaMember]
+
+    def get_permissions(self):
+        return [CombinedPermission(IsSuperAdmin, IsAdminEmpresa, IsGestor)]
 
     def get_queryset(self):
-        """Los gestores ven solo las zonas de su empresa. Los usuarios normales ven todas."""
         user = self.request.user
-        if user.is_staff or not user.is_gestor():  # Admins y usuarios normales ven todo
+
+        if not user.is_authenticated:
+            raise PermissionDenied("Debes estar autenticado para ver las zonas.")
+
+        if user.is_superadmin():
             return ZonesReciclatge.objects.all()
-        return ZonesReciclatge.objects.filter(empresa=user.empresa)  # Gestores solo ven las suyas
+
+        if user.is_user():
+            return ZonesReciclatge.objects.none()
+
+        if getattr(user, 'empresa', None):
+            return ZonesReciclatge.objects.filter(empresa=user.empresa)
+
+        return ZonesReciclatge.objects.none()
 
     def perform_create(self, serializer):
-        """Solo gestores pueden crear, y solo dentro de su empresa."""
-        if self.request.user.is_gestor():  
-            serializer.save(empresa=self.request.user.empresa)
+        user = self.request.user
+        if user.is_superadmin() or user.is_admin() or user.is_gestor():
+            if not user.is_superadmin():
+                serializer.save(empresa=user.empresa)
+            else:
+                serializer.save()
         else:
-            raise PermissionDenied("No tienes permisos para crear zonas de reciclaje.")
+            raise PermissionDenied("No tienes permisos para crear este recurso.")
 
     def perform_update(self, serializer):
-        """Solo gestores pueden modificar sus zonas. Usuarios normales no pueden editar."""
+        user = self.request.user
         instance = self.get_object()
-        if not self.request.user.is_gestor() or instance.empresa != self.request.user.empresa:
-            raise PermissionDenied("No tienes permisos para modificar esta zona.")
-        serializer.save()
+        
+        if user.is_superadmin():
+            serializer.save()
+        elif user.is_admin() or user.is_gestor():
+            if instance.empresa == user.empresa:
+                serializer.save()
+            else:
+                raise PermissionDenied("No tienes permisos para modificar este recurso.")
+        else:
+            raise PermissionDenied("No tienes permisos para modificar este recurso.")
 
     def perform_destroy(self, instance):
-        """Solo gestores pueden eliminar sus zonas. Usuarios normales no pueden borrar."""
-        if not self.request.user.is_gestor() or instance.empresa != self.request.user.empresa:
-            raise PermissionDenied("No tienes permisos para eliminar esta zona.")
-        instance.delete()
+        user = self.request.user
+        if user.is_superadmin():
+            instance.delete()
+        elif user.is_admin() or user.is_gestor():
+            if instance.empresa == user.empresa:
+                instance.delete()
+            else:
+                raise PermissionDenied("No tienes permisos para eliminar este recurso.")
+        else:
+            raise PermissionDenied("No tienes permisos para eliminar este recurso.")
+            
+    @action(detail=True, methods=['post'], url_path='assign-contenedors')
+    def assign_contenedors(self, request, pk=None):
+        zona = self.get_object()
+        contenedor_ids = request.data.get('contenedor_ids', [])
+        
+        # Verificar permisos
+        if not (request.user.is_superadmin() or 
+            (request.user.is_admin() and zona.empresa == request.user.empresa) or
+            (request.user.is_gestor() and zona.empresa == request.user.empresa)):
+            raise PermissionDenied("No tienes permisos para realizar esta acción")
+
+        current_assigned = Contenedor.objects.filter(zona=zona)
+        current_assigned.update(zona=None)
+        
+        contenedors = Contenedor.objects.filter(id__in=contenedor_ids)
+        
+        if not request.user.is_superadmin():
+            for c in contenedors:
+                if c.empresa != request.user.empresa:
+                    return Response(
+                        {'status': 'Error', 'message': f'El contenedor {c.id} no pertenece a tu empresa'}, 
+                        status=400
+                    )
+        
+        # Actualizar los contenedores
+        contenedores_asignados = []
+        for c in contenedors:
+            c.zona = zona
+            c.save()
+            contenedores_asignados.append(c.id)
+
+        return Response({
+            'status': 'Contenedores asignados correctamente', 
+            'contenedores': contenedores_asignados,
+            'total_asignados': len(contenedores_asignados)
+        })
+
+class PublicContenedorViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Contenedor.objects.all()
+    serializer_class = ContenedorSerializer
+    permission_classes = [permissions.AllowAny]
+
+
+class PublicZonesViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = ZonesReciclatge.objects.all()
+    serializer_class = ZonesReciclatgeSerializer
+    permission_classes = [permissions.AllowAny]
+class ReporteContenedorViewSet(viewsets.ModelViewSet):
+    serializer_class = ReporteContenedorSerializer
+    queryset = ReporteContenedor.objects.all()
+
+    def get_permissions(self):
+        if self.action in ['create']:
+            return [permissions.IsAuthenticated()]
+        return [CombinedPermission(IsSuperAdmin, IsAdminEmpresa, IsGestor)]
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        serializer.save(usuario=user)
+
+    def get_queryset(self):
+        user = self.request.user
+        
+        if not user.is_authenticated:
+            return ReporteContenedor.objects.none()
+            
+        if user.is_superadmin():
+            return ReporteContenedor.objects.all()
+            
+        if user.is_user():
+            return ReporteContenedor.objects.filter(usuario=user)
+            
+        if getattr(user, 'empresa', None):
+            return ReporteContenedor.objects.filter(
+                models.Q(contenedor__empresa=user.empresa) | 
+                models.Q(zona__empresa=user.empresa)
+            )
+
+                
+        return ReporteContenedor.objects.none()
+
+    @action(detail=True, methods=['post'])
+    def asignar(self, request, pk=None):
+        reporte = self.get_object()
+        gestor_id = request.data.get('gestor_id')
+        
+        if not gestor_id:
+            return Response({'error': 'Se requiere gestor_id'}, status=400)
+            
+        try:
+            gestor = CustomUser.objects.get(pk=gestor_id)
+            if not (gestor.is_gestor() or gestor.is_admin()):
+                return Response({'error': 'El usuario no es gestor o admin'}, status=400)
+                
+            reporte.gestor_asignado = gestor
+            reporte.estado = 'en_proceso'
+            reporte.save()
+            
+            # Crear notificación
+            Notificacion.objects.create(
+                usuario=gestor,
+                tipo='reporte',
+                titulo=f"Reporte asignado: {reporte.get_tipo_display()}",
+                mensaje=f"Se te ha asignado el reporte #{reporte.id}",
+                relacion_reporte=reporte
+            )
+            
+            return Response({'status': 'Reporte asignado correctamente'})
+            
+        except CustomUser.DoesNotExist:
+            return Response({'error': 'Gestor no encontrado'}, status=404)
+
+    @action(detail=True, methods=['post'])
+    def resolver(self, request, pk=None):
+        reporte = self.get_object()
+        comentario = request.data.get('comentario', '')
+        
+        reporte.estado = 'resuelto'
+        reporte.comentario_cierre = comentario
+        reporte.resuelto_por = request.user
+        reporte.save()
+        
+        if reporte.usuario:
+            Notificacion.objects.create(
+                usuario=reporte.usuario,
+                tipo='reporte',
+                titulo=f"Reporte resuelto: {reporte.get_tipo_display()}",
+                mensaje=f"Tu reporte #{reporte.id} ha sido marcado como resuelto",
+                relacion_reporte=reporte
+            )
+            
+        return Response({'status': 'Reporte resuelto correctamente'})
+
+    @action(detail=True, methods=['post'])
+    def rechazar(self, request, pk=None):
+        reporte = self.get_object()
+        comentario = request.data.get('comentario', '')
+        
+        reporte.estado = 'rechazado'
+        reporte.comentario_cierre = comentario
+        reporte.resuelto_por = request.user
+        reporte.save()
+        
+        if reporte.usuario:
+            Notificacion.objects.create(
+                usuario=reporte.usuario,
+                tipo='reporte',
+                titulo=f"Reporte rebutjat: {reporte.get_tipo_display()}",
+                mensaje=f"El teu tiquet #{reporte.id} ha estat rebutjat.",
+                relacion_reporte=reporte
+            )
+            
+        return Response({'status': 'Reporte rechazado correctamente'})
+
+    @action(detail=True, methods=['post'])
+    def procesar(self, request, pk=None):
+        reporte = self.get_object()
+        
+        
+        reporte.estado = 'en_proceso'
+        reporte.save()
+        
+        return Response({'status': 'Reporte ahora en proceso'})
+
+    @action(detail=True, methods=['post'])
+    def reabrir(self, request, pk=None):
+        reporte = self.get_object()
+        reporte.estado = 'abierto'
+        reporte.save()
+        
+        return Response({'status': 'Reporte reabierto correctamente'})
+
+    def perform_update(self, serializer):
+        instance = self.get_object()
+        old_estado = instance.estado
+        usuario = self.request.user
+        
+        # Guardamos la instancia actualizada
+        updated_instance = serializer.save()
+        new_estado = updated_instance.estado
+        
+        # Si el estado cambió de abierto/en_proceso a resuelto
+        if old_estado in ['abierto', 'en_proceso'] and new_estado == 'resuelto':
+            # Añadir puntos al usuario que creó el reporte (si existe)
+            if updated_instance.usuario:
+                reporter_user = updated_instance.usuario
+                reporter_user.score += 100  # Añadir 100 puntos
+                reporter_user.save()
+                
+                # Crear notificación para el usuario que reportó
+                Notificacion.objects.create(
+                    usuario=reporter_user,
+                    tipo='reporte',
+                    titulo=f"Reporte resolt: {updated_instance.get_tipo_display()}",
+                    mensaje=f"El teu tiquet #{updated_instance.id} ha estat resolt. Has guanyat 100 punts!",
+                    relacion_reporte=updated_instance
+                )
+        
+        # Si el estado cambió a rechazado
+        elif old_estado in ['abierto', 'en_proceso'] and new_estado == 'rechazado':
+            # Notificar al usuario que su reporte fue rechazado
+            if updated_instance.usuario:
+                Notificacion.objects.create(
+                    usuario=updated_instance.usuario,
+                    tipo='reporte',
+                    titulo=f"Reporte rebutjat: {updated_instance.get_tipo_display()}",
+                    mensaje=f"El teu tiquet #{updated_instance.id} ha estat rebutjat.",
+                    relacion_reporte=updated_instance
+                )
+        
+        return updated_instance
+
+class NotificacionViewSet(viewsets.ModelViewSet):
+    serializer_class = NotificacionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        # Solo devuelve notificaciones del usuario actual
+        return Notificacion.objects.filter(usuario=self.request.user).order_by('-fecha')
+    
+    @action(detail=False, methods=['post'])
+    def marcar_como_leidas(self, request):
+        # Marca todas las notificaciones del usuario como leídas
+        Notificacion.objects.filter(usuario=request.user, leida=False).update(leida=True)
+        return Response({"message": "Notificaciones marcadas como leídas"}, status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=['post'])
+    def marcar_leida(self, request, pk=None):
+        # Marca una notificación específica como leída
+        notificacion = self.get_object()
+        notificacion.leida = True
+        notificacion.save()
+        return Response({"message": "Notificación marcada como leída"}, status=status.HTTP_200_OK)

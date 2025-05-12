@@ -1,87 +1,62 @@
-import { useState, useEffect } from 'react';
-import { getAllContenedors, getAllZones } from '../../api/zr.api.js';
 import { ContenedorCard } from './ContenedorCard.jsx';
-import { Link } from 'react-router-dom';
+import { Search } from 'lucide-react';
 
-export function ContenedorList() {
-    const [contenedors, setContenedors] = useState([]);
-    const [ciudades, setCiudades] = useState([]);
-    const [ciudadSeleccionada, setCiudadSeleccionada] = useState('');
-    const [zones, setZones] = useState([]); // 📌 Añadir estado para zonas
-    const [zonaSeleccionada, setZonaSeleccionada] = useState(''); // 📌 Añadir estado para zona seleccionada
+export function ContenedorList({ filters, contenedores, zonas }) {
+    // Only show loading spinner when contenedores is null/undefined (still loading)
+    // Not when it's an empty array (means data loaded but no results)
+    if (contenedores === null || contenedores === undefined) {
+        return (
+            <div className="flex items-center justify-center h-60">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+            </div>
+        );
+    }
 
-    useEffect(() => {
-        async function loadContenedors() {
-            // Obtener contenedores y zonas
-            const resContenedores = await getAllContenedors();
-            const resZones = await getAllZones();
-            
-            setContenedors(resContenedores.data);
-            setZones(resZones.data);
-
-            // 📌 Extraer ciudades únicas
-            const ciudadesUnicas = [...new Set(resContenedores.data.map(contenedor => contenedor.ciutat))];
-            setCiudades(ciudadesUnicas);
+    // Use the filtered contenedores that are already filtered in the parent component
+    const contenedorsFiltrados = contenedores.filter(contenedor => {
+        if (!contenedor) return false;
+        
+        // Filtro por ciudad
+        if (filters?.ciutat && contenedor.ciutat !== filters.ciutat) return false;
+        
+        // Filtro por zona
+        if (filters?.zona && contenedor.zona !== Number(filters.zona)) return false;
+        
+        // Filtro por estado
+        if (filters?.estat && contenedor.estat !== filters.estat) return false;
+        
+        // Filtro por tipo
+        if (filters?.tipus && contenedor.tipus !== filters.tipus) return false;
+        
+        // Filtro por código (búsqueda parcial)
+        if (filters?.codi && !contenedor.cod?.toLowerCase().includes(filters.codi.toLowerCase())) {
+            return false;
         }
-        loadContenedors();
-    }, []);
-
-    // 📌 Crear un mapa de zonas por ID
-    const zonesMap = zones.reduce((acc, zone) => {
-        acc[zone.id] = zone.nom; // mapea la zona por su id
-        return acc;
-    }, {});
-
-    // 📌 Filtrar contenedores por ciudad y zona
-    const contenedorsFiltrados = contenedors.filter(contenedor => 
-        (ciudadSeleccionada ? contenedor.ciutat === ciudadSeleccionada : true) &&
-        (zonaSeleccionada ? zonesMap[contenedor.zona] === zonaSeleccionada : true)
-    );
+        
+        return true;
+    });
 
     return (
-        <div className="container mx-auto">
-            <h1 className="text-3xl font-bold text-center m-10">Contenidors</h1>
-                    
-            <div className="flex ml-10 mb-5 space-x-4">
-                {/* 📌 Filtro por ciudad */}
-                <select
-                    className="border p-2 rounded"
-                    value={ciudadSeleccionada}
-                    onChange={(e) => setCiudadSeleccionada(e.target.value)}
-                >
-                    <option className="text-black" value="">Totes les ciutats</option> 
-                    {ciudades.map((ciudad, index) => (
-                        <option key={index} className="text-black" value={ciudad}>{ciudad}</option>
-                    ))}
-                </select>
-
-                {/* 📌 Filtro por zona */}
-                <select
-                    className="border p-2 rounded"
-                    value={zonaSeleccionada}
-                    onChange={(e) => setZonaSeleccionada(e.target.value)}
-                >
-                    <option className="text-black" value="">Totes les zones</option> 
-                    {zones.map((zona) => (
-                        <option key={zona.id} className="text-black" value={zona.nom}>{zona.nom}</option> 
-                    ))}
-                </select>
-
-                {/* 📌 Botón para agregar contenedor */}
-                <Link
-                    to="/contenedors-create"
-                    className="ml-auto mr-10 bg-green-500 text-white p-2 rounded hover:bg-green-600 cursor-pointer"
-                >
-                    Afegir Contenidor
-                </Link>
+        <div>
+            {/* Contador de resultados */}
+            <div className="mb-4 text-sm text-gray-600">
+                Mostrant {contenedorsFiltrados.length} de {contenedores.length} contenedors
             </div>
 
-            {/* 📌 Mostrar lista de contenedores */}
-            <div className="grid grid-cols-3 gap-3 m-10">
-                {contenedorsFiltrados.map((contenedor) => (
-                    <ContenedorCard key={contenedor.id} contenedor={contenedor} />
-                ))}
-            </div>
+            {/* Lista de contenedores */}
+            {contenedorsFiltrados.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {contenedorsFiltrados.map((contenedor) => (
+                        <ContenedorCard key={contenedor.id} contenedor={contenedor} />
+                    ))}
+                </div>
+            ) : (
+                <div className="flex flex-col items-center justify-center py-12 bg-gray-50 rounded-lg border border-gray-200">
+                    <Search className="h-12 w-12 text-gray-300 mb-4" />
+                    <p className="text-lg font-medium text-gray-700">No s'han trobat contenidors</p>
+                    <p className="text-sm text-gray-500 mt-2">Prova de canviar els filtres de cerca</p>
+                </div>
+            )}
         </div>
     );
 }

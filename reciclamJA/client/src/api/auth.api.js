@@ -74,3 +74,13 @@ export const logoutUser = async (refreshToken) => {
         throw error;
     }
 };
+
+export async function checkEmailExists(email) {
+    try {
+        const response = await axios.post('/api/check-email', { email });
+        return response.data.exists;  // Retorna true si el correo existe, false si no
+    } catch (error) {
+        console.error("Error al verificar el correo:", error);
+        return false;
+    }
+}
