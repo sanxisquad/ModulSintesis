@@ -6,3 +6,4 @@ accounts/__pycache__/migrations/__pycache__/
 zonesreciclatge/__pycache__/migrations/__pycache__/
 *.pyc
 *.pyo
+.env
