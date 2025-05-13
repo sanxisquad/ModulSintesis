@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { apiConfig } from './apiClient';
+import apiConfig from './apiClient';
 
 const zrApi = axios.create({
     baseURL: apiConfig.getBaseUrls().zr,
@@ -20,16 +20,7 @@ zrApi.interceptors.request.use(
 // 📌 Métodos para interactuar con la API
 
 // Métodos para contenedores (requieren autenticación)
-export const getAllContenedors = async () => {
-    try {
-        const response = await zrApi.get('/contenidors/');
-        // Ensure we return an array even if the API doesn't return one
-        return Array.isArray(response.data) ? response.data : [];
-    } catch (error) {
-        console.error("Error al obtener contenedores:", error.message);
-        return []; // Return empty array on error
-    }
-};
+export const getAllContenedors = () => zrApi.get('/contenidors/');
 export const getContenedor = (id) => zrApi.get(`/contenidors/${id}/`);
 export const createContenedor = async (contenedor) => {
     try {
@@ -44,16 +35,7 @@ export const updateContenedor = (id, contenedor) => zrApi.put(`/contenidors/${id
 export const deleteContenedor = (id) => zrApi.delete(`/contenidors/${id}/`);
 
 // Métodos para zonas (requieren autenticación)
-export const getAllZones = async () => {
-    try {
-        const response = await zrApi.get('/zones/');
-        // Ensure we return an array even if the API doesn't return one
-        return Array.isArray(response.data) ? response.data : [];
-    } catch (error) {
-        console.error("Error al obtener zonas:", error.message);
-        return []; // Return empty array on error
-    }
-};
+export const getAllZones = () => zrApi.get('/zones/');
 export const getZona = (id) => zrApi.get(`/zones/${id}/`);
 export const createZona = async (zona) => {
     try {
@@ -78,29 +60,11 @@ const publicZrApi = axios.create({
 });
 
 // Métodos públicos para contenedores
-export const getAllPublicContenedors = async () => {
-    try {
-        const response = await publicZrApi.get('/public/contenidors/');
-        // Ensure we return an array even if the API doesn't return one
-        return Array.isArray(response.data) ? response.data : [];
-    } catch (error) {
-        console.error("Error al obtener contenedores públicos:", error.message);
-        return []; // Return empty array on error
-    }
-};
+export const getAllPublicContenedors = () => publicZrApi.get('/public/contenidors/');
 export const getPublicContenedor = (id) => publicZrApi.get(`/public/contenidors/${id}/`);
 
 // Métodos públicos para zonas
-export const getAllPublicZones = async () => {
-    try {
-        const response = await publicZrApi.get('/public/zones/');
-        // Ensure we return an array even if the API doesn't return one
-        return Array.isArray(response.data) ? response.data : [];
-    } catch (error) {
-        console.error("Error al obtener zonas públicas:", error.message);
-        return []; // Return empty array on error
-    }
-};
+export const getAllPublicZones = () => publicZrApi.get('/public/zones/');
 export const getPublicZona = (id) => publicZrApi.get(`/public/zones/${id}/`);
 
 // Métodos para reportes
@@ -116,31 +80,13 @@ export const createReporte = async (reporteData, customConfig = {}) => {
     }
 };
 
-export const getReportes = async () => {
-    try {
-        const response = await zrApi.get('/reportes/');
-        // Ensure we return an array even if the API doesn't return one
-        return Array.isArray(response.data) ? response.data : [];
-    } catch (error) {
-        console.error("Error al obtener reportes:", error.message);
-        return []; // Return empty array on error
-    }
-};
+export const getReportes = () => zrApi.get('/reportes/');
 export const getReporte = (id) => zrApi.get(`/reportes/${id}/`);
 export const updateReporte = (id, reporteData) => zrApi.put(`/reportes/${id}/`, reporteData);
 export const deleteReporte = (id) => zrApi.delete(`/reportes/${id}/`);
 
 // Métodos para notificaciones
-export const getNotificaciones = async () => {
-    try {
-        const response = await zrApi.get('/notificaciones/');
-        // Ensure we return an array even if the API doesn't return one
-        return Array.isArray(response.data) ? response.data : [];
-    } catch (error) {
-        console.error("Error al obtener notificaciones:", error.message);
-        return []; // Return empty array on error
-    }
-};
+export const getNotificaciones = () => zrApi.get('/notificaciones/');
 export const marcarNotificacionLeida = (id) => zrApi.post(`/notificaciones/${id}/marcar_leida/`);
 export const marcarTodasLeidas = () => zrApi.post('/notificaciones/marcar_como_leidas/');
 

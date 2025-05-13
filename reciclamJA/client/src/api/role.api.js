@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { apiConfig } from './apiClient';
+import apiConfig from './apiClient';
 
 const roleApi = axios.create({
     baseURL: apiConfig.getBaseUrls().auth,
@@ -21,13 +21,6 @@ roleApi.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
-export const getAllRoles = async () => {
-    try {
-        const response = await roleApi.get('/roles/');
-        // Ensure we return an array even if the API doesn't return one
-        return Array.isArray(response.data) ? response.data : [];
-    } catch (error) {
-        console.error("Error al obtener roles:", error.message);
-        return []; // Return empty array on error
-    }
+export const getAllRoles = () => {
+    return roleApi.get('/roles/');
 };

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { getNotificaciones, marcarTodasLeidas, marcarNotificacionLeida } from '../api/zr.api';
 import { useAuth } from '../../hooks/useAuth';
+import apiConfig from '../api/apiClient';
 
 const NotificationContext = createContext();
 
@@ -19,10 +20,13 @@ export const NotificationProvider = ({ children }) => {
   useEffect(() => {
     if (!isAuthenticated || !user) return;
 
-    // Conectar al servidor Socket.IO
-    const newSocket = io(import.meta.env.VITE_API_URL || 'http://localhost:3000', {
+    // Conectar al servidor Socket.IO usando la misma base URL que las API
+    const socketEnabled = import.meta.env.VITE_SOCKET_ENABLED !== 'false';
+    if (!socketEnabled) return;
+    
+    const newSocket = io(apiConfig.getBaseUrl(), {
       auth: {
-        token: localStorage.getItem('token')
+        token: localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
       }
     });
     

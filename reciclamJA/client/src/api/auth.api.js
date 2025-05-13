@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { apiConfig } from './apiClient';
+import apiConfig from './apiClient';
 
 const authApi = axios.create({
     baseURL: apiConfig.getBaseUrls().authService,

@@ -1,30 +1,42 @@
-// Central API configuration with fallback values
+/**
+ * Central API configuration with environment-based URLs
+ */
 
-// Get environment-specific API URL from environment variables with fallback
-const getBaseUrls = () => {
-  // Use environment variable or fallback to localhost
-  const BASE_URL = process.env.REACT_APP_API_URL || 
-    (process.env.NODE_ENV === 'production' 
-      ? 'https://reciclaja.duckdns.org' 
-      : 'http://localhost:8000');
+/**
+ * Gets the base URL for API requests based on environment
+ */
+const getBaseUrl = () => {
+  // Use environment variable if available
+  const envApiUrl = import.meta.env.VITE_API_URL;
   
-  console.log('Using API URL:', BASE_URL, 'Environment:', process.env.NODE_ENV);
+  // Fallback to default URLs if not set
+  if (envApiUrl) {
+    return envApiUrl;
+  }
+  
+  // Default fallbacks based on hostname
+  const isLocalhost = window.location.hostname === 'localhost' || 
+                     window.location.hostname === '127.0.0.1';
+  
+  return isLocalhost ? 'http://localhost:8000' : 'https://reciclaja.duckdns.org';
+};
+
+/**
+ * Get base URLs for different services
+ */
+const getBaseUrls = () => {
+  const baseUrl = getBaseUrl();
   
   return {
-    auth: `${BASE_URL}/auth/api/v1/`,
-    authService: `${BASE_URL}/auth/api/v1/auth/`,
-    zr: `${BASE_URL}/zr/`,
+    auth: `${baseUrl}/auth/api/v1/`,
+    authService: `${baseUrl}/auth/api/v1/auth/`,
+    zr: `${baseUrl}/zr/`,
   };
 };
 
-// For debugging purposes (optional)
-const isProduction = () => {
-  return process.env.NODE_ENV === 'production';
-};
-
-export const apiConfig = {
+const apiConfig = {
+  getBaseUrl,
   getBaseUrls,
-  isProduction
 };
 
 export default apiConfig;
