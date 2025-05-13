@@ -1,8 +1,15 @@
 import axios from 'axios';
 import apiConfig from './apiClient';
 
+// Create authApi with some additional options
 const authApi = axios.create({
     baseURL: apiConfig.getBaseUrls().authService,
+    // Add some extra options for production
+    timeout: 10000, // 10 seconds timeout
+    headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+    }
 });
 
 // Interceptor para agregar el token JWT a las solicitudes
@@ -29,7 +36,17 @@ export const registerUser = (user) => {
 
 export const loginUser = async (credentials) => {
     try {
-        const response = await authApi.post('/login/', credentials);
+        // Log the full URL being used
+        const loginUrl = `${apiConfig.getBaseUrls().authService}login/`;
+        console.log("🔍 Login URL:", loginUrl);
+        
+        // Make the request directly to ensure correct URL
+        const response = await axios.post(loginUrl, credentials, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        });
 
         console.log("🔍 Respuesta del backend:", response.data);  // Verifica que el backend envía el token
 
@@ -49,7 +66,14 @@ export const loginUser = async (credentials) => {
 
         return response;
     } catch (error) {
-        console.error("❌ Error en login:", error.response?.data);
+        console.error("❌ Error en login:", error.response?.data || error.message);
+        console.error("Login error: at", error);
+        
+        // Check specific status codes
+        if (error.response?.status === 405) {
+            console.error("405 Method Not Allowed - This suggests the URL might be incorrect or the server isn't configured to accept POST requests at this endpoint.");
+        }
+        
         throw error;
     }
 };
