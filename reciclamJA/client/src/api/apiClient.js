@@ -1,17 +1,12 @@
-// Central API configuration for environment detection
+// Central API configuration using environment variables
 
-// Environment detection
-const isLocalhost = () => {
-  return window.location.hostname === 'localhost' || 
-         window.location.hostname === '127.0.0.1';
-};
-
-// Base URLs by service
+// Get environment-specific API URL from environment variables
 const getBaseUrls = () => {
-  const BASE_URL = isLocalhost() 
-    ? 'http://localhost:8000' 
-    : 'https://api.reciclamja.com'; // Replace with your production URL
-    
+  // This will automatically use the correct value based on the environment
+  const BASE_URL = process.env.REACT_APP_API_URL;
+  
+  console.log('Using API URL:', BASE_URL);
+  
   return {
     auth: `${BASE_URL}/auth/api/v1/`,
     authService: `${BASE_URL}/auth/api/v1/auth/`,
@@ -19,9 +14,14 @@ const getBaseUrls = () => {
   };
 };
 
+// For debugging purposes (optional)
+const isProduction = () => {
+  return process.env.NODE_ENV === 'production';
+};
+
 export const apiConfig = {
   getBaseUrls,
-  isLocalhost
+  isProduction
 };
 
 export default apiConfig;
