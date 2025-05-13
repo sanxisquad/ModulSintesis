@@ -1,11 +1,14 @@
-// Central API configuration using environment variables
+// Central API configuration with fallback values
 
-// Get environment-specific API URL from environment variables
+// Get environment-specific API URL from environment variables with fallback
 const getBaseUrls = () => {
-  // This will automatically use the correct value based on the environment
-  const BASE_URL = process.env.REACT_APP_API_URL;
+  // Use environment variable or fallback to localhost
+  const BASE_URL = process.env.REACT_APP_API_URL || 
+    (process.env.NODE_ENV === 'production' 
+      ? 'https://reciclaja.duckdns.org' 
+      : 'http://localhost:8000');
   
-  console.log('Using API URL:', BASE_URL);
+  console.log('Using API URL:', BASE_URL, 'Environment:', process.env.NODE_ENV);
   
   return {
     auth: `${BASE_URL}/auth/api/v1/`,
