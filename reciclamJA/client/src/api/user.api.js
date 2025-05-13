@@ -20,7 +20,16 @@ userApi.interceptors.request.use(
 );
 
 // 📌 Métodos para interactuar con la API
-export const getAllUsers = () => userApi.get('/users/');
+export const getAllUsers = async () => {
+    try {
+        const response = await userApi.get('/users/');
+        // Ensure we return an array even if the API doesn't return one
+        return Array.isArray(response.data) ? response.data : [];
+    } catch (error) {
+        console.error("Error al obtener usuarios:", error.message);
+        return []; // Return empty array on error
+    }
+};
 export const getUser = (id) => userApi.get(`/users/${id}/`);
 export const createUser = (user) => userApi.post('/users/', user);
 export const updateUser = (id, user) => userApi.put(`/users/${id}/`, user);
