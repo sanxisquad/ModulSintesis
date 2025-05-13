@@ -1,7 +1,8 @@
 import axios from 'axios';
+import { apiConfig } from './apiClient';
 
 const authApi = axios.create({
-    baseURL: 'http://localhost:8000/auth/api/v1/auth/',
+    baseURL: apiConfig.getBaseUrls().authService,
 });
 
 // Interceptor para agregar el token JWT a las solicitudes

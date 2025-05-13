@@ -1,7 +1,8 @@
 import axios from 'axios';
+import { apiConfig } from './apiClient';
 
 const userApi = axios.create({
-    baseURL: 'http://localhost:8000/auth/api/v1/',
+    baseURL: apiConfig.getBaseUrls().auth,
 });
 
 // 🚀 Interceptor para añadir el token automáticamente (igual que en zrApi)

@@ -1,7 +1,8 @@
 import axios from 'axios';
+import { apiConfig } from './apiClient';
 
 const zrApi = axios.create({
-    baseURL: 'http://localhost:8000/zr/',
+    baseURL: apiConfig.getBaseUrls().zr,
 });
 zrApi.interceptors.request.use(
     (config) => {
@@ -55,7 +56,7 @@ export const assignContenedoresToZona = (zonaId, contenedorIds) => {
 
 // 📌 Métodos PÚBLICOS (no requieren autenticación)
 const publicZrApi = axios.create({
-    baseURL: 'http://localhost:8000/zr/',
+    baseURL: apiConfig.getBaseUrls().zr,
 });
 
 // Métodos públicos para contenedores

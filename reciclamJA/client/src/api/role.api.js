@@ -1,7 +1,8 @@
 import axios from 'axios';
+import { apiConfig } from './apiClient';
 
 const roleApi = axios.create({
-    baseURL: 'http://localhost:8000/auth/api/v1/',
+    baseURL: apiConfig.getBaseUrls().auth,
 });
 roleApi.interceptors.request.use(
     (config) => {
