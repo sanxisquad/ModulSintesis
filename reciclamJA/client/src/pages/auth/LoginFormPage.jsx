@@ -34,16 +34,16 @@ export function LoginFormPage() {
             // Redirecció basada en rols
             switch(true) {
                 case loggedInUser?.is_superadmin:
-                    navigate('/admin/dashboard');
+                    navigate('/gestor-dashboard');
                     break;
                 case loggedInUser?.is_admin:
-                    navigate('/admin/overview');
+                    navigate('/gestor-dashboard');
                     break;
                 case loggedInUser?.is_gestor:
-                    navigate('/gestor/dashboard');
+                    navigate('/gestor-dashboard');
                     break;
                 default:
-                    navigate('/app');
+                    navigate('/');
             }
 
         } catch (error) {

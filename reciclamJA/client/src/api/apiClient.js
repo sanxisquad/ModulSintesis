@@ -22,25 +22,21 @@ const getBaseUrl = () => {
 };
 
 /**
- * Get base URLs for different services
  */
 const getBaseUrls = () => {
   const baseUrl = getBaseUrl();
   const isProd = window.location.hostname !== 'localhost' && 
                 window.location.hostname !== '127.0.0.1';
   
-  // In production, check if we should use different URL structure
   if (isProd) {
     console.log('Using production API URLs');
     return {
-      // In production, the auth paths might be different based on nginx configuration
       auth: `${baseUrl}/auth/api/v1/`,
       authService: `${baseUrl}/auth/api/v1/auth/`, // Try without the trailing slash
       zr: `${baseUrl}/zr/`,
     };
   }
   
-  // Development URLs
   return {
     auth: `${baseUrl}/auth/api/v1/`,
     authService: `${baseUrl}/auth/api/v1/auth/`,
@@ -48,7 +44,6 @@ const getBaseUrls = () => {
   };
 };
 
-// Debug utility to check URL structure
 const logUrlStructure = () => {
   const urls = getBaseUrls();
   console.log('🔍 API URL Structure:', {
@@ -61,7 +56,6 @@ const logUrlStructure = () => {
   });
 };
 
-// Call immediately for debugging
 logUrlStructure();
 
 const apiConfig = {
