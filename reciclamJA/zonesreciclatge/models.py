@@ -219,3 +219,16 @@ def verificar_estado_contenedor(sender, instance, **kwargs):
             if instance.estat == 'ple':
                 instance.alerta = True
                 instance.motivo_alerta = "Contenedor lleno"
+
+class ComentarioReporte(models.Model):
+    reporte = models.ForeignKey(ReporteContenedor, related_name="comentarios", on_delete=models.CASCADE)
+    usuario = models.ForeignKey(CustomUser, related_name="comentarios", on_delete=models.SET_NULL, null=True)
+    texto = models.TextField()
+    fecha = models.DateTimeField(auto_now_add=True)
+    imagen = models.ImageField(upload_to='comentarios_reportes/', null=True, blank=True)
+    
+    class Meta:
+        ordering = ['fecha']  # Order chronologically
+    
+    def __str__(self):
+        return f"Comentario en tiquet #{self.reporte.id} por {self.usuario.username if self.usuario else 'Usuario eliminado'}"

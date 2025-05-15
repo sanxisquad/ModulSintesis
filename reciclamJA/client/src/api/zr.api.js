@@ -108,3 +108,23 @@ export const processReporte = (id) => {
 export const reopenTicket = (id) => {
     return zrApi.post(`/reportes/${id}/reabrir/`);
 };
+
+// Add these functions for ticket comments
+export const getComentarios = (reporteId) => zrApi.get(`/reportes/${reporteId}/comentarios/`);
+
+export const addComentario = (reporteId, data) => {
+    // Check if data is FormData or plain object
+    const headers = data instanceof FormData 
+        ? {} // Let axios set the correct content-type for FormData
+        : { 'Content-Type': 'application/json' };
+        
+    // If it's a string, convert to object
+    const payload = typeof data === 'string' 
+        ? { texto: data } 
+        : data;
+        
+    return zrApi.post(`/reportes/${reporteId}/comentarios/`, payload, { headers });
+};
+
+export const deleteComentario = (reporteId, comentarioId) => 
+    zrApi.delete(`/reportes/${reporteId}/comentarios/${comentarioId}/`);

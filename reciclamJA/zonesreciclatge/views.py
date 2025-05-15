@@ -1,9 +1,9 @@
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, NotFound as Http404
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from .models import Contenedor, ZonesReciclatge,ReporteContenedor, Notificacion
-from .serializer import ContenedorSerializer, ZonesReciclatgeSerializer, ReporteContenedorSerializer, NotificacionSerializer
+from .models import Contenedor, ZonesReciclatge,ReporteContenedor, Notificacion, ComentarioReporte
+from .serializer import ContenedorSerializer, ZonesReciclatgeSerializer, ReporteContenedorSerializer, NotificacionSerializer, ComentarioReporteSerializer
 from accounts.permissions import IsSuperAdmin, IsAdminEmpresa, IsGestor, CombinedPermission
 from accounts.models import CustomUser
 from django.db.models import Q
@@ -364,3 +364,31 @@ class NotificacionViewSet(viewsets.ModelViewSet):
         notificacion.leida = True
         notificacion.save()
         return Response({"message": "Notificación marcada como leída"}, status=status.HTTP_200_OK)
+
+class ComentarioReporteViewSet(viewsets.ModelViewSet):
+    serializer_class = ComentarioReporteSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        reporte_id = self.kwargs.get('reporte_pk')
+        return ComentarioReporte.objects.filter(reporte_id=reporte_id)
+    
+    def perform_create(self, serializer):
+        reporte_id = self.kwargs.get('reporte_pk')
+        try:
+            reporte = ReporteContenedor.objects.get(pk=reporte_id)
+            
+            # Check if user has permission to comment on this report
+            user = self.request.user
+            if user.is_user() and reporte.usuario != user:
+                raise PermissionDenied("No tienes permiso para comentar en este reporte")
+                
+            serializer.save(usuario=user, reporte=reporte)
+            
+            # If a manager/admin comments on an open ticket, change status to "en_proceso"
+            if reporte.estado == 'abierto' and (user.is_admin() or user.is_gestor() or user.is_superadmin()):
+                reporte.estado = 'en_proceso'
+                reporte.save()
+                
+        except ReporteContenedor.DoesNotExist:
+            raise Http404("Reporte no encontrado")

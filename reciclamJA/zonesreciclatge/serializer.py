@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import ZonesReciclatge, Contenedor, ReporteContenedor, Notificacion
+from .models import ZonesReciclatge, Contenedor, ReporteContenedor, Notificacion, ComentarioReporte
 from accounts.models import Empresa  
 from django.contrib.auth import get_user_model
 
@@ -122,3 +122,22 @@ class NotificacionSerializer(serializers.ModelSerializer):
         fields = ['id', 'tipo', 'titulo', 'mensaje', 'fecha', 'leida', 
                   'relacion_contenedor', 'relacion_zona', 'relacion_reporte']
         read_only_fields = ['id', 'fecha']
+
+# Add the new serializer
+class ComentarioReporteSerializer(serializers.ModelSerializer):
+    usuario_nombre = serializers.SerializerMethodField()
+    usuario_data = UserBasicSerializer(source='usuario', read_only=True)
+    
+    class Meta:
+        model = ComentarioReporte
+        fields = ['id', 'usuario', 'usuario_nombre', 'usuario_data', 'texto', 'imagen', 'fecha']
+        read_only_fields = ['id', 'fecha', 'usuario', 'usuario_nombre', 'usuario_data']
+    
+    def get_usuario_nombre(self, obj):
+        if not obj.usuario:
+            return "Usuario eliminado"
+        
+        if obj.usuario.first_name and obj.usuario.last_name:
+            return f"{obj.usuario.first_name} {obj.usuario.last_name}"
+        
+        return obj.usuario.username
