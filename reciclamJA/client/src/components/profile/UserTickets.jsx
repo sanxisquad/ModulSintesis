@@ -459,12 +459,18 @@ export const UserTickets = () => {
                                             <div key={comment.id} className="p-3 bg-gray-50 rounded-lg">
                                                 <div className="flex justify-between items-start">
                                                     <div className="flex items-center">
-                                                        <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mr-2">
+                                                        <div className={`h-8 w-8 rounded-full ${user && comment.usuario === user.id ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'} flex items-center justify-center mr-2`}>
                                                             <FaUser className="h-4 w-4" />
                                                         </div>
                                                         <div>
                                                             <p className="font-medium text-gray-800">
-                                                                {comment.usuario_nombre || 'Usuari'}
+                                                                {user && comment.usuario === user.id ? (
+                                                                    <span className="flex items-center">
+                                                                        Tu <span className="ml-2 text-xs bg-green-100 text-green-800 px-1.5 py-0.5 rounded-full">Autor</span>
+                                                                    </span>
+                                                                ) : (
+                                                                    comment.usuario_nombre || 'Usuari'
+                                                                )}
                                                             </p>
                                                             <p className="text-xs text-gray-500">
                                                                 {formatDate(comment.fecha)}

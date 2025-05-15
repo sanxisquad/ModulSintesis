@@ -27,7 +27,12 @@ import {
   FaExternalLinkAlt,
   FaDesktop,
   FaMobileAlt,
-  FaFileDownload
+  FaFileDownload,
+  FaTicketAlt,
+  FaCheck,
+  FaTimes as FaTimesIcon,
+  FaSpinner,
+  FaComment
 } from "react-icons/fa";
 import { MdManageAccounts } from "react-icons/md";
 
@@ -354,50 +359,92 @@ export function Navigation() {
                 
                 {notificacionesOpen && (
                     <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg overflow-hidden z-50">
-                        <div className="flex justify-between items-center p-3 border-b">
-                            <h3 className="font-semibold">Notificacions</h3>
-                            {notificacionesNoLeidas > 0 && (
-                                <button 
-                                    onClick={marcarTodasNotificacionesLeidas}
-                                    className="text-sm text-blue-600 hover:text-blue-800"
-                                >
-                                    Marcar todas como leídas
-                                </button>
+                        <div className="py-2 px-3 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+                            <span className="text-sm font-medium text-gray-800">Notificacions</span>
+                            <button
+                                onClick={marcarTodasNotificacionesLeidas}
+                                className="text-xs text-blue-600 hover:text-blue-800"
+                            >
+                                Marcar tot com a llegit
+                            </button>
+                        </div>
+                        <div className="max-h-64 overflow-y-auto">
+                            {loadingNotificaciones ? (
+                                <div className="p-4 text-center">
+                                    <div className="inline-block animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-blue-500"></div>
+                                </div>
+                            ) : notificaciones.length > 0 ? (
+                                notificaciones.map(notif => (
+                                    <div
+                                        key={notif.id}
+                                        onClick={() => {
+                                            handleNotificacionClick(notif.id, getNotificationRoute(notif));
+                                            setNotificacionesOpen(false);
+                                        }}
+                                        className={`p-3 border-b hover:bg-gray-50 cursor-pointer ${!notif.leida ? 'bg-blue-50' : ''}`}
+                                    >
+                                        <div className="flex items-start">
+                                            <div className={`rounded-full h-8 w-8 flex items-center justify-center ${!notif.leida ? 'bg-blue-100 text-blue-500' : 'bg-gray-100 text-gray-500'}`}>
+                                                {getNotificationIcon(notif)}
+                                            </div>
+                                            <div className="ml-3 flex-1">
+                                                {/* Titulo de la notificación - siempre negro */}
+                                                <p className="text-sm font-medium text-gray-900">{notif.titulo}</p>
+                                                
+                                                {/* Añadir aquí información del tiquet si existe */}
+                                                {notif.relacion_reporte && (
+                                                    <p className="text-xs font-medium text-gray-700 mt-1">
+                                                        Tiquet #{notif.relacion_reporte}
+                                                    </p>
+                                                )}
+                                                
+                                                
+                                                
+                                                {/* Mensaje de la notificación - siempre negro */}
+                                                <p className="text-xs text-gray-700 mt-1 line-clamp-2">{notif.mensaje}</p>
+                                                <p className="text-xs text-gray-500 mt-1">{formatearFechaRelativa(notif.fecha)}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="p-4 text-center text-gray-500">
+                                    No hi ha notificacions
+                                </div>
                             )}
                         </div>
-                        
-                        {loadingNotificaciones ? (
-                            <div className="p-4 text-center text-gray-500">
-                                Cargando...
-                            </div>
-                        ) : notificaciones.length > 0 ? (
-                            notificaciones.map(notif => (
-                                <div 
-                                    key={notif.id}
-                                    className={`p-3 border-b hover:bg-gray-50 cursor-pointer ${!notif.leida ? 'bg-blue-50' : ''}`}
-                                    onClick={() => handleNotificacionClick(notif.id, notif.ruta)}
-                                >
-                                    <div className="flex justify-between items-start">
-                                        <h4 className="font-medium text-sm">{notif.titulo}</h4>
-                                        <span className="text-xs text-gray-500">
-                                            {formatearFechaRelativa(notif.fecha)}
-                                        </span>
-                                    </div>
-                                    <p className="text-sm text-gray-600 mt-1">{notif.mensaje}</p>
-                                    {!notif.leida && (
-                                        <div className="mt-2 text-xs text-blue-600">Marcar como leída</div>
-                                    )}
-                                </div>
-                            ))
-                        ) : (
-                            <div className="p-4 text-center text-gray-500">
-                                No hay notificaciones
-                            </div>
-                        )}
                     </div>
                 )}
             </div>
         );
+    };
+
+    // Helper function to get the appropriate icon based on notification type
+    const getNotificationIcon = (notif) => {
+        if (notif.tipo === 'reporte') {
+            // Check if it's a new ticket notification for admins/managers
+            if (notif.titulo.includes('Nuevo reporte') || notif.titulo.includes('Nou reporte')) {
+                return <FaTicketAlt className="h-4 w-4" />;
+            }
+            // Check if it's a status change
+            if (notif.titulo.includes('Canvi d\'estat') || notif.titulo.includes('estat')) {
+                if (notif.mensaje.includes('resolt')) {
+                    return <FaCheck className="h-4 w-4" />;
+                }
+                if (notif.mensaje.includes('rebutjat')) {
+                    return <FaTimesIcon className="h-4 w-4" />;
+                }
+                if (notif.mensaje.includes('procés')) {
+                    return <FaSpinner className="h-4 w-4" />;
+                }
+            }
+            // Check if it's a comment notification
+            if (notif.titulo.includes('comentari') || notif.titulo.includes('Comentari')) {
+                return <FaComment className="h-4 w-4" />;
+            }
+        }
+        // Default icon
+        return <FaBell className="h-4 w-4" />;
     };
 
     return (

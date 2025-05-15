@@ -15,15 +15,28 @@ def notificar_nuevo_reporte(sender, instance, created, **kwargs):
         )
         
         for usuario in usuarios:
-            if instance.contenedor:
-                titulo = f"Nuevo reporte ({instance.get_tipo_display()})"
-                mensaje = f"{instance.descripcion[:100]}..."
-            elif instance.zona:
-                titulo = f"Nuevo reporte en {instance.zona.nom}"
-                mensaje = f"Tipo: {instance.get_tipo_display()}\nDescripción: {instance.descripcion[:200]}"
+            # Mejorar los títulos y mensajes para gestores y admins
+            if usuario.is_admin() or usuario.is_gestor():
+                if instance.contenedor:
+                    titulo = f"Nou tiquet: {instance.get_tipo_display()}"
+                    mensaje = f"S'ha creat un nou tiquet per a {instance.get_tipo_display()}. Descripció: {instance.descripcion[:100]}..."
+                elif instance.zona:
+                    titulo = f"Nou tiquet a {instance.zona.nom}"
+                    mensaje = f"S'ha creat un nou tiquet per a {instance.get_tipo_display()} a la zona {instance.zona.nom}. Descripció: {instance.descripcion[:100]}..."
+                else:
+                    titulo = f"Nou tiquet: {instance.get_tipo_display()}"
+                    mensaje = f"S'ha creat un nou tiquet. Descripció: {instance.descripcion[:100]}..."
             else:
-                titulo = f"Nuevo reporte ({instance.get_tipo_display()})"
-                mensaje = f"{instance.descripcion[:100]}..."
+                # Para usuarios normales
+                if instance.contenedor:
+                    titulo = f"Nuevo reporte ({instance.get_tipo_display()})"
+                    mensaje = f"{instance.descripcion[:100]}..."
+                elif instance.zona:
+                    titulo = f"Nuevo reporte en {instance.zona.nom}"
+                    mensaje = f"Tipo: {instance.get_tipo_display()}\nDescripción: {instance.descripcion[:200]}"
+                else:
+                    titulo = f"Nuevo reporte ({instance.get_tipo_display()})"
+                    mensaje = f"{instance.descripcion[:100]}..."
             
             Notificacion.objects.create(
                 usuario=usuario,
@@ -89,7 +102,7 @@ def notificar_nuevo_comentario(sender, instance, created, **kwargs):
                 usuario=reporte.usuario,
                 tipo='reporte',
                 titulo=f"Nou comentari en tiquet #{reporte.id}",
-                mensaje=f"Algú ha comentat al teu tiquet: {instance.texto[:100]}...",
+                mensaje=f"{instance.texto[:100]}...",
                 relacion_reporte=reporte
             )
             notified_users.add(reporte.usuario.id)
