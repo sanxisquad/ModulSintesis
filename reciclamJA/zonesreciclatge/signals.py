@@ -1,11 +1,12 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.db.models import Q
-from .models import Notificacion, ReporteContenedor
+from .models import Notificacion, ReporteContenedor, ComentarioReporte
 from accounts.models import CustomUser
 
 @receiver(post_save, sender=ReporteContenedor)
 def notificar_nuevo_reporte(sender, instance, created, **kwargs):
+    # Existing notification for new reports
     if created and instance.empresa:
         # Notificar a usuarios de la empresa excepto al creador
         usuarios = CustomUser.objects.filter(
@@ -33,3 +34,86 @@ def notificar_nuevo_reporte(sender, instance, created, **kwargs):
                 relacion_contenedor=instance.contenedor,
                 relacion_zona=instance.zona
             )
+    
+    # New notification for status changes (not created)
+    elif not created and instance.usuario:
+        # Check if status field changed
+        old_instance = sender.objects.get(pk=instance.pk)
+        if old_instance.estado != instance.estado:
+            # Notify the ticket creator about status change
+            estado_traducido = {
+                'abierto': 'Obert',
+                'en_proceso': 'En procés',
+                'resuelto': 'Resolt',
+                'rechazado': 'Rebutjat'
+            }.get(instance.estado, instance.estado)
+            
+            titulo = f"Tiquet #{instance.id} - Canvi d'estat"
+            mensaje = f"El teu tiquet ha canviat a l'estat: {estado_traducido}"
+            
+            if instance.estado == 'resuelto':
+                mensaje += "\nEl teu problema ha estat resolt!"
+                if instance.comentario_cierre:
+                    mensaje += f"\nComentari: {instance.comentario_cierre}"
+            
+            elif instance.estado == 'rechazado':
+                mensaje += "\nEl teu tiquet ha estat rebutjat."
+                if instance.comentario_cierre:
+                    mensaje += f"\nMotiu: {instance.comentario_cierre}"
+                    
+            elif instance.estado == 'en_proceso':
+                mensaje += "\nUn gestor està treballant en el teu problema."
+            
+            Notificacion.objects.create(
+                usuario=instance.usuario,
+                tipo='reporte',
+                titulo=titulo,
+                mensaje=mensaje,
+                relacion_reporte=instance,
+                relacion_contenedor=instance.contenedor,
+                relacion_zona=instance.zona
+            )
+
+
+@receiver(post_save, sender=ComentarioReporte)
+def notificar_nuevo_comentario(sender, instance, created, **kwargs):
+    """Notificar cuando se crea un comentario en un reporte"""
+    if created and instance.reporte:
+        # Get the report object
+        reporte = instance.reporte
+        notified_users = set()  # To avoid duplicate notifications
+        
+        # 1. Notify the ticket creator if they aren't the comment author
+        if reporte.usuario and reporte.usuario != instance.usuario:
+            Notificacion.objects.create(
+                usuario=reporte.usuario,
+                tipo='reporte',
+                titulo=f"Nou comentari en tiquet #{reporte.id}",
+                mensaje=f"Algú ha comentat al teu tiquet: {instance.texto[:100]}...",
+                relacion_reporte=reporte
+            )
+            notified_users.add(reporte.usuario.id)
+        
+        # 2. Notify company admins and managers except the comment author
+        if reporte.empresa:
+            # Fix: Get company staff based on user methods instead of role field
+            company_staff = CustomUser.objects.filter(empresa=reporte.empresa)
+            
+            for staff_user in company_staff:
+                # Skip if already notified or if they're the comment author
+                if (staff_user.id in notified_users or 
+                    staff_user == instance.usuario):
+                    continue
+                
+                # Only notify admins and managers
+                if not (staff_user.is_admin() or staff_user.is_gestor()):
+                    continue
+                    
+                Notificacion.objects.create(
+                    usuario=staff_user,
+                    tipo='reporte',
+                    titulo=f"Nou comentari en tiquet #{reporte.id}",
+                    mensaje=f"Comentari nou: {instance.texto[:100]}...",
+                    relacion_reporte=reporte
+                )
+                notified_users.add(staff_user.id)

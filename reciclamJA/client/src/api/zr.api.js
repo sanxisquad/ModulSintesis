@@ -85,7 +85,7 @@ export const getReporte = (id) => zrApi.get(`/reportes/${id}/`);
 export const updateReporte = (id, reporteData) => zrApi.put(`/reportes/${id}/`, reporteData);
 export const deleteReporte = (id) => zrApi.delete(`/reportes/${id}/`);
 
-// Métodos para notificaciones
+// Updated methods for notifications
 export const getNotificaciones = () => zrApi.get('/notificaciones/');
 export const marcarNotificacionLeida = (id) => zrApi.post(`/notificaciones/${id}/marcar_leida/`);
 export const marcarTodasLeidas = () => zrApi.post('/notificaciones/marcar_como_leidas/');

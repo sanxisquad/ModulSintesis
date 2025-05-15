@@ -6,5 +6,4 @@ class ZonesreciclatgeConfig(AppConfig):
     name = 'zonesreciclatge'
     
     def ready(self):
-        # Import signals to register them
         import zonesreciclatge.signals

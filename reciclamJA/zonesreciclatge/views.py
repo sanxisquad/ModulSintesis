@@ -371,24 +371,39 @@ class ComentarioReporteViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         reporte_id = self.kwargs.get('reporte_pk')
-        return ComentarioReporte.objects.filter(reporte_id=reporte_id)
+        print(f"Fetching comments for report: {reporte_id}")
+        try:
+            return ComentarioReporte.objects.filter(reporte_id=reporte_id)
+        except Exception as e:
+            print(f"Error getting comments: {str(e)}")
+            return ComentarioReporte.objects.none()
     
     def perform_create(self, serializer):
         reporte_id = self.kwargs.get('reporte_pk')
+        print(f"Creating comment for report: {reporte_id}")
         try:
             reporte = ReporteContenedor.objects.get(pk=reporte_id)
             
             # Check if user has permission to comment on this report
             user = self.request.user
+            print(f"User attempting to comment: {user.username} (ID: {user.id})")
+            
             if user.is_user() and reporte.usuario != user:
+                print("Permission denied: user != ticket owner")
                 raise PermissionDenied("No tienes permiso para comentar en este reporte")
                 
             serializer.save(usuario=user, reporte=reporte)
+            print(f"Comment created successfully by {user.username}")
             
             # If a manager/admin comments on an open ticket, change status to "en_proceso"
             if reporte.estado == 'abierto' and (user.is_admin() or user.is_gestor() or user.is_superadmin()):
                 reporte.estado = 'en_proceso'
                 reporte.save()
+                print(f"Ticket status changed to 'en_proceso'")
                 
         except ReporteContenedor.DoesNotExist:
+            print(f"Report with ID {reporte_id} not found")
             raise Http404("Reporte no encontrado")
+        except Exception as e:
+            print(f"Unexpected error creating comment: {str(e)}")
+            raise

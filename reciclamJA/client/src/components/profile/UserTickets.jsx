@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { getReportes, getReporte, getComentarios, addComentario, deleteComentario } from '../../api/zr.api';
+import { getReportes, getReporte, getComentarios, addComentario, deleteComentario, getNotificaciones, marcarNotificacionLeida } from '../../api/zr.api';
 import { FaTicketAlt, FaCheck, FaTimes, FaClock, FaSpinner, FaExclamationTriangle, FaImage, FaUser, FaPaperPlane } from 'react-icons/fa';
 import { useAuth } from '../../../hooks/useAuth';
+import { useNotification } from '../../context/NotificationContext';
 
 export const UserTickets = () => {
     const [tickets, setTickets] = useState([]);
@@ -18,6 +19,8 @@ export const UserTickets = () => {
     const [sendingComment, setSendingComment] = useState(false);
     const [imagePreview, setImagePreview] = useState(null);
     const { user } = useAuth();
+    const [notificacionesTicket, setNotificacionesTicket] = useState([]);
+    const { notificaciones } = useNotification();
 
     useEffect(() => {
         fetchUserTickets();
@@ -120,6 +123,17 @@ export const UserTickets = () => {
             setSelectedTicket(response.data);
             setShowModal(true);
             fetchComments(ticketId);
+            
+            // Fetch notifications for this ticket to mark as read
+            const notificacionesResponse = await getNotificaciones();
+            const ticketNotifications = notificacionesResponse.data.filter(
+                n => n.relacion_reporte === ticketId && !n.leida
+            );
+            
+            // Mark ticket notifications as read
+            for (const notif of ticketNotifications) {
+                await marcarNotificacionLeida(notif.id);
+            }
         } catch (err) {
             console.error("Error fetching ticket details:", err);
         }
@@ -187,17 +201,37 @@ export const UserTickets = () => {
         return status === 'abierto' || status === 'en_proceso';
     };
 
+    useEffect(() => {
+        // Update local notifications when the global notifications change
+        if (notificaciones && notificaciones.length > 0) {
+            setNotificacionesTicket(notificaciones);
+        }
+    }, [notificaciones]);
+
+    // Fix the hasUnreadNotifications function
+    const hasUnreadNotifications = (ticketId) => {
+        // Check if ticket has any unread notifications
+        return notificacionesTicket.some(n => 
+            n.relacion_reporte === ticketId && !n.leida
+        );
+    };
+
     // Render table row with click handler
     const renderTicketRow = (ticket) => {
         const statusBadge = getStatusBadge(ticket.estado);
+        const hasNewActivity = hasUnreadNotifications(ticket.id);
+        
         return (
             <tr 
                 key={ticket.id} 
-                className="hover:bg-gray-50 cursor-pointer" 
+                className={`hover:bg-gray-50 cursor-pointer ${hasNewActivity ? 'bg-blue-50' : ''}`}
                 onClick={() => openTicketModal(ticket.id)}
             >
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     #{ticket.id}
+                    {hasNewActivity && (
+                        <span className="ml-2 inline-flex h-2 w-2 rounded-full bg-blue-500"></span>
+                    )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {ticket.tipo === 'contenedor_lleno' ? 'Contenidor ple' : 

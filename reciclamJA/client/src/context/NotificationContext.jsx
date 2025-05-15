@@ -58,13 +58,42 @@ export const NotificationProvider = ({ children }) => {
     }
   }, [isAuthenticated, user]);
 
-  const fetchNotificaciones = async () => {
+  // Add a polling mechanism to periodically check for new notifications
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+    
+    // Initial fetch
+    fetchNotificaciones();
+    
+    // Check for new notifications every minute
+    const pollInterval = setInterval(() => {
+      fetchNotificaciones();
+    }, 60000); // 1 minute
+    
+    return () => clearInterval(pollInterval);
+  }, [isAuthenticated, user]);
+
+  // Fix fetchNotificaciones to handle errors better
+  const fetchNotificaciones = async (playSound = false) => {
     if (!isAuthenticated) return;
     
     try {
       setLoadingNotificaciones(true);
       const response = await getNotificaciones();
-      setNotificaciones(response.data);
+      
+      if (response && response.data) {
+        // Check if there are new unread notifications
+        const newNotifs = response.data;
+        const prevUnreadCount = notificaciones.filter(n => !n.leida).length;
+        const newUnreadCount = newNotifs.filter(n => !n.leida).length;
+        
+        // Play sound if there are new notifications and sound is enabled
+        if (playSound && newUnreadCount > prevUnreadCount) {
+          // You can add a sound notification function here
+        }
+        
+        setNotificaciones(newNotifs);
+      }
     } catch (error) {
       console.error("Error al cargar notificaciones:", error);
     } finally {

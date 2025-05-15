@@ -22,25 +22,16 @@ const getBaseUrl = () => {
 };
 
 /**
+ * Get the API endpoints
  */
 const getBaseUrls = () => {
   const baseUrl = getBaseUrl();
-  const isProd = window.location.hostname !== 'localhost' && 
-                window.location.hostname !== '127.0.0.1';
   
-  if (isProd) {
-    console.log('Using production API URLs');
-    return {
-      auth: `${baseUrl}/auth/api/v1/`,
-      authService: `${baseUrl}/auth/api/v1/auth/`, // Try without the trailing slash
-      zr: `${baseUrl}/zr/`,
-    };
-  }
-  
+  // Ensure we have consistency with trailing slashes
   return {
-    auth: `${baseUrl}/auth/api/v1/`,
+    auth: `${baseUrl}/auth/api/v1`,
     authService: `${baseUrl}/auth/api/v1/auth/`,
-    zr: `${baseUrl}/zr/`,
+    zr: `${baseUrl}/zr`,
   };
 };
 

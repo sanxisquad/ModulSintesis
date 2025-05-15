@@ -3,7 +3,7 @@ import { useAuth } from "../../../hooks/useAuth";
 import { useState, useEffect, useRef } from "react";
 import { useMenu } from "../../context/MenuContext";
 import { usePermissions } from "../../../hooks/usePermissions";
-import { useNotification } from "../../context/NotificationContext";
+import { useNotification } from '../../context/NotificationContext';
 import { toast } from "react-hot-toast"; // Import toast for notifications
 import { 
   FaBars, 
@@ -36,8 +36,8 @@ export function Navigation() {
     const { menuOpen, toggleMenu } = useMenu();
     const [gestionExpanded, setGestionExpanded] = useState(false);
     const [userMenuOpen, setUserMenuOpen] = useState(false);
-    const [notificacionesOpen, setNotificacionesOpen] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [notificacionesOpen, setNotificacionesOpen] = useState(false); // Add state for notifications popup
     // Always show the install button for testing
     const [showInstallButton, setShowInstallButton] = useState(true);
     const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -49,14 +49,13 @@ export function Navigation() {
     const mobileMenuRef = useRef(null);
     const notificacionesRef = useRef(null);
     
-    // Usar el contexto de notificaciones
+    // Use notification context
     const { 
         notificaciones, 
-        loadingNotificaciones, 
         notificacionesNoLeidas, 
-        fetchNotificaciones, 
         handleNotificacionClick,
-        marcarTodasNotificacionesLeidas 
+        marcarTodasNotificacionesLeidas, 
+        loadingNotificaciones 
     } = useNotification();
 
     // Detect if the app can be installed
@@ -272,7 +271,7 @@ export function Navigation() {
             
             if (notificacionesRef.current && !notificacionesRef.current.contains(event.target) &&
                 !event.target.closest('button[aria-label="Toggle notifications"]')) {
-                setNotificacionesOpen(false);
+                // setNotificacionesOpen(false);
             }
             
             if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target) &&
@@ -323,6 +322,83 @@ export function Navigation() {
         </Link>
       </li>
     );
+
+    // Fix the getNotificationRoute function
+    const getNotificationRoute = (notif) => {
+        if (!notif.relacion_reporte) return null;
+
+        if (user?.is_user) {
+            return `/profile`;
+        } else {
+            return `/gestor/tiquets/${notif.relacion_reporte}`;
+        }
+    };
+
+    // Function to render the notification bell for all users
+    const renderNotificationBell = () => {
+        if (!isAuthenticated) return null;
+        
+        return (
+            <div className="relative" ref={notificacionesRef}>
+                <button
+                    onClick={() => setNotificacionesOpen(!notificacionesOpen)}
+                    className="relative flex items-center justify-center p-2 rounded-full text-gray-600 hover:bg-gray-100"
+                >
+                    <FaBell className="h-6 w-6" />
+                    {notificacionesNoLeidas > 0 && (
+                        <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-500 rounded-full">
+                            {notificacionesNoLeidas}
+                        </span>
+                    )}
+                </button>
+                
+                {notificacionesOpen && (
+                    <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg overflow-hidden z-50">
+                        <div className="flex justify-between items-center p-3 border-b">
+                            <h3 className="font-semibold">Notificacions</h3>
+                            {notificacionesNoLeidas > 0 && (
+                                <button 
+                                    onClick={marcarTodasNotificacionesLeidas}
+                                    className="text-sm text-blue-600 hover:text-blue-800"
+                                >
+                                    Marcar todas como leídas
+                                </button>
+                            )}
+                        </div>
+                        
+                        {loadingNotificaciones ? (
+                            <div className="p-4 text-center text-gray-500">
+                                Cargando...
+                            </div>
+                        ) : notificaciones.length > 0 ? (
+                            notificaciones.map(notif => (
+                                <div 
+                                    key={notif.id}
+                                    className={`p-3 border-b hover:bg-gray-50 cursor-pointer ${!notif.leida ? 'bg-blue-50' : ''}`}
+                                    onClick={() => handleNotificacionClick(notif.id, notif.ruta)}
+                                >
+                                    <div className="flex justify-between items-start">
+                                        <h4 className="font-medium text-sm">{notif.titulo}</h4>
+                                        <span className="text-xs text-gray-500">
+                                            {formatearFechaRelativa(notif.fecha)}
+                                        </span>
+                                    </div>
+                                    <p className="text-sm text-gray-600 mt-1">{notif.mensaje}</p>
+                                    {!notif.leida && (
+                                        <div className="mt-2 text-xs text-blue-600">Marcar como leída</div>
+                                    )}
+                                </div>
+                            ))
+                        ) : (
+                            <div className="p-4 text-center text-gray-500">
+                                No hay notificaciones
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+        );
+    };
 
     return (
         <div className="w-full sticky top-0 z-50">
@@ -396,73 +472,7 @@ export function Navigation() {
                         </li>
                         
                         {/* Notificaciones - Solo para gestores y admins */}
-                        {isAuthenticated && (canMenu || user?.is_staff) && (
-                            <li className="relative mr-2">
-                                <button
-                                    aria-label="Toggle notifications"
-                                    className="text-white p-2 rounded-full hover:bg-gray-800 relative"
-                                    onClick={() => {
-                                        setNotificacionesOpen(!notificacionesOpen);
-                                        if (!notificacionesOpen) fetchNotificaciones();
-                                    }}
-                                >
-                                    <FaBell className="text-lg" />
-                                    {notificacionesNoLeidas > 0 && (
-                                        <span className="absolute top-0 right-0 transform translate-x-1/4 -translate-y-1/4 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                                            {notificacionesNoLeidas > 9 ? '9+' : notificacionesNoLeidas}
-                                        </span>
-                                    )}
-                                </button>
-
-                                {notificacionesOpen && (
-                                    <div 
-                                        ref={notificacionesRef}
-                                        className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg py-1 z-50 max-h-96 overflow-y-auto text-black"
-                                    >
-                                        <div className="flex justify-between items-center p-3 border-b">
-                                            <h3 className="font-semibold">Notificacions</h3>
-                                            {notificacionesNoLeidas > 0 && (
-                                                <button 
-                                                    onClick={marcarTodasNotificacionesLeidas}
-                                                    className="text-sm text-blue-600 hover:text-blue-800"
-                                                >
-                                                    Marcar todas como leídas
-                                                </button>
-                                            )}
-                                        </div>
-                                        
-                                        {loadingNotificaciones ? (
-                                            <div className="p-4 text-center text-gray-500">
-                                                Cargando...
-                                            </div>
-                                        ) : notificaciones.length > 0 ? (
-                                            notificaciones.map(notif => (
-                                                <div 
-                                                    key={notif.id}
-                                                    className={`p-3 border-b hover:bg-gray-50 cursor-pointer ${!notif.leida ? 'bg-blue-50' : ''}`}
-                                                    onClick={() => handleNotificacionClick(notif.id, notif.ruta)}
-                                                >
-                                                    <div className="flex justify-between items-start">
-                                                        <h4 className="font-medium text-sm">{notif.titulo}</h4>
-                                                        <span className="text-xs text-gray-500">
-                                                            {formatearFechaRelativa(notif.fecha)}
-                                                        </span>
-                                                    </div>
-                                                    <p className="text-sm text-gray-600 mt-1">{notif.mensaje}</p>
-                                                    {!notif.leida && (
-                                                        <div className="mt-2 text-xs text-blue-600">Marcar como leída</div>
-                                                    )}
-                                                </div>
-                                            ))
-                                        ) : (
-                                            <div className="p-4 text-center text-gray-500">
-                                                No hay notificaciones
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                            </li>
-                        )}
+                        {isAuthenticated && renderNotificationBell()}
                         
                         {loading ? (
                             <li className="inline-block mx-2">
@@ -860,56 +870,41 @@ export function Navigation() {
                             <div className="space-y-4">
                                 <h4 className="font-medium text-lg">Instruccions per a dispositius mòbils:</h4>
                                 
-                                <div className="bg-blue-50 p-4 rounded-lg mb-4">
-                                    <p className="text-blue-800 font-medium">Android (Chrome):</p>
-                                    <ol className="list-decimal pl-5 space-y-2 mt-2">
-                                        <li>Toca el menú de tres punts (⋮) a la part superior dreta</li>
-                                        <li>Selecciona "Instal·lar aplicació" o "Afegir a la pantalla d'inici"</li>
-                                        <li>Segueix les instruccions per completar la instal·lació</li>
-                                    </ol>
-                                </div>
-                                
                                 <div className="bg-blue-50 p-4 rounded-lg">
-                                    <p className="text-blue-800 font-medium">iPhone/iPad (Safari):</p>
-                                    <ol className="list-decimal pl-5 space-y-2 mt-2">
-                                        <li>Toca el botó de compartir (□↑) a la part inferior</li>
-                                        <li>Desplaça't fins trobar i toca "Afegir a la pantalla d'inici"</li>
-                                        <li>Toca "Afegir" per confirmar</li>
-                                    </ol>
+                                    <p className="text-blue-800">
+                                        1. Obre el navegador i ves a aquesta pàgina.
+                                    </p>
+                                    <p className="text-blue-800">
+                                        2. Fes clic a l'icona de compartir (normalment a la part inferior del navegador).
+                                    </p>
+                                    <p className="text-blue-800">
+                                        3. Selecciona "Afegir a la pantalla d'inici" o "Instal·lar aplicació".
+                                    </p>
+                                    <p className="text-blue-800">
+                                        4. Segueix les instruccions per completar la instal·lació.
+                                    </p>
                                 </div>
                             </div>
                         ) : (
                             <div className="space-y-4">
-                                <h4 className="font-medium text-lg">Instruccions per a ordinadors:</h4>
-                                
-                                <div className="bg-blue-50 p-4 rounded-lg mb-4">
-                                    <p className="text-blue-800 font-medium">Chrome:</p>
-                                    <ol className="list-decimal pl-5 space-y-2 mt-2">
-                                        <li>Fes clic al menú de tres punts (⋮) a la cantonada superior dreta</li>
-                                        <li>Selecciona "Instal·lar ReciclamJA..." o "Més eines → Crear accés directe"</li>
-                                        <li>Marca "Obrir com a finestra" per tenir una experiència d'app</li>
-                                        <li>Fes clic a "Instal·lar" o "Crear"</li>
-                                    </ol>
-                                </div>
+                                <h4 className="font-medium text-lg">Instruccions per a escriptoris:</h4>
                                 
                                 <div className="bg-blue-50 p-4 rounded-lg">
-                                    <p className="text-blue-800 font-medium">Altres navegadors:</p>
-                                    <ol className="list-decimal pl-5 space-y-2 mt-2">
-                                        <li>Crea un marcador d'aquesta pàgina (Ctrl+D o ⌘+D)</li>
-                                        <li>Per a accés directe a l'escriptori: arrossega l'adreça URL des de la barra d'adreces fins al teu escriptori</li>
-                                    </ol>
+                                    <p className="text-blue-800">
+                                        1. Fes clic dret a l'escriptori.
+                                    </p>
+                                    <p className="text-blue-800">
+                                        2. Selecciona "Nou" i després "Drecera".
+                                    </p>
+                                    <p className="text-blue-800">
+                                        3. A l'ubicació de l'element, escriu <code>{window.location.href}</code>.
+                                    </p>
+                                    <p className="text-blue-800">
+                                        4. Fes clic a "Següent" i després "Finalitzar".
+                                    </p>
                                 </div>
                             </div>
                         )}
-                        
-                        <div className="mt-6">
-                            <button
-                                onClick={() => setInstallInstructions(false)}
-                                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 w-full"
-                            >
-                                Tancar
-                            </button>
-                        </div>
                     </div>
                 </div>
             )}
