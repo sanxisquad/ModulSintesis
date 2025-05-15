@@ -90,169 +90,14 @@ export function Navigation() {
         setShowInstallButton(true);
     }, []);
 
-    // Direct URL to download APK (if you have one) or to create a shortcut
-    const getDirectDownloadUrl = () => {
-        // For demo purposes, this just returns the current URL
-        // In a real app, this could point to an APK file or instructions page
-        return window.location.origin;
-    };
+    // State to track if we need to show manual desktop shortcut instructions
+    const [showManualShortcutInstructions, setShowManualShortcutInstructions] = useState(false);
 
-    // Enhanced install handler with manual option and shortcut creation
-    const handleInstallClick = async () => {
-        console.log("Install button clicked", { deferredPrompt, platform: installPlatform });
-        
-        if (deferredPrompt) {
-            try {
-                // Show the install prompt
-                deferredPrompt.prompt();
-                
-                // Wait for the user to respond to the prompt
-                const { outcome } = await deferredPrompt.userChoice;
-                console.log(`User response to the install prompt: ${outcome}`);
-                
-                if (outcome === 'accepted') {
-                    toast.success('Instal·lació iniciada!');
-                }
-                
-                // We've used the prompt, and can't use it again, so clear it
-                setDeferredPrompt(null);
-            } catch (err) {
-                console.error("Error prompting to install:", err);
-                // Fall back to instructions
-                setInstallInstructions(true);
-            }
-        } else {
-            // Show manual instructions
-            setInstallInstructions(true);
-        }
-    };
-
-    // Create a desktop shortcut manually
-    const createShortcut = () => {
+    // Function to download desktop shortcut
+    const downloadDesktopShortcut = () => {
         try {
-            // This is a simple approach for desktop browsers
-            // It creates a bookmark/shortcut using the browser's API
-            if (window.sidebar && window.sidebar.addPanel) { // Firefox
-                window.sidebar.addPanel(document.title, window.location.href, '');
-            } else if (window.external && window.external.AddFavorite) { // IE
-                window.external.AddFavorite(window.location.href, document.title);
-            } else { // Chrome, Safari, most modern browsers
-                // For these browsers, we'll just show instructions
-                setInstallInstructions(true);
-                return;
-            }
-            toast.success('Drecera creada!');
-        } catch (e) {
-            console.error("Error creating shortcut:", e);
-            toast.error("No s'ha pogut crear la drecera automàticament");
-            setInstallInstructions(true);
-        }
-    };
-
-    // Cerrar menús al hacer clic fuera
-    useEffect(() => {
-        function handleClickOutside(event) {
-            if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
-                setUserMenuOpen(false);
-            }
-            
-            if (menuOpen && 
-                menuRef.current && 
-                !menuRef.current.contains(event.target) && 
-                !event.target.closest('button[aria-label="Toggle menu"]')) {
-                toggleMenu(false);
-            }
-            
-            if (notificacionesRef.current && !notificacionesRef.current.contains(event.target) &&
-                !event.target.closest('button[aria-label="Toggle notifications"]')) {
-                setNotificacionesOpen(false);
-            }
-            
-            if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target) &&
-                !event.target.closest('button[aria-label="Toggle mobile menu"]')) {
-                setMobileMenuOpen(false);
-            }
-        }
-
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => {
-            document.removeEventListener("mousedown", handleClickOutside);
-        };
-    }, [toggleMenu, menuOpen]);
-
-    // Función auxiliar para formatear fechas sin date-fns
-    const formatearFechaRelativa = (fecha) => {
-        const ahora = new Date();
-        const fechaNotif = new Date(fecha);
-        const diferenciaMilisegundos = ahora - fechaNotif;
-        
-        // Convertir a diferentes unidades de tiempo
-        const segundos = Math.floor(diferenciaMilisegundos / 1000);
-        const minutos = Math.floor(segundos / 60);
-        const horas = Math.floor(minutos / 60);
-        const dias = Math.floor(horas / 24);
-        
-        if (dias > 0) {
-            return dias === 1 ? 'hace 1 día' : `hace ${dias} días`;
-        } else if (horas > 0) {
-            return horas === 1 ? 'hace 1 hora' : `hace ${horas} horas`;
-        } else if (minutos > 0) {
-            return minutos === 1 ? 'hace 1 minuto' : `hace ${minutos} minutos`;
-        } else {
-            return 'hace unos segundos';
-        }
-    };
-
-    // Helper function to render menu item with icon
-    const MenuItem = ({ to, icon: Icon, children, onClick }) => (
-      <li className="mb-2">
-        <Link
-          to={to}
-          className="flex items-center p-2 text-gray-600 hover:bg-gray-100 rounded"
-          onClick={onClick}
-        >
-          {Icon && <Icon className="w-5 h-5 mr-2" />}
-          <span>{children}</span>
-        </Link>
-      </li>
-    );
-
-    // Function to download the app launcher file
-    const downloadAppFile = () => {
-        try {
-            // Create the content for the launcher file based on platform
-            let fileContent;
-            let fileName;
-            let fileType;
-            
-            if (installPlatform === 'mobile') {
-                // For mobile, create a .webmanifest file that can be used to install the app
-                fileContent = JSON.stringify({
-                    name: "ReciclamJA",
-                    short_name: "ReciclamJA",
-                    description: "Aplicació per gestionar el reciclatge de manera eficient i sostenible",
-                    start_url: window.location.origin,
-                    display: "standalone",
-                    background_color: "#ffffff",
-                    theme_color: "#10B981",
-                    icons: [
-                        {
-                            src: window.location.origin + "/logo192.png",
-                            sizes: "192x192",
-                            type: "image/png"
-                        },
-                        {
-                            src: window.location.origin + "/logo512.png",
-                            sizes: "512x512",
-                            type: "image/png"
-                        }
-                    ]
-                }, null, 2);
-                fileName = "reciclamja.webmanifest";
-                fileType = "application/manifest+json";
-            } else {
-                // For desktop, create an HTML file that redirects to the app
-                fileContent = `
+            // Create HTML file that will serve as a shortcut
+            const fileContent = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -325,18 +170,15 @@ export function Navigation() {
     </script>
 </body>
 </html>`;
-                fileName = "ReciclamJA.html";
-                fileType = "text/html";
-            }
             
             // Create a Blob with the file content
-            const blob = new Blob([fileContent], { type: fileType });
+            const blob = new Blob([fileContent], { type: 'text/html' });
             
             // Create a download link and trigger the download
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = fileName;
+            link.download = "ReciclamJA.html";
             document.body.appendChild(link);
             link.click();
             
@@ -346,14 +188,141 @@ export function Navigation() {
                 URL.revokeObjectURL(url);
             }, 100);
             
-            toast.success(`Descarregant ${fileName}`);
+            toast.success("Descarregant accés directe d'escriptori");
         } catch (error) {
-            console.error("Error downloading app file:", error);
-            toast.error("Error durant la descàrrega. Si us plau, torna-ho a provar.");
-            // Fall back to instructions
-            setInstallInstructions(true);
+            console.error("Error downloading desktop shortcut:", error);
+            toast.error("No s'ha pogut descarregar. Et mostrarem com crear-ho manualment.");
+            // Show manual shortcut instructions instead of generic install instructions
+            setShowManualShortcutInstructions(true);
         }
     };
+
+    // Enhanced install handler with automatic desktop shortcut
+    const handleInstallClick = async () => {
+        console.log("Install button clicked", { deferredPrompt, platform: installPlatform });
+        
+        // For desktop platforms, automatically download shortcut
+        if (installPlatform === 'desktop') {
+            // First try native installation if available
+            if (deferredPrompt) {
+                try {
+                    // Show the native install prompt
+                    deferredPrompt.prompt();
+                    
+                    // Wait for the user's choice
+                    const { outcome } = await deferredPrompt.userChoice;
+                    console.log(`User response to the install prompt: ${outcome}`);
+                    
+                    if (outcome === 'accepted') {
+                        toast.success('Instal·lació iniciada!');
+                    } else {
+                        // If user declined the native prompt, download desktop shortcut
+                        downloadDesktopShortcut();
+                    }
+                    
+                    // Clear the prompt
+                    setDeferredPrompt(null);
+                } catch (err) {
+                    console.error("Error prompting to install:", err);
+                    // Fall back to desktop shortcut
+                    downloadDesktopShortcut();
+                }
+            } else {
+                // No native prompt available, download desktop shortcut
+                downloadDesktopShortcut();
+            }
+        } else {
+            // For mobile, use the existing flow
+            if (deferredPrompt) {
+                try {
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    
+                    if (outcome === 'accepted') {
+                        toast.success('Instal·lació iniciada!');
+                    } else {
+                        setInstallInstructions(true);
+                    }
+                    
+                    setDeferredPrompt(null);
+                } catch (err) {
+                    console.error("Error prompting to install:", err);
+                    setInstallInstructions(true);
+                }
+            } else {
+                // Show instructions for mobile
+                setInstallInstructions(true);
+            }
+        }
+    };
+
+    // Cerrar menús al hacer clic fuera
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+                setUserMenuOpen(false);
+            }
+            
+            if (menuOpen && 
+                menuRef.current && 
+                !menuRef.current.contains(event.target) && 
+                !event.target.closest('button[aria-label="Toggle menu"]')) {
+                toggleMenu(false);
+            }
+            
+            if (notificacionesRef.current && !notificacionesRef.current.contains(event.target) &&
+                !event.target.closest('button[aria-label="Toggle notifications"]')) {
+                setNotificacionesOpen(false);
+            }
+            
+            if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target) &&
+                !event.target.closest('button[aria-label="Toggle mobile menu"]')) {
+                setMobileMenuOpen(false);
+            }
+        }
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [toggleMenu, menuOpen]);
+
+    // Función auxiliar para formatear fechas sin date-fns
+    const formatearFechaRelativa = (fecha) => {
+        const ahora = new Date();
+        const fechaNotif = new Date(fecha);
+        const diferenciaMilisegundos = ahora - fechaNotif;
+        
+        // Convertir a diferentes unidades de tiempo
+        const segundos = Math.floor(diferenciaMilisegundos / 1000);
+        const minutos = Math.floor(segundos / 60);
+        const horas = Math.floor(minutos / 60);
+        const dias = Math.floor(horas / 24);
+        
+        if (dias > 0) {
+            return dias === 1 ? 'hace 1 día' : `hace ${dias} días`;
+        } else if (horas > 0) {
+            return horas === 1 ? 'hace 1 hora' : `hace ${horas} horas`;
+        } else if (minutos > 0) {
+            return minutos === 1 ? 'hace 1 minuto' : `hace ${minutos} minutos`;
+        } else {
+            return 'hace unos segundos';
+        }
+    };
+
+    // Helper function to render menu item with icon
+    const MenuItem = ({ to, icon: Icon, children, onClick }) => (
+      <li className="mb-2">
+        <Link
+          to={to}
+          className="flex items-center p-2 text-gray-600 hover:bg-gray-100 rounded"
+          onClick={onClick}
+        >
+          {Icon && <Icon className="w-5 h-5 mr-2" />}
+          <span>{children}</span>
+        </Link>
+      </li>
+    );
 
     return (
         <div className="w-full sticky top-0 z-50">
@@ -415,7 +384,7 @@ export function Navigation() {
                 {/* Menú de usuario - Adjusted for spacing */}
                 <nav className="flex items-center">
                     <ul className="flex items-center space-x-2">
-                        {/* ALWAYS VISIBLE Install App Button */}
+                        {/* ONLY Install App Button */}
                         <li className="hidden sm:block">
                             <button
                                 onClick={handleInstallClick}
@@ -425,17 +394,6 @@ export function Navigation() {
                                 <span>Instal·lar App</span>
                             </button>
                         </li>
-                        
-                        {/* Direct Download Button */
-                        /* <li className="hidden sm:block">
-                            <button
-                                onClick={downloadAppFile}
-                                className="text-white bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded-md text-sm flex items-center ml-2"
-                            >
-                                <FaFileDownload className="mr-1" />
-                                <span>Descarregar Aplicació</span>
-                            </button>
-                        </li> */}
                         
                         {/* Notificaciones - Solo para gestores y admins */}
                         {isAuthenticated && (canMenu || user?.is_staff) && (
@@ -652,7 +610,7 @@ export function Navigation() {
                                         </li>
                                     </>
                                 )}
-                                {/* More prominent Install App button - Always visible in mobile menu */}
+                                {/* Only one Install button in mobile menu */}
                                 <li className="mt-4">
                                     <button 
                                         onClick={handleInstallClick}
@@ -660,37 +618,6 @@ export function Navigation() {
                                     >
                                         <FaDownload className="mr-3" />
                                         Instal·lar App al {installPlatform === 'mobile' ? 'Mòbil' : 'Escriptori'}
-                                    </button>
-                                </li>
-                                
-                                {/* Direct Download Button in mobile menu */}
-                                <li>
-                                    <button 
-                                        onClick={downloadAppFile}
-                                        className="flex items-center w-full px-3 py-3 bg-blue-600 rounded-md hover:bg-blue-700 text-white font-medium mt-2"
-                                    >
-                                        <FaFileDownload className="mr-3" />
-                                        Descarregar {installPlatform === 'mobile' ? 'App Mòbil' : 'Aplicació d\'Escriptori'}
-                                    </button>
-                                </li>
-                                
-                                {/* Alternative for mobile: Add to Home Screen instruction button */}
-                                <li>
-                                    <button 
-                                        onClick={() => setInstallInstructions(true)}
-                                        className="flex items-center w-full px-3 py-3 bg-gray-700 rounded-md hover:bg-gray-600 text-white font-medium mt-2"
-                                    >
-                                        {installPlatform === 'mobile' ? (
-                                            <>
-                                                <FaMobileAlt className="mr-3" />
-                                                Afegir a Pantalla d'Inici
-                                            </>
-                                        ) : (
-                                            <>
-                                                <FaDesktop className="mr-3" />
-                                                Crear Drecera a l'Escriptori
-                                            </>
-                                        )}
                                     </button>
                                 </li>
                             </ul>
@@ -831,7 +758,91 @@ export function Navigation() {
                 </aside>
             )}
 
-            {/* Installation Instructions Modal - Enhanced with screenshots */}
+            {/* Manual Desktop Shortcut Instructions Modal */}
+            {showManualShortcutInstructions && (
+                <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-bold">Com crear un accés directe manualment</h3>
+                            <button 
+                                onClick={() => setShowManualShortcutInstructions(false)}
+                                className="text-gray-500 hover:text-gray-700"
+                            >
+                                <FaTimes />
+                            </button>
+                        </div>
+                        
+                        <div className="space-y-4">
+                            <p className="text-gray-600">
+                                La descàrrega automàtica no ha funcionat. Pots crear un accés directe manualment seguint aquestes instruccions:
+                            </p>
+                            
+                            <div className="bg-blue-50 p-4 rounded-lg mb-4">
+                                <p className="text-blue-800 font-medium">Chrome:</p>
+                                <ol className="list-decimal pl-5 space-y-2 mt-2">
+                                    <li>Fes clic al menú de tres punts (⋮) a la cantonada superior dreta</li>
+                                    <li>Selecciona "Més eines" i després "Crear accés directe"</li>
+                                    <li>Marca la casella "Obrir com a finestra"</li>
+                                    <li>Fes clic a "Crear"</li>
+                                </ol>
+                            </div>
+                            
+                            <div className="bg-blue-50 p-4 rounded-lg mb-4">
+                                <p className="text-blue-800 font-medium">Firefox:</p>
+                                <ol className="list-decimal pl-5 space-y-2 mt-2">
+                                    <li>Fes clic dret a l'escriptori</li>
+                                    <li>Selecciona "Nou" i després "Drecera"</li>
+                                    <li>A l'ubicació de l'element, escriu <code>{window.location.href}</code></li>
+                                    <li>Fes clic a "Següent"</li>
+                                    <li>Escriu "ReciclamJA" com a nom i fes clic a "Finalitzar"</li>
+                                </ol>
+                            </div>
+                            
+                            <div className="bg-blue-50 p-4 rounded-lg">
+                                <p className="text-blue-800 font-medium">Safari i altres navegadors:</p>
+                                <ol className="list-decimal pl-5 space-y-2 mt-2">
+                                    <li>Crea un marcador d'aquesta pàgina (Ctrl+D o ⌘+D)</li>
+                                    <li>Copia aquesta URL: <code className="bg-gray-100 px-2 py-1 rounded">{window.location.href}</code></li>
+                                    <li>A l'escriptori, fes clic dret i selecciona "Nou" → "Document de text"</li>
+                                    <li>Enganxa aquest codi:
+                                        <pre className="bg-gray-100 p-2 rounded mt-2 overflow-x-auto text-sm">
+                                            {`<html>
+<head>
+<meta http-equiv="refresh" content="0; url=${window.location.href}">
+<title>ReciclamJA</title>
+</head>
+<body></body>
+</html>`}
+                                        </pre>
+                                    </li>
+                                    <li>Guarda-ho com "ReciclamJA.html"</li>
+                                </ol>
+                            </div>
+                            
+                            <div className="mt-6 flex flex-col gap-3">
+                                <button
+                                    onClick={() => {
+                                        setShowManualShortcutInstructions(false);
+                                        downloadDesktopShortcut(); // Try download again
+                                    }}
+                                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                                >
+                                    Tornar a provar la descàrrega
+                                </button>
+                                
+                                <button
+                                    onClick={() => setShowManualShortcutInstructions(false)}
+                                    className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
+                                >
+                                    Tancar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Existing Installation Instructions Modal */}
             {installInstructions && (
                 <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-lg max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
@@ -866,18 +877,6 @@ export function Navigation() {
                                         <li>Toca "Afegir" per confirmar</li>
                                     </ol>
                                 </div>
-                                
-                                <div className="mt-6 border-t pt-4">
-                                    <a 
-                                        href={getDirectDownloadUrl()} 
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex items-center justify-center w-full py-3 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                                    >
-                                        <FaDownload className="mr-2" />
-                                        Accedir a descàrrega directa (si disponible)
-                                    </a>
-                                </div>
                             </div>
                         ) : (
                             <div className="space-y-4">
@@ -900,44 +899,15 @@ export function Navigation() {
                                         <li>Per a accés directe a l'escriptori: arrossega l'adreça URL des de la barra d'adreces fins al teu escriptori</li>
                                     </ol>
                                 </div>
-                                
-                                <div className="mt-6 flex flex-col sm:flex-row gap-3">
-                                    <button
-                                        onClick={createShortcut}
-                                        className="flex items-center justify-center py-3 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex-1"
-                                    >
-                                        <FaExternalLinkAlt className="mr-2" />
-                                        Crear drecera automàticament
-                                    </button>
-                                    
-                                    <a 
-                                        href={getDirectDownloadUrl()} 
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex items-center justify-center py-3 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 flex-1"
-                                    >
-                                        <FaDownload className="mr-2" />
-                                        Descarregar aplicació
-                                    </a>
-                                </div>
                             </div>
                         )}
                         
-                        <div className="mt-6 flex flex-col gap-4">
+                        <div className="mt-6">
                             <button
                                 onClick={() => setInstallInstructions(false)}
-                                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
+                                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 w-full"
                             >
                                 Tancar
-                            </button>
-                            
-                            {/* Add direct download option in the instructions modal */}
-                            <button
-                                onClick={downloadAppFile}
-                                className="flex items-center justify-center w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                            >
-                                <FaFileDownload className="mr-2" />
-                                Descarregar {installPlatform === 'mobile' ? 'App Mòbil' : 'Aplicació d\'Escriptori'} Directament
                             </button>
                         </div>
                     </div>
