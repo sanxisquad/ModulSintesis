@@ -182,8 +182,10 @@ class ReporteContenedorViewSet(viewsets.ModelViewSet):
     queryset = ReporteContenedor.objects.all()
 
     def get_permissions(self):
-        if self.action in ['create']:
+        # Allow regular users to list and retrieve reports
+        if self.action in ['create', 'list', 'retrieve']:
             return [permissions.IsAuthenticated()]
+        # Only admins/gestors can update, delete, etc.
         return [CombinedPermission(IsSuperAdmin, IsAdminEmpresa, IsGestor)]
 
     def perform_create(self, serializer):
@@ -207,7 +209,6 @@ class ReporteContenedorViewSet(viewsets.ModelViewSet):
                 models.Q(contenedor__empresa=user.empresa) | 
                 models.Q(zona__empresa=user.empresa)
             )
-
                 
         return ReporteContenedor.objects.none()
 
