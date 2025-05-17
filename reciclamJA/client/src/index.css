@@ -21,3 +21,14 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #a0a0a0;
 }
+
+/* Custom marker styles */
+.zone-marker {
+  filter: hue-rotate(120deg); /* This will make it green-ish */
+}
+
+/* Fix marker image paths in production */
+.leaflet-marker-icon,
+.leaflet-marker-shadow {
+  z-index: 1000 !important; /* Ensure markers are clickable */
+}

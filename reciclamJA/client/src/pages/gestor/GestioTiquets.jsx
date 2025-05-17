@@ -99,16 +99,33 @@ export function GestioTiquets() {
     setFilterMode(filterMode === 'estat' ? 'prioritat' : 'estat');
   };
   
-  if (loading) return <div className="text-center p-8">Carregant dades...</div>;
+  if (loading) return (
+    <div className="flex items-center justify-center h-screen bg-white">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+        <p className="mt-4 text-gray-600">Carregant dades...</p>
+      </div>
+    </div>
+  );
 
   return (
     <div className="bg-gray-50 min-h-screen px-4 sm:px-6 md:px-8 py-6">
-      <h1 className="text-3xl font-bold text-center m-10">Gestió de Tiquets</h1>
-      
-      {/* Panell d'estadístiques de tiquets */}
-      <div className="mb-6 px-4">
+      <div className="max-w-7xl mx-auto">
+        {/* Header - Updated to match other management pages */}
+        <div className="pb-5 border-b border-gray-200 mb-6">
+          <div className="flex items-center">
+            <div className="bg-blue-100 p-2 rounded-full mr-3">
+              <MessageSquare className="h-5 w-5 text-blue-600" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-800">Gestió de Tiquets</h1>
+              <p className="text-gray-500 text-sm">Administració i control d'incidències del sistema</p>
+            </div>
+          </div>
+        </div>
+        
         {/* Filtres */}
-        <div className="bg-white p-4 rounded-lg shadow mb-6">
+        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6">
           <div className="flex flex-wrap justify-between items-center">
             <div className="flex items-center">
               <h2 className="text-lg font-medium text-gray-800 mr-3">Filtres</h2>
@@ -171,7 +188,7 @@ export function GestioTiquets() {
         {filterMode === 'estat' && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
             <div 
-              className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${filtreEstat === 'tots' ? 'ring-2 ring-purple-500' : ''}`}
+              className={`bg-white p-4 rounded-lg shadow-sm border border-gray-200 cursor-pointer transition-all hover:shadow-md ${filtreEstat === 'tots' ? 'ring-2 ring-purple-500' : ''}`}
               onClick={() => setFiltreEstat('tots')}
             >
               <div className="flex items-center justify-between">
@@ -185,7 +202,7 @@ export function GestioTiquets() {
               </div>
             </div>
             <div 
-              className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${filtreEstat === 'abierto' ? 'ring-2 ring-yellow-500' : ''}`}
+              className={`bg-white p-4 rounded-lg shadow-sm border border-gray-200 cursor-pointer transition-all hover:shadow-md ${filtreEstat === 'abierto' ? 'ring-2 ring-yellow-500' : ''}`}
               onClick={() => setFiltreEstat('abierto')}
             >
               <div className="flex items-center justify-between">
@@ -199,7 +216,7 @@ export function GestioTiquets() {
               </div>
             </div>
             <div 
-              className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${filtreEstat === 'en_proceso' ? 'ring-2 ring-blue-500' : ''}`}
+              className={`bg-white p-4 rounded-lg shadow-sm border border-gray-200 cursor-pointer transition-all hover:shadow-md ${filtreEstat === 'en_proceso' ? 'ring-2 ring-blue-500' : ''}`}
               onClick={() => setFiltreEstat('en_proceso')}
             >
               <div className="flex items-center justify-between">
@@ -213,7 +230,7 @@ export function GestioTiquets() {
               </div>
             </div>
             <div 
-              className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${filtreEstat === 'resuelto' ? 'ring-2 ring-green-500' : ''}`}
+              className={`bg-white p-4 rounded-lg shadow-sm border border-gray-200 cursor-pointer transition-all hover:shadow-md ${filtreEstat === 'resuelto' ? 'ring-2 ring-green-500' : ''}`}
               onClick={() => setFiltreEstat('resuelto')}
             >
               <div className="flex items-center justify-between">
@@ -227,7 +244,7 @@ export function GestioTiquets() {
               </div>
             </div>
             <div 
-              className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${filtreEstat === 'rechazado' ? 'ring-2 ring-red-500' : ''}`}
+              className={`bg-white p-4 rounded-lg shadow-sm border border-gray-200 cursor-pointer transition-all hover:shadow-md ${filtreEstat === 'rechazado' ? 'ring-2 ring-red-500' : ''}`}
               onClick={() => setFiltreEstat('rechazado')}
             >
               <div className="flex items-center justify-between">
@@ -247,7 +264,7 @@ export function GestioTiquets() {
         {filterMode === 'prioritat' && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
             <div 
-              className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${filtrePrioritat === 'totes' ? 'ring-2 ring-purple-500' : ''}`}
+              className={`bg-white p-4 rounded-lg shadow-sm border border-gray-200 cursor-pointer transition-all hover:shadow-md ${filtrePrioritat === 'totes' ? 'ring-2 ring-purple-500' : ''}`}
               onClick={() => setFiltrePrioritat('totes')}
             >
               <div className="flex items-center justify-between">
@@ -261,7 +278,7 @@ export function GestioTiquets() {
               </div>
             </div>
             <div 
-              className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${filtrePrioritat === 'baja' ? 'ring-2 ring-green-500' : ''}`}
+              className={`bg-white p-4 rounded-lg shadow-sm border border-gray-200 cursor-pointer transition-all hover:shadow-md ${filtrePrioritat === 'baja' ? 'ring-2 ring-green-500' : ''}`}
               onClick={() => setFiltrePrioritat('baja')}
             >
               <div className="flex items-center justify-between">
@@ -275,7 +292,7 @@ export function GestioTiquets() {
               </div>
             </div>
             <div 
-              className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${filtrePrioritat === 'normal' ? 'ring-2 ring-blue-500' : ''}`}
+              className={`bg-white p-4 rounded-lg shadow-sm border border-gray-200 cursor-pointer transition-all hover:shadow-md ${filtrePrioritat === 'normal' ? 'ring-2 ring-blue-500' : ''}`}
               onClick={() => setFiltrePrioritat('normal')}
             >
               <div className="flex items-center justify-between">
@@ -289,7 +306,7 @@ export function GestioTiquets() {
               </div>
             </div>
             <div 
-              className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${filtrePrioritat === 'alta' ? 'ring-2 ring-yellow-500' : ''}`}
+              className={`bg-white p-4 rounded-lg shadow-sm border border-gray-200 cursor-pointer transition-all hover:shadow-md ${filtrePrioritat === 'alta' ? 'ring-2 ring-yellow-500' : ''}`}
               onClick={() => setFiltrePrioritat('alta')}
             >
               <div className="flex items-center justify-between">
@@ -303,7 +320,7 @@ export function GestioTiquets() {
               </div>
             </div>
             <div 
-              className={`bg-white p-4 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${filtrePrioritat === 'urgente' ? 'ring-2 ring-red-500' : ''}`}
+              className={`bg-white p-4 rounded-lg shadow-sm border border-gray-200 cursor-pointer transition-all hover:shadow-md ${filtrePrioritat === 'urgente' ? 'ring-2 ring-red-500' : ''}`}
               onClick={() => setFiltrePrioritat('urgente')}
             >
               <div className="flex items-center justify-between">
@@ -321,7 +338,7 @@ export function GestioTiquets() {
         
         {/* Gràfic d'estat de tiquets */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <div className="bg-white p-4 rounded-lg shadow">
+          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
             <h2 className="text-lg font-medium mb-4 text-gray-800">
               {filterMode === 'estat' ? 'Distribució d\'Estats' : 'Distribució de Prioritats'}
             </h2>
@@ -352,7 +369,7 @@ export function GestioTiquets() {
             </div>
           </div>
           
-          <div className="bg-white p-4 rounded-lg shadow">
+          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
             <h2 className="text-lg font-medium mb-4 text-gray-800">Resum de Tiquets</h2>
             <div className="overflow-y-auto h-64">
               <table className="min-w-full bg-white">
@@ -396,10 +413,12 @@ export function GestioTiquets() {
             </div>
           </div>
         </div>
-      </div>
       
-      {/* Llista de tiquets */}
-      <TiquetsList tiquets={tiquetsFiltrats} onTicketStatusChange={handleTiquetUpdated} />
+        {/* Llista de tiquets */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <TiquetsList tiquets={tiquetsFiltrats} onTicketStatusChange={handleTiquetUpdated} />
+        </div>
+      </div>
     </div>
   );
 }

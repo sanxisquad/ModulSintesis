@@ -8,6 +8,7 @@ import {
   useMapEvents 
 } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+import { DefaultIcon } from '../MapView/icons'; // Import the DefaultIcon from our icons file
 import { toast } from 'react-hot-toast';
 
 // Coordenadas por defecto (centro de Cataluña)
@@ -232,7 +233,10 @@ export function MapPicker({ onLocationSelect, initialLat, initialLng, onCitySele
                         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                     />
                     {position.lat !== DEFAULT_POSITION.lat && position.lng !== DEFAULT_POSITION.lng && (
-                        <Marker position={[position.lat, position.lng]}>
+                        <Marker 
+                            position={[position.lat, position.lng]} 
+                            icon={DefaultIcon} // Use our imported DefaultIcon
+                        >
                             <Popup>
                                 <div>
                                     <p className="font-semibold">Ubicación seleccionada</p>

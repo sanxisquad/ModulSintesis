@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Footer } from "../../components/layout/Footer";
-import { MapView } from "../../components/MapView/MapContainer";
-import { FilterPanel } from '../../components/common/FilterPanel';
+import { HomeMapView } from "../../components/MapView/HomeMapContainer";
 import { useAuth } from '../../../hooks/useAuth';
 import { usePermissions } from '../../../hooks/usePermissions';
 import { 
@@ -14,17 +13,6 @@ import {
 export const HomePage = () => {
   const { isAuthenticated } = useAuth();
   const { canEditZR } = usePermissions();
-
-  const [filters, setFilters] = useState({
-    ciutat: '',
-    zona: '',
-    estat: '',
-    tipus: '',
-    codi: '',
-    nom: '',
-    showContenedores: true,
-    showZones: true
-  });
 
   const [contenedores, setContenedores] = useState([]);
   const [zonas, setZonas] = useState([]);
@@ -71,12 +59,6 @@ export const HomePage = () => {
     
     fetchData();
   }, [isAuthenticated, canEditZR]);
-
-  const ciudades = [...new Set(contenedores.map(c => c.ciutat).filter(Boolean))];
-  const zonas_options = zonas.map(zona => ({ id: zona.id, nom: zona.nom }));
-  
-  const estatOptions = ['buit', 'mig', 'ple'];
-  const tipusOptions = ['vidre', 'paper', 'plàstic', 'orgànic', 'indiferenciat'];
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -212,7 +194,7 @@ export const HomePage = () => {
           </div>
         </section>
         
-        {/* Map Section */}
+        {/* Map Section - Updated to use the new HomeMapView component */}
         <section id="mapa" className="w-full py-16 bg-gray-50">
           <div className="max-w-6xl mx-auto px-4">
             <h2 className="text-3xl md:text-4xl font-bold text-center mb-8 text-gray-800">Troba contenidors a prop teu</h2>
@@ -234,16 +216,6 @@ export const HomePage = () => {
               </div>
             )}
             
-            <FilterPanel
-              filters={filters}
-              setFilters={setFilters}
-              ciudades={ciudades}
-              zonas={zonas_options}
-              estatOptions={estatOptions}
-              tipusOptions={tipusOptions}
-              mode="mapa"
-            />
-            
             {loading ? (
               <div className="flex justify-center items-center h-64 bg-white rounded-lg shadow-sm">
                 <div className="text-center p-4">
@@ -252,9 +224,8 @@ export const HomePage = () => {
                 </div>
               </div>
             ) : (
-              <MapView
+              <HomeMapView
                 className="w-full h-96 mt-6 rounded-lg shadow-lg"
-                filters={filters}
                 contenedores={contenedores}
                 zonas={zonas}
               />
