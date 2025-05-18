@@ -275,6 +275,7 @@ class ReporteContenedorViewSet(viewsets.ModelViewSet):
         reporte.save()
         
         if reporte.usuario:
+            # Crear notificación
             Notificacion.objects.create(
                 usuario=reporte.usuario,
                 tipo='reporte',
@@ -283,6 +284,22 @@ class ReporteContenedorViewSet(viewsets.ModelViewSet):
                 relacion_reporte=reporte
             )
             
+            # Incrementar contador de tickets rechazados
+            usuario = reporte.usuario
+            
+            # Verificar si han pasado 6 meses desde el último ticket rechazado
+            usuario.verificar_inactividad_tickets_rechazados()
+            
+            # Actualizar fecha del último ticket rechazado
+            usuario.ultimo_ticket_rechazado = timezone.now()
+            usuario.tickets_rechazados_acumulados += 1
+            
+            # Verificar si se debe aplicar la penalización (exactamente cuando llega a 5)
+            if usuario.tickets_rechazados_acumulados >= 5:
+                usuario.aplicar_penalizacion_tickets_rechazados()
+            else:
+                usuario.save()
+        
         return Response({'status': 'Reporte rechazado correctamente'})
 
     @action(detail=True, methods=['post'])
@@ -340,8 +357,25 @@ class ReporteContenedorViewSet(viewsets.ModelViewSet):
                     mensaje=f"El teu tiquet #{updated_instance.id} ha estat rebutjat.",
                     relacion_reporte=updated_instance
                 )
+                
+                # Incrementar contador de tickets rechazados
+                usuario_reporte = updated_instance.usuario
+                
+                # Verificar si han pasado 6 meses desde el último ticket rechazado
+                usuario_reporte.verificar_inactividad_tickets_rechazados()
+                
+                # Actualizar fecha del último ticket rechazado
+                usuario_reporte.ultimo_ticket_rechazado = timezone.now()
+                usuario_reporte.tickets_rechazados_acumulados += 1
+                
+                # Verificar si se debe aplicar la penalización
+                if usuario_reporte.tickets_rechazados_acumulados >= 5:
+                    usuario_reporte.aplicar_penalizacion_tickets_rechazados()
+                else:
+                    usuario_reporte.save()
         
         return updated_instance
+
 
 class NotificacionViewSet(viewsets.ModelViewSet):
     serializer_class = NotificacionSerializer
@@ -364,6 +398,7 @@ class NotificacionViewSet(viewsets.ModelViewSet):
         notificacion.leida = True
         notificacion.save()
         return Response({"message": "Notificación marcada como leída"}, status=status.HTTP_200_OK)
+
 
 class ComentarioReporteViewSet(viewsets.ModelViewSet):
     serializer_class = ComentarioReporteSerializer

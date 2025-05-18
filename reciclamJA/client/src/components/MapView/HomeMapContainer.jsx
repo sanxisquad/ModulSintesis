@@ -289,7 +289,7 @@ export function HomeMapView({ contenedores: propContenedores = [], zonas: propZo
   const handleReportProblem = (item, type) => {
     // Verify if user is authenticated
     if (!isAuthenticated) {
-      alert("Debes iniciar sesión para reportar problemas");
+      toast.error("Debes iniciar sesión para reportar problemas");
       return;
     }
     
@@ -366,7 +366,7 @@ export function HomeMapView({ contenedores: propContenedores = [], zonas: propZo
     </div>
   );
 
-  // Render container popup on the map
+  // Render container popup on the map - FIXED all contenidor to contenedor references
   const renderContenedorPopup = (contenedor) => (
     <div className="p-3 rounded shadow-lg bg-white text-gray-800 max-w-xs">
       <div className={`h-1.5 -mt-3 -mx-3 mb-3 rounded-t ${getTipusColor(contenedor.tipus)}`}></div>
@@ -737,7 +737,7 @@ export function HomeMapView({ contenedores: propContenedores = [], zonas: propZo
   );
 }
 
-// Component to report problems
+// Component to report problems - Fixed with Catalan translations
 function ReporteProblemForm({ isOpen, onClose, item, itemType }) {
   const [formData, setFormData] = useState({
     tipo: 'mal_estado',
@@ -766,6 +766,7 @@ function ReporteProblemForm({ isOpen, onClose, item, itemType }) {
 
   if (!isOpen) return null;
 
+  // Translated options to Catalan
   const TIPO_REPORTE = [
     ['mal_estado', 'Contenidor en mal estat'],
     ['lleno', 'Contenidor ple'],
@@ -893,7 +894,77 @@ function ReporteProblemForm({ isOpen, onClose, item, itemType }) {
           )}
           
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* ...existing form fields... */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Tipus de problema
+              </label>
+              <select
+                name="tipo"
+                value={formData.tipo}
+                onChange={handleChange}
+                className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 text-gray-800 bg-white"
+                required
+              >
+                {TIPO_REPORTE.map(([value, label]) => (
+                  <option key={value} value={value} className="text-gray-800">{label}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Prioritat
+              </label>
+              <select
+                name="prioridad"
+                value={formData.prioridad}
+                onChange={handleChange}
+                className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 text-gray-800 bg-white"
+                required
+              >
+                {PRIORIDAD_REPORTE.map(([value, label]) => (
+                  <option key={value} value={value} className="text-gray-800">{label}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Descripció del problema
+              </label>
+              <textarea
+                name="descripcion"
+                value={formData.descripcion}
+                onChange={handleChange}
+                rows="4"
+                className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
+                placeholder="Descriu el problema amb detall..."
+                required
+              ></textarea>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Imatge (opcional)
+              </label>
+              <input
+                type="file"
+                name="imagen"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              />
+              
+              {previewImage && (
+                <div className="mt-2">
+                  <img 
+                    src={previewImage} 
+                    alt="Vista prèvia" 
+                    className="h-32 w-auto object-cover rounded-md"
+                  />
+                </div>
+              )}
+            </div>
             
             <div className="flex justify-end space-x-3 pt-2">
               <button
