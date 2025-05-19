@@ -112,20 +112,54 @@ export async function checkEmailExists(email) {
 
 // Request password reset email
 export const requestPasswordReset = async (email) => {
-  return axios.post(`${API_URL}/accounts/reset-password/request/`, { email });
+  try {
+    console.log("[DEBUG] Requesting password reset for email:", email);
+    const resetUrl = `${apiConfig.getBaseUrls().authService}accounts/reset-password/request/`;
+    console.log("[DEBUG] Reset request URL:", resetUrl);
+    
+    const response = await axios.post(resetUrl, { email });
+    console.log("[DEBUG] Reset request response:", response.data);
+    return response;
+  } catch (error) {
+    console.error("[DEBUG] Password reset request error:", error);
+    console.error("[DEBUG] Response data:", error.response?.data);
+    console.error("[DEBUG] Status code:", error.response?.status);
+    throw error;
+  }
 };
 
 // Verify reset token
 export const verifyResetToken = async (uid, token) => {
-  const response = await axios.get(`${API_URL}/accounts/reset-password/verify/${uid}/${token}/`);
-  return response.data;
+  try {
+    console.log("[DEBUG] Verifying token:", { uid, token });
+    const verifyUrl = `${apiConfig.getBaseUrls().authService}accounts/reset-password/verify/${uid}/${token}/`;
+    console.log("[DEBUG] Verification URL:", verifyUrl);
+    
+    const response = await axios.get(verifyUrl);
+    console.log("[DEBUG] Token verification response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("[DEBUG] Token verification error:", error);
+    throw error;
+  }
 };
 
 // Reset password with token
 export const resetPassword = async (uid, token, newPassword) => {
-  return axios.post(`${API_URL}/accounts/reset-password/reset/`, {
-    uid,
-    token,
-    new_password: newPassword
-  });
+  try {
+    console.log("[DEBUG] Resetting password with token");
+    const resetPasswordUrl = `${apiConfig.getBaseUrls().authService}accounts/reset-password/reset/`;
+    console.log("[DEBUG] Password reset URL:", resetPasswordUrl);
+    
+    const response = await axios.post(resetPasswordUrl, {
+      uid,
+      token,
+      new_password: newPassword
+    });
+    console.log("[DEBUG] Password reset response:", response.data);
+    return response;
+  } catch (error) {
+    console.error("[DEBUG] Password reset error:", error);
+    throw error;
+  }
 };

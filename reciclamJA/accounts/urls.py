@@ -29,8 +29,13 @@ urlpatterns = [
     path('api/v1/empreses/', views.EmpresaViewSet.as_view({'get': 'list'}), name='empresas'),  # Ruta para empresas
     path('api/v1/auth/check-email/', CheckEmailView.as_view(), name='check_email'),
 
-    # Rutas para restablecimiento de contraseña
-    path('reset-password/request/', RequestPasswordResetView.as_view(), name='request-password-reset'),
-    path('reset-password/verify/<str:uidb64>/<str:token>/', VerifyTokenView.as_view(), name='verify-token'),
-    path('reset-password/reset/', ResetPasswordView.as_view(), name='reset-password'),
+    # Rutas para restablecimiento de contraseña - Updated to match frontend request URLs
+    path('api/v1/auth/accounts/reset-password/request/', RequestPasswordResetView.as_view(), name='request-password-reset'),
+    path('api/v1/auth/accounts/reset-password/verify/<str:uidb64>/<str:token>/', VerifyTokenView.as_view(), name='verify-token'),
+    path('api/v1/auth/accounts/reset-password/reset/', ResetPasswordView.as_view(), name='reset-password'),
+    
+    # Keep old URLs as well for backward compatibility
+    path('reset-password/request/', RequestPasswordResetView.as_view(), name='request-password-reset-old'),
+    path('reset-password/verify/<str:uidb64>/<str:token>/', VerifyTokenView.as_view(), name='verify-token-old'),
+    path('reset-password/reset/', ResetPasswordView.as_view(), name='reset-password-old'),
 ]

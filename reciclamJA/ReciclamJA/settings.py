@@ -188,3 +188,6 @@ EMAIL_DEBUG = config('EMAIL_DEBUG', cast=bool, default=False)
 
 # Frontend URL for password reset links
 FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:5173')
+
+# Password reset settings
+PASSWORD_RESET_TIMEOUT = 60 * 60  # 1 hour in seconds (changed from 7 days)
