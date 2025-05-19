@@ -174,12 +174,17 @@ SIMPLE_JWT = {
 }
 
 # Email Configuration for Development
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-DEFAULT_FROM_EMAIL = 'no-reply@reciclamja.com'
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = config('EMAIL_HOST')
+EMAIL_PORT = config('EMAIL_PORT', cast=int, default=587)
+EMAIL_USE_TLS = config('EMAIL_USE_TLS', cast=bool, default=True)
+EMAIL_HOST_USER = config('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='no-reply@reciclamja.com')
 EMAIL_SUBJECT_PREFIX = '[ReciclamJA] '
 
 # For debugging email issues
-EMAIL_DEBUG = True
+EMAIL_DEBUG = config('EMAIL_DEBUG', cast=bool, default=False)
 
 # Frontend URL for password reset links
-FRONTEND_URL = 'http://localhost:5173'  # Change this to your frontend URL
+FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:5173')
