@@ -11,12 +11,26 @@ from rest_framework import status
 from .permissions import IsSuperAdmin, IsAdminEmpresa, IsGestor, CombinedPermission  # Importa las clases de permisos
 from rest_framework import permissions  # Importa permissions para usar permissions.IsAuthenticated()
 from rest_framework.exceptions import PermissionDenied
+from .services import enviar_correo_credenciales  # Importa la función para enviar correo
 
 # Vista de registro
 class RegisterView(generics.CreateAPIView):
     queryset = CustomUser.objects.all()
     permission_classes = (AllowAny,)  # Permite acceso sin autenticación
     serializer_class = CustomUserSerializer
+
+    def perform_create(self, serializer):
+        user = serializer.save()
+        
+        # Enviar correo con credenciales (si tienes el password en texto plano)
+        enviar_correo_credenciales(
+            nombre=user.first_name,
+            email=user.email,
+            password=serializer.validated_data['password'],  # Asegúrate de tener esto disponible
+            apellidos=user.last_name
+        )
+
+        return user
 
 # Aquí los viewsets para 'users' y 'roles'
 from rest_framework import viewsets

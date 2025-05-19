@@ -1,0 +1,22 @@
+/* Ensure the main navigation/menu has higher z-index than map */
+.main-nav, 
+.main-menu,
+.navbar,
+header {
+  position: relative;
+  z-index: 10 !important;
+}
+
+/* Make sure map container stays behind menu */
+.leaflet-container {
+  z-index: 1;
+}
+
+.leaflet-control {
+  z-index: 2;
+}
+
+/* Ensure popups still appear above the map */
+.leaflet-popup {
+  z-index: 3;
+}

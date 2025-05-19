@@ -172,3 +172,11 @@ SIMPLE_JWT = {
     'ALGORITHM': 'HS256',
     'SIGNING_KEY': SECRET_KEY,
 }
+
+# Email Configuration for Development
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+DEFAULT_FROM_EMAIL = 'no-reply@reciclamja.com'
+EMAIL_SUBJECT_PREFIX = '[ReciclamJA] '
+
+# Frontend URL for password reset links
+FRONTEND_URL = 'http://localhost:5173'

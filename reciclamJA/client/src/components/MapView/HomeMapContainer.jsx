@@ -340,13 +340,18 @@ export function HomeMapView({ contenedores: propContenedores = [], zonas: propZo
     }
   };
 
-  // Render container item in the sidebar - Fixed: All references now use parameter 'contenedor'
+  // Function to capitalize first letter of container type
+  const capitalizeFirstLetter = (string) => {
+    return string ? string.charAt(0).toUpperCase() + string.slice(1) : '';
+  };
+
+  // Render container item in the sidebar
   const renderContenedorItem = (contenedor) => (
     <div key={contenedor.id} className="border-b border-gray-200 py-2 last:border-b-0">
       <div className="flex items-center">
         {/* Add color indicator for container type */}
         <div className={`w-3 h-3 rounded-full mr-2 ${getTipusColor(contenedor.tipus)}`}></div>
-        <div className="font-medium text-gray-800">{contenedor.nom || contenedor.cod}</div>
+        <div className="font-medium text-gray-800">{capitalizeFirstLetter(contenedor.tipus) || 'Contenidor'}</div>
       </div>
       <div className={`text-sm ${
         contenedor.estat === 'buit' ? 'text-green-600' :
@@ -355,18 +360,13 @@ export function HomeMapView({ contenedores: propContenedores = [], zonas: propZo
       }`}>
         Estat: {contenedor.estat}
       </div>
-      {contenedor.tipus && (
-        <div className="text-xs text-gray-600 ml-5">
-          Tipus: <span className={`font-medium ${getTipusTextColor(contenedor.tipus)}`}>{contenedor.tipus}</span>
-        </div>
-      )}
       {canViewAllContent && contenedor.is_private && (
         <div className="mt-1 text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Privat</div>
       )}
     </div>
   );
 
-  // Render container popup on the map - FIXED all contenidor to contenedor references
+  // Render container popup on the map
   const renderContenedorPopup = (contenedor) => (
     <div className="p-3 rounded shadow-lg bg-white text-gray-800 max-w-xs">
       <div className={`h-1.5 -mt-3 -mx-3 mb-3 rounded-t ${getTipusColor(contenedor.tipus)}`}></div>
@@ -374,7 +374,7 @@ export function HomeMapView({ contenedores: propContenedores = [], zonas: propZo
       <h3 className="text-lg font-semibold mb-2 text-gray-800">
         <div className="flex items-center">
           <div className={`w-3 h-3 rounded-full mr-2 ${getTipusColor(contenedor.tipus)}`}></div>
-          {contenedor.nom || contenedor.cod}
+          {capitalizeFirstLetter(contenedor.tipus) || 'Contenidor'}
         </div>
       </h3>
       <p className={`font-medium mb-1 ${
@@ -385,11 +385,6 @@ export function HomeMapView({ contenedores: propContenedores = [], zonas: propZo
         Estat: {contenedor.estat}
       </p>
       {contenedor.ciutat && <p className="text-sm text-gray-700">Ciutat: {contenedor.ciutat}</p>}
-      {contenedor.tipus && (
-        <p className="text-sm text-gray-700">
-          Tipus: <span className={`font-medium ${getTipusTextColor(contenedor.tipus)}`}>{contenedor.tipus}</span>
-        </p>
-      )}
       {/* Add zone info if assigned */}
       {contenedor.zona && contenedor.zona_nombre && (
         <p className="text-sm text-gray-700">
@@ -550,12 +545,12 @@ export function HomeMapView({ contenedores: propContenedores = [], zonas: propZo
       {/* Fix the layout to prevent the blank space issue */}
       <div className="w-full grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Map section - always takes full width on mobile, 2/3 on desktop when sidebar is visible */}
-        <div className={`${showSidebar ? 'lg:col-span-2' : 'lg:col-span-3'} bg-white rounded-lg shadow-md overflow-hidden relative h-[500px]`}>
+        <div className={`${showSidebar ? 'lg:col-span-2' : 'lg:col-span-3'} bg-white rounded-lg shadow-md overflow-hidden relative h-[500px]`} style={{ zIndex: 1 }}>
           <MapContainer
             center={[userLocation.lat, userLocation.lng]}
             zoom={12}
             className="w-full h-full"
-            style={{ borderRadius: "0.5rem" }}
+            style={{ borderRadius: "0.5rem", zIndex: 1 }}
             zoomControl={false}
             ref={mapRef}
           >

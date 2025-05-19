@@ -109,3 +109,23 @@ export async function checkEmailExists(email) {
         return false;
     }
 }
+
+// Request password reset email
+export const requestPasswordReset = async (email) => {
+  return axios.post(`${API_URL}/accounts/reset-password/request/`, { email });
+};
+
+// Verify reset token
+export const verifyResetToken = async (uid, token) => {
+  const response = await axios.get(`${API_URL}/accounts/reset-password/verify/${uid}/${token}/`);
+  return response.data;
+};
+
+// Reset password with token
+export const resetPassword = async (uid, token, newPassword) => {
+  return axios.post(`${API_URL}/accounts/reset-password/reset/`, {
+    uid,
+    token,
+    new_password: newPassword
+  });
+};

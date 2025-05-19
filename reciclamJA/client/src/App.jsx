@@ -20,6 +20,8 @@ import { Unauthorized } from './pages/auth/Unauthorized';
 import { ZonaContenedoresView } from './components/zr/ZonaContenedoresView';
 import { GestioTiquets } from './pages/gestor/GestioTiquets';
 import { TiquetView } from './components/tiquets/TiquetView';
+import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
 
 import { ConfirmDialogProvider } from './components/common/ConfirmDialog';
 
@@ -36,6 +38,8 @@ function App() {
               <Route path="/login" element={<LoginFormPage />} />
               <Route path="/register" element={<RegisterFormPage />} />
               <Route path="/unauthorized" element={<Unauthorized />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password/:uid/:token" element={<ResetPasswordPage />} />
 
               {/* LOGUEJATS */}
               <Route element={<ProtectedRoute allowedRoles={["isUser", "isGestor", "isAdmin", "isSuperAdmin"]} />}> 

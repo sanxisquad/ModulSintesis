@@ -530,38 +530,27 @@ export function TiquetView() {
         </div>
       </div>
       
-      {/* Original comment form for closing the ticket */}
-      <div className="bg-white p-6 border-b border-l border-r rounded-b-lg border-gray-200 mt-4">
-        <h2 className="text-lg font-semibold text-gray-800 mb-2">Canviar estat</h2>
-        <textarea
-          value={comentario}
-          onChange={(e) => setComentario(e.target.value)}
-          className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          rows="3"
-          placeholder="Afegeix un comentari opcional..."
-        ></textarea>
-        
-        <div className="mt-4 flex justify-end">
-          <button
-            onClick={handleUpdateState}
-            disabled={updating}
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-300"
-          >
-            {updating ? (
-              <>
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                Actualitzant...
-              </>
-            ) : (
-              <>
-                <Save className="h-4 w-4 mr-2" />
-                {selectedStatus !== tiquet.estado 
-                  ? `Canviar estat a ${getTraduccionEstado(selectedStatus)}`
-                  : "Desar comentari"}
-              </>
-            )}
-          </button>
-        </div>
+      {/* Status Update Button */}
+      <div className="mt-4 flex justify-end">
+        <button
+          onClick={handleUpdateState}
+          disabled={updating}
+          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-300"
+        >
+          {updating ? (
+            <>
+              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              Actualitzant...
+            </>
+          ) : (
+            <>
+              <Save className="h-4 w-4 mr-2" />
+              {selectedStatus !== tiquet.estado 
+                ? `Canviar estat a ${getTraduccionEstado(selectedStatus)}`
+                : "Desar"}
+            </>
+          )}
+        </button>
       </div>
     </div>
   );

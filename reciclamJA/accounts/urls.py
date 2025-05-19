@@ -2,6 +2,7 @@ from django.urls import path, include
 from rest_framework import routers
 from accounts import views
 from .views import CheckEmailView  
+from .password_reset import RequestPasswordResetView, VerifyTokenView, ResetPasswordView
 
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -27,4 +28,9 @@ urlpatterns = [
     path('api/v1/auth/logout/', views.LogoutView.as_view(), name='auth_logout'),  # Ruta de logout
     path('api/v1/empreses/', views.EmpresaViewSet.as_view({'get': 'list'}), name='empresas'),  # Ruta para empresas
     path('api/v1/auth/check-email/', CheckEmailView.as_view(), name='check_email'),
+
+    # Rutas para restablecimiento de contraseña
+    path('reset-password/request/', RequestPasswordResetView.as_view(), name='request-password-reset'),
+    path('reset-password/verify/<str:uidb64>/<str:token>/', VerifyTokenView.as_view(), name='verify-token'),
+    path('reset-password/reset/', ResetPasswordView.as_view(), name='reset-password'),
 ]
