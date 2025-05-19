@@ -178,5 +178,8 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 DEFAULT_FROM_EMAIL = 'no-reply@reciclamja.com'
 EMAIL_SUBJECT_PREFIX = '[ReciclamJA] '
 
+# For debugging email issues
+EMAIL_DEBUG = True
+
 # Frontend URL for password reset links
-FRONTEND_URL = 'http://localhost:5173'
+FRONTEND_URL = 'http://localhost:5173'  # Change this to your frontend URL

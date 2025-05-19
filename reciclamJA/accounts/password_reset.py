@@ -15,26 +15,47 @@ class RequestPasswordResetView(APIView):
     def post(self, request):
         email = request.data.get('email')
         if not email:
-            return Response({'error': 'El email es requerido'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'El correu electrònic és obligatori'}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
+            print(f"\n[DEBUG] Password reset requested for: {email}")
             user = CustomUser.objects.get(email=email)
+            
             # Generate token
             token = default_token_generator.make_token(user)
             uid = urlsafe_base64_encode(force_bytes(user.pk))
             
             # Build reset URL (frontend URL)
             reset_url = f"{settings.FRONTEND_URL}/reset-password/{uid}/{token}"
+            print(f"[DEBUG] Generated reset URL: {reset_url}")
             
             # Send email using our service
-            enviar_correo_reset_password(email, reset_url)
+            email_sent = enviar_correo_reset_password(email, reset_url)
             
-            return Response({'message': 'Se ha enviado un correo para recuperar la contraseña'}, 
-                           status=status.HTTP_200_OK)
+            print(f"[DEBUG] Email sending result: {email_sent}")
+            
+            return Response({
+                'message': "S'ha enviat un correu per recuperar la contrasenya",
+                'email_sent': email_sent,
+                'email': email  # Only include in development
+            }, status=status.HTTP_200_OK)
+            
         except CustomUser.DoesNotExist:
+            print(f"[DEBUG] User with email {email} not found")
             # For security reasons, don't reveal that the user doesn't exist
-            return Response({'message': 'Se ha enviado un correo para recuperar la contraseña (si existe)'}, 
-                          status=status.HTTP_200_OK)
+            return Response({
+                'message': "S'ha enviat un correu per recuperar la contrasenya (si existeix)",
+                'email_sent': False,
+                'email_exists': False  # Only include in development
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(f"[DEBUG] Unexpected error in password reset: {str(e)}")
+            import traceback
+            print(traceback.format_exc())
+            return Response({
+                'error': "Hi ha hagut un error en processar la sol·licitud",
+                'detail': str(e)  # Only include in development
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class VerifyTokenView(APIView):
     """

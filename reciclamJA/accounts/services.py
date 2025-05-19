@@ -151,11 +151,28 @@ def enviar_correo_reset_password(email, reset_url):
     </html>
     """
     
-    msg = EmailMultiAlternatives(
-        subject=subject,
-        body=strip_tags(html_content),  # Plain text fallback
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        to=[email]
-    )
-    msg.attach_alternative(html_content, "text/html")
-    return msg.send()
+    # Print debugging info
+    print(f"\n[EMAIL DEBUG] Sending password reset email to: {email}")
+    print(f"[EMAIL DEBUG] Reset URL: {reset_url}")
+    
+    try:
+        from django.conf import settings
+        from django.core.mail import EmailMultiAlternatives
+        from django.utils.html import strip_tags
+        
+        msg = EmailMultiAlternatives(
+            subject=subject,
+            body=strip_tags(html_content),  # Plain text fallback
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[email]
+        )
+        msg.attach_alternative(html_content, "text/html")
+        sent = msg.send()
+        
+        print(f"[EMAIL DEBUG] Email sent successfully: {sent}")
+        return sent
+    except Exception as e:
+        print(f"[EMAIL DEBUG] ERROR sending email: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        return False
