@@ -436,8 +436,229 @@ ${debugInfo}
     // Añadir más productos verificados si es necesario
   ];
 
+  const [codigoBarras, setCodigoBarras] = useState('');
+  const [errorForm, setErrorForm] = useState(null);
+  const [success, setSuccess] = useState(null);
+
+  // Manejar el envío del formulario de código manual
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+    
+    try {
+      const result = await escanearCodigo(codigoBarras);
+      
+      if (result.error) {
+        setError({
+          title: result.titulo || "Error",
+          message: result.mensaje || "No se ha podido escanear el código",
+          type: result.tipo || "error_general"
+        });
+      } else {
+        setSuccess({
+          product: result.producto,
+          points: result.puntos_nuevos,
+          totalPoints: result.puntos_totales,
+          material: result.material,
+          availableBags: result.bolsas_disponibles || []
+        });
+      }
+    } catch (error) {
+      console.error('Error al escanear código:', error);
+      setError({
+        title: "Error al escanear",
+        message: error.message || "Ha ocurrido un error al escanear el código",
+        type: "error_general"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Render success message and options for virtual bags
+  const renderSuccess = () => {
+    const [selectedBag, setSelectedBag] = useState(null);
+    const [addingToBag, setAddingToBag] = useState(false);
+    
+    const handleAddToBag = async () => {
+      if (!selectedBag) return;
+      
+      setAddingToBag(true);
+      try {
+        await agregarProductoABolsa(success.product.id, selectedBag);
+        toast.success("Producto añadido a la bolsa");
+        // Después de agregar, limpiar el estado para seguir escaneando
+        setSuccess(null);
+        setCodigoBarras("");
+      } catch (error) {
+        console.error("Error al añadir a la bolsa:", error);
+        toast.error("No se pudo añadir el producto a la bolsa");
+      } finally {
+        setAddingToBag(false);
+      }
+    };
+    
+    return (
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-green-600 flex items-center">
+            <FaCheck className="mr-2" /> Producto reciclado con éxito
+          </h3>
+          <span className="text-green-600 font-bold">+{success.points} pts</span>
+        </div>
+        
+        <div className="mt-4 flex flex-col md:flex-row">
+          {success.product.imagen_url ? (
+            <img 
+              src={success.product.imagen_url} 
+              alt={success.product.nombre_producto} 
+              className="w-24 h-24 object-contain rounded mr-4 mb-4 md:mb-0"
+            />
+          ) : (
+            <div className="w-24 h-24 bg-gray-100 rounded flex items-center justify-center mr-4 mb-4 md:mb-0">
+              <FaBox className="text-gray-400 text-4xl" />
+            </div>
+          )}
+          
+          <div className="flex-1">
+            <h4 className="font-medium text-lg">{success.product.nombre_producto}</h4>
+            <p className="text-gray-600">{success.product.marca}</p>
+            <div className="flex items-center mt-2">
+              <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                {success.material.nombre}
+              </span>
+            </div>
+          </div>
+        </div>
+        
+        {/* Opciones de bolsas virtuales */}
+        {success.availableBags && success.availableBags.length > 0 ? (
+          <div className="mt-6 border-t pt-4">
+            <h4 className="font-medium mb-3">¿Añadir a una bossa virtual?</h4>
+            <div className="space-y-2 max-h-48 overflow-y-auto mb-4">
+              {success.availableBags.map(bag => (
+                <button
+                  key={bag.id}
+                  onClick={() => setSelectedBag(bag.id)}
+                  className={`w-full p-3 border rounded-lg flex justify-between items-center ${
+                    selectedBag === bag.id 
+                      ? 'bg-green-50 border-green-500' 
+                      : 'hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="flex items-center">
+                    <FaTrash className="text-gray-500 mr-2" />
+                    <span>{bag.nombre || `Bossa #${bag.id}`}</span>
+                  </div>
+                  <span className="text-sm text-green-600 font-medium">{bag.puntos_totales} pts</span>
+                </button>
+              ))}
+            </div>
+            
+            <div className="flex justify-between">
+              <button
+                onClick={() => {
+                  setSuccess(null);
+                  setCodigoBarras("");
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                No, gràcies
+              </button>
+              <button
+                onClick={handleAddToBag}
+                disabled={!selectedBag || addingToBag}
+                className={`px-4 py-2 rounded-lg text-white ${
+                  selectedBag && !addingToBag
+                    ? 'bg-green-500 hover:bg-green-600' 
+                    : 'bg-gray-300 cursor-not-allowed'
+                }`}
+              >
+                {addingToBag ? (
+                  <>
+                    <FaSpinner className="inline animate-spin mr-2" />
+                    Afegint...
+                  </>
+                ) : (
+                  'Afegir a la bossa'
+                )}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-6 border-t pt-4">
+            <p className="text-gray-600">
+              No tens bosses disponibles per aquest material ({success.material.nombre}).
+            </p>
+            <div className="flex justify-between mt-4">
+              <button
+                onClick={() => {
+                  setSuccess(null);
+                  setCodigoBarras("");
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                Continuar
+              </button>
+              <Link 
+                to="/profile" 
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+              >
+                Crear bossa nova
+              </Link>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Función para renderizar el error
+  const renderError = () => {
+    if (!error) return null;
+    
+    // Special handling for cooldown errors
+    if (error.type === 'cooldown' && error.tiempo_restante) {
+      return (
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <FaClock className="h-5 w-5 text-yellow-400" />
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-yellow-800">{error.title}</h3>
+              <div className="mt-2 text-sm text-yellow-700">
+                <p>{error.message}</p>
+                <p className="mt-2 font-medium">
+                  Temps restant: {error.tiempo_restante.minutos}m {error.tiempo_restante.segundos}s
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    // Default error display for other error types
+    return (
+      <div className="mt-4 p-3 bg-red-100 text-red-700 rounded-lg">
+        <p className="font-bold mb-1">Error:</p>
+        <p className="text-sm">{error}</p>
+        <button 
+          className="mt-2 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded flex items-center" 
+          onClick={sendDebugInfo}
+        >
+          <FaBug className="mr-1" /> Enviar informe d'error
+        </button>
+      </div>
+    );
+  };
+  
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden">
+    <div className="bg-white p-6 rounded-lg shadow-lg max-w-2xl mx-auto">
       <div className="p-4 bg-green-600 text-white flex items-center justify-between">
         <h2 className="text-xl font-bold flex items-center">
           <FaQrcode className="mr-2" /> Escàner de Reciclatge
@@ -458,18 +679,7 @@ ${debugInfo}
           style={{ minHeight: '300px', width: '100%' }}
         ></div>
         
-        {error && (
-          <div className="mt-4 p-3 bg-red-100 text-red-700 rounded-lg">
-            <p className="font-bold mb-1">Error:</p>
-            <p className="text-sm">{error}</p>
-            <button 
-              className="mt-2 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded flex items-center" 
-              onClick={sendDebugInfo}
-            >
-              <FaBug className="mr-1" /> Enviar informe d'error
-            </button>
-          </div>
-        )}
+        {renderError()}
         
         {!permissionGranted && (
           <div className="mt-4 p-3 bg-amber-100 text-amber-700 rounded-lg">

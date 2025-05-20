@@ -1,74 +1,112 @@
 import requests
-import os
 from django.utils import timezone
-from django.db.models import Sum
 from rest_framework import status, permissions
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-
 from .models import Material, ProductoReciclado, BolsaVirtual
-from .serializers import MaterialSerializer, ProductoRecicladoSerializer, CodigoBarrasSerializer, BolsaVirtualSerializer
+from .serializers import (
+    CodigoBarrasSerializer, 
+    ProductoRecicladoSerializer, 
+    MaterialSerializer,
+    BolsaVirtualSerializer
+)
+from datetime import timedelta
 
-# Función auxiliar para determinar el material basado en la categoría o descripción del producto
-def determinar_material(producto_info):
-    # Lista de palabras clave para cada material
-    materiales_keywords = {
-        'plastico': ['plastic', 'plástico', 'pet', 'hdpe', 'pvc', 'ldpe', 'pp', 'ps', 'botella de plástico', 'bottle'],
-        'papel': ['paper', 'papel', 'cardboard', 'cartón', 'cartó', 'periódico', 'revista', 'newspaper', 'journal'],
-        'vidrio': ['glass', 'vidrio', 'botella de vidrio', 'frasco de vidrio', 'beer', 'cervesa', 'cerveza'],
-        'metal': ['metal', 'aluminio', 'aluminum', 'lata', 'can', 'tin', 'steel', 'coca-cola', 'coca cola', 'soda'],
-        'organico': ['organic', 'orgánico', 'food', 'comida', 'fruta', 'verdura', 'vegetal'],
-        'resto': ['mixed', 'mixto', 'resto', 'other', 'otro']
+def buscar_producto_openfoodfacts(codigo):
+    """
+    Busca información de un producto mediante su código de barras en la API de OpenFoodFacts.
+    Retorna un diccionario con la información del producto o None si no se encuentra.
+    """
+    url = f"https://world.openfoodfacts.org/api/v0/product/{codigo}.json"
+    
+    try:
+        response = requests.get(url, timeout=10)
+        data = response.json()
+        
+        if data.get('status') == 1:  # Producto encontrado
+            product = data.get('product', {})
+            
+            # Extraer información relevante
+            return {
+                'product_name': product.get('product_name') or product.get('product_name_es') or "Producte desconegut",
+                'brands': product.get('brands', ''),
+                'image_url': product.get('image_url', ''),
+                'packaging': product.get('packaging', ''),
+                'packaging_materials': product.get('packaging_materials', ''),
+                'packaging_tags': product.get('packaging_tags', []),
+                'categories': product.get('categories', ''),
+                'categories_tags': product.get('categories_tags', []),
+            }
+        return None
+    except Exception as e:
+        print(f"Error al buscar producto en OpenFoodFacts: {e}")
+        return None
+
+def determinar_material_producto(producto_info):
+    """
+    Determina el material de un producto basado en su información de packaging.
+    Retorna el objeto Material correspondiente o None si no se puede determinar.
+    """
+    if not producto_info:
+        return None
+    
+    # Obtener todos los materiales disponibles
+    materiales = Material.objects.all()
+    
+    # Diccionario de palabras clave para cada tipo de material
+    keywords = {
+        'plastico': ['plastic', 'pet', 'hdpe', 'ldpe', 'pp', 'ps', 'envase plástico', 'envase de plástico', 'plastic bottle', 'botella de plástico', 'plástico'],
+        'papel': ['paper', 'cardboard', 'carton', 'cartón', 'papel', 'papier', 'karton', 'folding box', 'caja plegable'],
+        'vidrio': ['glass', 'vidrio', 'cristal', 'vetro', 'glas'],
+        'metal': ['metal', 'aluminium', 'aluminum', 'tin', 'steel', 'can', 'lata', 'aluminio', 'acero'],
+        'organico': ['organic', 'compostable', 'biodegradable', 'food', 'orgánico'],
+        'resto': ['mixed', 'other', 'varios']
     }
     
-    # Códigos EAN conocidos para demostración/testing
-    codigos_conocidos = {
-        # Añadir unos códigos de ejemplo garantizados
-        '8480000160164': 'plastico',  # Agua Font Vella
-        '8414533043847': 'papel',     # Diario El País
-        '8410057320202': 'vidrio',    # Cerveza Estrella
-        '8410188012096': 'metal',     # Lata Coca-Cola
-        # Puedes añadir más códigos conocidos aquí
-    }
+    # Extraer información de packaging
+    packaging_text = producto_info.get('packaging', '').lower()
+    packaging_materials = producto_info.get('packaging_materials', '').lower()
+    packaging_tags = [tag.lower() for tag in producto_info.get('packaging_tags', [])]
     
-    # Comprobar si es un código conocido para demostración
-    barcode = producto_info.get('code', '')
-    if barcode in codigos_conocidos:
+    # Combinar todas las fuentes de información
+    all_packaging_info = packaging_text + ' ' + packaging_materials + ' ' + ' '.join(packaging_tags)
+    
+    # Detectar el material más probable
+    best_match = None
+    max_matches = 0
+    
+    for material_type, keywords_list in keywords.items():
+        matches = sum(1 for keyword in keywords_list if keyword in all_packaging_info)
+        if matches > max_matches:
+            max_matches = matches
+            best_match = material_type
+    
+    # Si encontramos una coincidencia, buscar el material correspondiente
+    if best_match and max_matches > 0:
         try:
-            print(f"⭐ Código conocido detectado: {barcode}, material: {codigos_conocidos[barcode]}")
-            return Material.objects.get(nombre__iexact=codigos_conocidos[barcode])
+            return Material.objects.get(nombre__iexact=best_match)
         except Material.DoesNotExist:
-            print(f"❌ Material {codigos_conocidos[barcode]} no encontrado en la base de datos")
+            print(f"Material '{best_match}' no encontrado en la base de datos")
             pass
     
-    # Categorías del producto que vienen de la API
-    categorias = producto_info.get('categories', '').lower()
-    nombre = producto_info.get('product_name', '').lower()
-    ingredientes = producto_info.get('ingredients_text', '').lower()
-    packaging = producto_info.get('packaging', '').lower()
+    # Por defecto, intentar asignar según categoría del producto
+    categories = producto_info.get('categories', '').lower()
+    categories_tags = [tag.lower() for tag in producto_info.get('categories_tags', [])]
+    all_categories = categories + ' ' + ' '.join(categories_tags)
     
-    texto_completo = f"{categorias} {nombre} {ingredientes} {packaging}"
-    print(f"📝 Texto analizado: {texto_completo[:100]}...")
+    # Si parece una bebida, probablemente sea vidrio o plástico
+    if 'drink' in all_categories or 'bebida' in all_categories or 'water' in all_categories:
+        try:
+            return Material.objects.get(nombre__iexact='plastico')
+        except Material.DoesNotExist:
+            pass
     
-    # Buscar el material basado en palabras clave
-    for material, keywords in materiales_keywords.items():
-        for keyword in keywords:
-            if keyword in texto_completo:
-                try:
-                    print(f"✅ Material detectado: {material}, keyword: {keyword}")
-                    return Material.objects.get(nombre__iexact=material)
-                except Material.DoesNotExist:
-                    print(f"⚠️ Material {material} no encontrado en la base de datos")
-                    continue
-    
-    # Si no se encuentra ninguna coincidencia, devolver material por defecto (resto)
+    # Si no se puede determinar, devolver el material más común (plástico)
     try:
-        return Material.objects.get(nombre__iexact='resto')
-    except Material.DoesNotExist:
-        # Si no existe ni siquiera el material "resto", crear un error genérico
-        print("❌ No se pudo determinar ningún material, incluso 'resto' no existe en la base de datos")
-        return None
+        return Material.objects.filter(nombre__iexact='plastico').first()
+    except:
+        # Si todo falla, devolver el primer material disponible
+        return materiales.first() if materiales.exists() else None
 
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
@@ -76,160 +114,121 @@ def escanear_codigo(request):
     serializer = CodigoBarrasSerializer(data=request.data)
     if serializer.is_valid():
         codigo = serializer.validated_data['codigo']
-        bolsa_id = request.data.get('bolsa_id')  # Optional bag ID to add product directly
+        bolsa_id = request.data.get('bolsa_id')  # Optional bag ID
         
-        # Comprobar si el producto ya ha sido escaneado en las últimas 24 horas
+        # Buscar en la base de datos de productos reciclados
         producto_existente = ProductoReciclado.objects.filter(
-            usuario=request.user,
             codigo_barras=codigo,
-            fecha_reciclaje__gte=timezone.now() - timezone.timedelta(hours=24)
-        ).first()
+            usuario=request.user
+        ).order_by('-fecha_reciclaje').first()
         
+        # Comprobar si el producto existe y el tiempo transcurrido
         if producto_existente:
+            # Definir período de espera (10 minutos = 600 segundos)
+            tiempo_espera = timedelta(minutes=10)
+            tiempo_actual = timezone.now()
+            tiempo_minimo = producto_existente.fecha_reciclaje + tiempo_espera
+            
+            if tiempo_actual < tiempo_minimo:
+                # Calcular tiempo restante en minutos y segundos
+                tiempo_restante = tiempo_minimo - tiempo_actual
+                minutos_restantes = int(tiempo_restante.total_seconds() // 60)
+                segundos_restantes = int(tiempo_restante.total_seconds() % 60)
+                
+                return Response({
+                    'error': 'Producto reciclado recientemente',
+                    'titulo': 'Espera un moment',
+                    'tipo': 'cooldown',
+                    'mensaje': f'Ja has reciclat aquest producte. Podràs reciclar-lo de nou en {minutos_restantes} minut(s) i {segundos_restantes} segon(s).',
+                    'tiempo_restante': {
+                        'minutos': minutos_restantes,
+                        'segundos': segundos_restantes,
+                        'total_segundos': int(tiempo_restante.total_seconds())
+                    },
+                    'fecha_disponible': tiempo_minimo
+                }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Búsqueda en OpenFoodFacts
+        producto_info = buscar_producto_openfoodfacts(codigo)
+        
+        # Si no se encuentra el producto, devolver error
+        if not producto_info:
             return Response({
-                'error': 'Ja has reciclat aquest producte en les últimes 24 hores',
-                'producto': ProductoRecicladoSerializer(producto_existente).data
+                'error': 'Producto no encontrado',
+                'mensaje': 'No se ha encontrado el producto en la base de datos'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Determinar el material según el packaging
+        material = determinar_material_producto(producto_info)
+        
+        if not material:
+            return Response({
+                'error': "No s'ha pogut determinar el material",
+                'mensaje': "No se ha podido determinar el material del producto"
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Primero comprobar si es un código conocido para demostración
-        codigos_conocidos = {
-            '8480000160164': ('plastico', 'Agua Font Vella'),  # Agua Font Vella
-            '8414533043847': ('papel', 'Diario El País'),     # Diario El País
-            '8410057320202': ('vidrio', 'Cerveza Estrella'),    # Cerveza Estrella
-            '8410188012096': ('metal', 'Lata Coca-Cola'),     # Lata Coca-Cola
-        }
+        # Obtener bolsas disponibles del mismo material
+        bolsas_disponibles = BolsaVirtual.objects.filter(
+            usuario=request.user,
+            tipo_material=material,
+            reciclada=False
+        )
         
-        if codigo in codigos_conocidos:
+        # Create product record
+        producto_reciclado = ProductoReciclado.objects.create(
+            usuario=request.user,
+            codigo_barras=codigo,
+            nombre_producto=producto_info.get('product_name', 'Producte desconegut'),
+            material=material,
+            marca=producto_info.get('brands', ''),
+            puntos_obtenidos=material.puntos,
+            imagen_url=producto_info.get('image_url', '')
+        )
+        
+        # If a bag ID was provided, try to add the product to that bag
+        bolsa = None
+        if bolsa_id:
             try:
-                material_nombre, producto_nombre = codigos_conocidos[codigo]
-                material = Material.objects.get(nombre__iexact=material_nombre)
+                bolsa = BolsaVirtual.objects.get(pk=bolsa_id, usuario=request.user, reciclada=False)
                 
-                # Crear registro de producto reciclado
-                producto_reciclado = ProductoReciclado.objects.create(
-                    usuario=request.user,
-                    codigo_barras=codigo,
-                    nombre_producto=producto_nombre,
-                    material=material,
-                    marca='Demo',
-                    puntos_obtenidos=material.puntos,
-                    imagen_url=''
-                )
-                
-                # Actualizar puntos del usuario
-                request.user.score += material.puntos
-                request.user.save(update_fields=['score'])
-                
-                return Response({
-                    'producto': ProductoRecicladoSerializer(producto_reciclado).data,
-                    'puntos_nuevos': material.puntos,
-                    'puntos_totales': request.user.score,
-                    'material': MaterialSerializer(material).data
-                }, status=status.HTTP_201_CREATED)
-                
-            except Material.DoesNotExist:
-                # Si el material no existe, continuamos con el flujo normal
-                pass
-        
-        # Si no es un código conocido, consultar la API de Open Food Facts
-        api_url = f"https://world.openfoodfacts.org/api/v0/product/{codigo}.json"
-        try:
-            response = requests.get(api_url, timeout=10)
-            data = response.json()
-            
-            if data.get('status') == 0:
-                return Response({
-                    'error': 'Producte no trobat',
-                    'message': 'No s\'ha trobat informació sobre aquest producte'
-                }, status=status.HTTP_404_NOT_FOUND)
-            
-            producto_info = data.get('product', {})
-            material = determinar_material(producto_info)
-            
-            if not material:
-                return Response({
-                    'error': 'No s\'ha pogut determinar el material',
-                    'message': 'No s\'ha pogut classificar aquest producte. Si us plau, prova amb un altre.'
-                }, status=status.HTTP_400_BAD_REQUEST)
-            
-            # Crear registro de producto reciclado
-            producto_reciclado = ProductoReciclado.objects.create(
-                usuario=request.user,
-                codigo_barras=codigo,
-                nombre_producto=producto_info.get('product_name', 'Producte desconegut'),
-                material=material,
-                marca=producto_info.get('brands', ''),
-                puntos_obtenidos=material.puntos,
-                imagen_url=producto_info.get('image_url', '')
-            )
-            
-            # If a bag ID was provided, try to add the product to that bag
-            bolsa = None
-            if bolsa_id:
-                try:
-                    bolsa = BolsaVirtual.objects.get(pk=bolsa_id, usuario=request.user, reciclada=False)
+                # Check if material matches
+                if bolsa.tipo_material == material:
+                    producto_reciclado.bolsa = bolsa
+                    producto_reciclado.save()
                     
-                    # Check if material matches
-                    if bolsa.tipo_material == material:
-                        producto_reciclado.bolsa = bolsa
-                        producto_reciclado.save()
-                        
-                        # Update bag points
-                        bolsa.puntos_totales = bolsa.calcular_puntos()
-                        bolsa.save()
-                    else:
-                        # Material doesn't match, don't add to bag
-                        bolsa = None
-                except BolsaVirtual.DoesNotExist:
+                    # Update bag points
+                    bolsa.puntos_totales = bolsa.calcular_puntos()
+                    bolsa.save()
+                else:
+                    # Material doesn't match, don't add to bag
                     bolsa = None
-            
-            # Update user points only if not added to a bag
-            if not bolsa:
-                request.user.score += material.puntos
-                request.user.save(update_fields=['score'])
-            
-            return Response({
-                'producto': ProductoRecicladoSerializer(producto_reciclado).data,
-                'puntos_nuevos': material.puntos,
-                'puntos_totales': request.user.score,
-                'material': MaterialSerializer(material).data,
-                'agregado_a_bolsa': bolsa is not None,
-                'bolsa': BolsaVirtualSerializer(bolsa).data if bolsa else None
-            }, status=status.HTTP_201_CREATED)
-            
-        except requests.RequestException as e:
-            return Response({
-                'error': 'Error de connexió',
-                'message': f'No s\'ha pogut connectar amb l\'API externa: {str(e)}'
-            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
-    
+            except BolsaVirtual.DoesNotExist:
+                bolsa = None
+        
+        # Update user points only if not added to a bag
+        if not bolsa:
+            request.user.score += material.puntos
+            request.user.save(update_fields=['score'])
+        
+        return Response({
+            'producto': ProductoRecicladoSerializer(producto_reciclado).data,
+            'puntos_nuevos': material.puntos,
+            'puntos_totales': request.user.score,
+            'material': MaterialSerializer(material).data,
+            'agregado_a_bolsa': bolsa is not None,
+            'bolsa': BolsaVirtualSerializer(bolsa).data if bolsa else None,
+            'bolsas_disponibles': BolsaVirtualSerializer(bolsas_disponibles, many=True).data
+        }, status=status.HTTP_201_CREATED)
+        
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
 def historial_reciclaje(request):
-    productos = ProductoReciclado.objects.filter(usuario=request.user)
+    """Obtiene el historial de productos reciclados por el usuario"""
+    productos = ProductoReciclado.objects.filter(usuario=request.user).order_by('-fecha_reciclaje')
     serializer = ProductoRecicladoSerializer(productos, many=True)
-    
-    # Calcular estadísticas
-    total_puntos = productos.aggregate(Sum('puntos_obtenidos'))['puntos_obtenidos__sum'] or 0
-    productos_por_material = {}
-    
-    for producto in productos:
-        if producto.material:
-            material_nombre = producto.material.nombre
-            if material_nombre in productos_por_material:
-                productos_por_material[material_nombre] += 1
-            else:
-                productos_por_material[material_nombre] = 1
-    
-    return Response({
-        'productos': serializer.data,
-        'estadisticas': {
-            'total_puntos': total_puntos,
-            'total_productos': productos.count(),
-            'por_material': productos_por_material
-        }
-    })
+    return Response(serializer.data)
 
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])

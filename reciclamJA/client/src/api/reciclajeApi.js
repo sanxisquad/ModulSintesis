@@ -28,7 +28,8 @@ reciclajeApi.interceptors.request.use(
 );
 
 // Funciones API para el sistema de reciclaje
-export const escanearCodigo = async (codigo) => {
+// Actualizar para manejar la respuesta con bolsas disponibles
+export const escanearCodigo = async (codigo, bolsaId = null) => {
     let codigoStr = '';
     
     try {
@@ -40,10 +41,16 @@ export const escanearCodigo = async (codigo) => {
         codigoStr = String(codigo).trim();
         console.log("Enviando código para reciclar:", codigoStr);
         
-        // IMPORTANTE: Ahora solo necesitas la ruta específica sin /api/reciclar
-        const response = await reciclajeApi.post('/escanejar/', { 
-            codigo: codigoStr
-        });
+        // Preparar el cuerpo de la solicitud
+        const requestBody = { codigo: codigoStr };
+        
+        // Si se proporciona ID de bolsa, añadirlo al cuerpo
+        if (bolsaId) {
+            requestBody.bolsa_id = bolsaId;
+        }
+        
+        // Enviar la solicitud
+        const response = await reciclajeApi.post('/escanejar/', requestBody);
         
         console.log("Respuesta exitosa:", response.data);
         return response.data;
