@@ -31,8 +31,12 @@ const BarcodeScanner = ({ onScanComplete }) => {
 
   // Solicitar permisos de cámara explícitamente
   useEffect(() => {
-    // Solicitar permiso de cámara explícitamente antes de inicializar el escáner
-    navigator.mediaDevices.getUserMedia({ video: true })
+    // Utilizar facingMode: 'environment' para intentar obtener la cámara trasera directamente
+    navigator.mediaDevices.getUserMedia({ 
+      video: { 
+        facingMode: { ideal: 'environment' } 
+      } 
+    })
       .then(stream => {
         // Éxito - el usuario ha concedido permisos
         setPermissionGranted(true);
@@ -71,25 +75,43 @@ const BarcodeScanner = ({ onScanComplete }) => {
           if (devices && devices.length) {
             setAvailableCameras(devices);
             
-            // Intentar encontrar la cámara trasera primero
-            const rearCamera = devices.find(camera => 
-              /back|rear|trasera|environment|posterior/i.test(camera.label));
+            // Log todas las cámaras para diagnóstico
+            console.log("Cámaras detectadas:", devices.map(d => ({ id: d.id, label: d.label })));
             
+            // Estrategia mejorada para encontrar la cámara trasera:
+            // 1. Buscar palabras clave específicas
+            const rearCamera = devices.find(camera => 
+              /back|rear|trasera|environment|posterior|dorsal|externa|back camera|cámara trasera|0,facing back/i.test(camera.label));
+            
+            // 2. Si no encontramos por etiqueta, probar con la última cámara (suele ser la trasera)
             if (rearCamera) {
               setCameraId(rearCamera.id);
+              console.log("Cámara trasera detectada por etiqueta:", rearCamera.label);
               toast.success('Càmera posterior seleccionada: ' + rearCamera.label);
-              // Iniciar escáner automáticamente con la cámara trasera
+              
+              // Iniciar escáner con un retraso para dar tiempo a que se configure la cámara
               setTimeout(() => {
                 startScanningWithCamera(newHtml5QrCode, rearCamera.id);
               }, 1000);
-            } else {
-              // Si no hay etiqueta clara, usar la última cámara (generalmente la trasera en móviles)
+            } else if (devices.length > 1) {
+              // En dispositivos con múltiples cámaras, la última suele ser la trasera
               const defaultCamera = devices[devices.length - 1];
               setCameraId(defaultCamera.id);
-              toast.success('Càmera seleccionada: ' + defaultCamera.label);
-              // Iniciar escáner automáticamente
+              console.log("Usando última cámara como trasera:", defaultCamera.label);
+              toast.success('Càmera posterior (assumida): ' + defaultCamera.label);
+              
               setTimeout(() => {
                 startScanningWithCamera(newHtml5QrCode, defaultCamera.id);
+              }, 1000);
+            } else {
+              // Solo hay una cámara, usarla
+              const onlyCamera = devices[0];
+              setCameraId(onlyCamera.id);
+              console.log("Solo hay una cámara disponible:", onlyCamera.label);
+              toast.success('Càmera única disponible: ' + onlyCamera.label);
+              
+              setTimeout(() => {
+                startScanningWithCamera(newHtml5QrCode, onlyCamera.id);
               }, 1000);
             }
             
@@ -119,23 +141,15 @@ const BarcodeScanner = ({ onScanComplete }) => {
     setResult(null);
     setError('');
     
+    // Configuración más simple que debería funcionar en más dispositivos
     const config = {
       fps: 10,
-      qrbox: { width: 250, height: 150 },
-      aspectRatio: 1.333334,
-      // Usar todas las configuraciones de formato posibles
-      formatsToSupport: [
-        Html5Qrcode.FORMATS.EAN_13,
-        Html5Qrcode.FORMATS.EAN_8,
-        Html5Qrcode.FORMATS.UPC_A,
-        Html5Qrcode.FORMATS.UPC_E,
-        Html5Qrcode.FORMATS.CODE_39,
-        Html5Qrcode.FORMATS.CODE_93,
-        Html5Qrcode.FORMATS.CODE_128
-      ]
+      qrbox: 250,
+      // Eliminar formatsToSupport y aspectRatio para compatibilidad
     };
     
     toast.success('Iniciant càmera: ' + camId);
+    console.log("Iniciando cámara con ID:", camId);
     
     scanner.start(
       camId,
@@ -161,27 +175,26 @@ const BarcodeScanner = ({ onScanComplete }) => {
       logError('Error al iniciar l\'escàner', err);
       setScanning(false);
       
-      // Intentar una configuración alternativa si falla
-      const simpleConfig = {
+      // Intentar una configuración aún más simple si falla
+      const basicConfig = {
         fps: 5,
-        qrbox: 250
       };
       
-      toast.info('Intentant configuració alternativa...');
+      toast.info('Intentant configuració bàsica...');
       
       scanner.start(
         camId,
-        simpleConfig,
+        basicConfig,
         onScanSuccess,
         onScanFailure
       )
       .then(() => {
-        console.log('Scanner started with simple config');
-        toast.success('Escàner iniciat amb configuració alternativa');
+        console.log('Scanner started with basic config');
+        toast.success('Escàner iniciat amb configuració bàsica');
         setScanning(true);
       })
       .catch(secondErr => {
-        logError('Error també amb la configuració alternativa', secondErr);
+        logError('Error també amb la configuració bàsica', secondErr);
       });
     });
   };
