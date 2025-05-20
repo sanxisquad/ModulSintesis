@@ -125,7 +125,7 @@ def escanear_codigo(request):
         # Comprobar si el producto existe y el tiempo transcurrido
         if producto_existente:
             # Definir período de espera (10 minutos = 600 segundos)
-            tiempo_espera = timedelta(minutes=10)
+            tiempo_espera = timedelta(minutes=1)
             tiempo_actual = timezone.now()
             tiempo_minimo = producto_existente.fecha_reciclaje + tiempo_espera
             

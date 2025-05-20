@@ -3,7 +3,9 @@ import { Html5Qrcode } from 'html5-qrcode';
 import { toast } from 'react-hot-toast';
 import { FaCamera, FaQrcode, FaSync, FaLightbulb, FaPowerOff, FaStar, FaBug, FaBarcode } from 'react-icons/fa';
 import { useAuth } from '../../../hooks/useAuth';
-import { escanearCodigo } from '../../api/reciclajeApi';
+import { escanearCodigo, agregarProductoABolsa } from '../../api/reciclajeApi';
+import { Link } from 'react-router-dom';
+import { Spinner } from '../common/Spinner';
 
 const BarcodeScanner = ({ onScanComplete }) => {
   const [scanning, setScanning] = useState(false);
@@ -439,8 +441,91 @@ ${debugInfo}
   const [codigoBarras, setCodigoBarras] = useState('');
   const [errorForm, setErrorForm] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [selectedBag, setSelectedBag] = useState(null);
+  const [addingToBag, setAddingToBag] = useState(false);
+  
+  // ref para el input de código de barras
+  const inputRef = useRef(null);
 
-  // Manejar el envío del formulario de código manual
+  // Limpiar todo cuando se desmonta
+  useEffect(() => {
+    return () => {
+      setError(null);
+      setSuccess(null);
+    };
+  }, []);
+
+  // Función para crear datos de producto de demostración según los productos de ejemplo
+  const getDemoProductData = (codigoBarras) => {
+    // Productos de demostración para visualización
+    const demoProducts = {
+      '8480000160164': {
+        nombre_producto: 'Aigua Font Vella 1,5L',
+        marca: 'Font Vella',
+        material: { id: 1, nombre: 'plastico' },
+        imagen_url: 'https://prod-mercadona.imgix.net/images/6420bdab35c34e82c0bd76a1.jpg',
+        puntos_obtenidos: 15,
+        codigo_barras: '8480000160164',
+      },
+      '8414533043847': {
+        nombre_producto: 'Diari El País',
+        marca: 'El País',
+        material: { id: 2, nombre: 'papel' },
+        imagen_url: 'https://estaticos-cdn.prensaiberica.es/clip/9b41cf53-a9e8-450e-8d3e-5a5f8a5bf801_16-9-aspect-ratio_default_0.jpg',
+        puntos_obtenidos: 20,
+        codigo_barras: '8414533043847',
+      },
+      '8410057320202': {
+        nombre_producto: 'Cervesa Estrella Damm 33cl',
+        marca: 'Estrella Damm',
+        material: { id: 3, nombre: 'vidrio' },
+        imagen_url: 'https://sgfm.elcorteingles.es/SGFM/dctm/MEDIA03/202204/04/00118602800916____3__600x600.jpg',
+        puntos_obtenidos: 25,
+        codigo_barras: '8410057320202',
+      },
+      '8410188012096': {
+        nombre_producto: 'Llauna Coca-Cola 33cl',
+        marca: 'Coca-Cola',
+        material: { id: 4, nombre: 'metal' },
+        imagen_url: 'https://sgfm.elcorteingles.es/SGFM/dctm/MEDIA03/202204/04/00120646800966____1__600x600.jpg',
+        puntos_obtenidos: 18,
+        codigo_barras: '8410188012096',
+      }
+    };
+    
+    return demoProducts[codigoBarras];
+  };
+
+  // Añadir esta función para crear bolsas virtuales de demostración
+  const getDemoBolsas = (materialId) => {
+    // Mapear IDs de material a sus nombres en español
+    const materialNames = {
+      1: 'plastico',
+      2: 'papel',
+      3: 'vidrio',
+      4: 'metal'
+    };
+    
+    // Crear bolsas dummy del tipo de material solicitado
+    return [
+      {
+        id: 101,
+        nombre: `Bossa de ${materialNames[materialId]} #1`,
+        tipo_material: { id: materialId, nombre: materialNames[materialId] },
+        fecha_creacion: new Date().toISOString(),
+        puntos_totales: 45
+      },
+      {
+        id: 102,
+        nombre: `Bossa de ${materialNames[materialId]} #2`,
+        tipo_material: { id: materialId, nombre: materialNames[materialId] },
+        fecha_creacion: new Date(Date.now() - 86400000).toISOString(), // Ayer
+        puntos_totales: 30
+      }
+    ];
+  };
+
+  // Modificar la función handleSubmit para simular un escaneo exitoso de productos de demostración
   const handleSubmit = async (event) => {
     event.preventDefault();
     
@@ -448,7 +533,26 @@ ${debugInfo}
     setError(null);
     setSuccess(null);
     
+    // Modo demo para los 4 productos de ejemplo
+    const demoProduct = getDemoProductData(codigoBarras);
+    
+    if (demoProduct) {
+      // Simular respuesta exitosa de API con datos de demo
+      setTimeout(() => {
+        setSuccess({
+          product: demoProduct,
+          points: demoProduct.puntos_obtenidos,
+          totalPoints: 250 + demoProduct.puntos_obtenidos, // Puntos totales simulados
+          material: demoProduct.material,
+          availableBags: getDemoBolsas(demoProduct.material.id)
+        });
+        setLoading(false);
+      }, 1000); // Simular retraso de red
+      return;
+    }
+    
     try {
+      // Llamada a la API regular para productos no demo
       const result = await escanearCodigo(codigoBarras);
       
       if (result.error) {
@@ -478,34 +582,100 @@ ${debugInfo}
     }
   };
 
-  // Render success message and options for virtual bags
-  const renderSuccess = () => {
-    const [selectedBag, setSelectedBag] = useState(null);
-    const [addingToBag, setAddingToBag] = useState(false);
+  // Renderizar mensaje de error
+  const renderError = () => {
+    if (!error) return null;
     
-    const handleAddToBag = async () => {
-      if (!selectedBag) return;
-      
-      setAddingToBag(true);
-      try {
-        await agregarProductoABolsa(success.product.id, selectedBag);
-        toast.success("Producto añadido a la bolsa");
-        // Después de agregar, limpiar el estado para seguir escaneando
-        setSuccess(null);
-        setCodigoBarras("");
-      } catch (error) {
-        console.error("Error al añadir a la bolsa:", error);
-        toast.error("No se pudo añadir el producto a la bolsa");
-      } finally {
-        setAddingToBag(false);
-      }
-    };
+    // Special handling for cooldown errors
+    if (error.type === 'cooldown' && error.tiempo_restante) {
+      return (
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <FaEye className="h-5 w-5 text-yellow-400" />
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-yellow-800">{error.title}</h3>
+              <div className="mt-2 text-sm text-yellow-700">
+                <p>{error.message}</p>
+                <p className="mt-2 font-medium">
+                  Temps restant: {error.tiempo_restante.minutos}m {error.tiempo_restante.segons}s
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    // Mensajes para material no determinado (con códigos de ejemplo)
+    if (error.type === 'material_no_determinado') {
+      return (
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <FaExclamationTriangle className="h-5 w-5 text-yellow-400" />
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-yellow-800">{error.title}</h3>
+              <div className="mt-2 text-sm text-yellow-700">
+                <p>{error.message}</p>
+                
+                {error.codigos_ejemplo && error.codigos_ejemplo.length > 0 && (
+                  <div className="mt-4">
+                    <p className="font-medium mb-2">Prova amb algun d'aquests codis:</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {error.codigos_ejemplo.map((codigo, index) => (
+                        <button
+                          key={index}
+                          className="flex justify-between items-center bg-white border border-yellow-200 rounded p-2 hover:bg-yellow-100 transition-colors"
+                          onClick={() => {
+                            setCodigoBarras(codigo.codigo);
+                            setError(null);
+                            if (inputRef.current) inputRef.current.focus();
+                          }}
+                        >
+                          <span className="font-mono">{codigo.codigo}</span>
+                          <span className="text-xs text-gray-600">{codigo.descripcion}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    // Error genérico
+    return (
+      <div className="bg-red-50 border-l-4 border-red-400 p-4">
+        <div className="flex">
+          <div className="flex-shrink-0">
+            <FaExclamationTriangle className="h-5 w-5 text-red-400" />
+          </div>
+          <div className="ml-3">
+            <h3 className="text-sm font-medium text-red-800">{error.title}</h3>
+            <div className="mt-2 text-sm text-red-700">
+              <p>{error.message}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Render success message with bag selection UI
+  const renderSuccess = () => {
+    if (!success) return null;
     
     return (
       <div className="bg-white p-6 rounded-lg shadow-md">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold text-green-600 flex items-center">
-            <FaCheck className="mr-2" /> Producto reciclado con éxito
+            <FaCheck className="mr-2" /> Producte reciclat amb èxit
           </h3>
           <span className="text-green-600 font-bold">+{success.points} pts</span>
         </div>
@@ -534,10 +704,10 @@ ${debugInfo}
           </div>
         </div>
         
-        {/* Opciones de bolsas virtuales */}
+        {/* UI de selección de bolsas virtuales */}
         {success.availableBags && success.availableBags.length > 0 ? (
           <div className="mt-6 border-t pt-4">
-            <h4 className="font-medium mb-3">¿Añadir a una bossa virtual?</h4>
+            <h4 className="font-medium mb-3">Vols afegir a una bossa virtual?</h4>
             <div className="space-y-2 max-h-48 overflow-y-auto mb-4">
               {success.availableBags.map(bag => (
                 <button
@@ -579,7 +749,7 @@ ${debugInfo}
               >
                 {addingToBag ? (
                   <>
-                    <FaSpinner className="inline animate-spin mr-2" />
+                    <Spinner size="sm" className="inline mr-2" />
                     Afegint...
                   </>
                 ) : (
@@ -605,9 +775,9 @@ ${debugInfo}
               </button>
               <Link 
                 to="/profile" 
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 flex items-center"
               >
-                Crear bossa nova
+                <FaPlus className="mr-2" /> Crear bossa nova
               </Link>
             </div>
           </div>
@@ -616,232 +786,52 @@ ${debugInfo}
     );
   };
 
-  // Función para renderizar el error
-  const renderError = () => {
-    if (!error) return null;
-    
-    // Special handling for cooldown errors
-    if (error.type === 'cooldown' && error.tiempo_restante) {
-      return (
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <FaClock className="h-5 w-5 text-yellow-400" />
-            </div>
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-yellow-800">{error.title}</h3>
-              <div className="mt-2 text-sm text-yellow-700">
-                <p>{error.message}</p>
-                <p className="mt-2 font-medium">
-                  Temps restant: {error.tiempo_restante.minutos}m {error.tiempo_restante.segundos}s
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    }
-    
-    // Default error display for other error types
-    return (
-      <div className="mt-4 p-3 bg-red-100 text-red-700 rounded-lg">
-        <p className="font-bold mb-1">Error:</p>
-        <p className="text-sm">{error}</p>
-        <button 
-          className="mt-2 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded flex items-center" 
-          onClick={sendDebugInfo}
-        >
-          <FaBug className="mr-1" /> Enviar informe d'error
-        </button>
-      </div>
-    );
-  };
-  
   return (
     <div className="bg-white p-6 rounded-lg shadow-lg max-w-2xl mx-auto">
-      <div className="p-4 bg-green-600 text-white flex items-center justify-between">
-        <h2 className="text-xl font-bold flex items-center">
-          <FaQrcode className="mr-2" /> Escàner de Reciclatge
-        </h2>
-        {user && (
-          <div className="flex items-center bg-green-500 px-3 py-1 rounded-full">
-            <FaStar className="text-yellow-300 mr-1" />
-            <span className="font-bold">{user.score || 0} punts</span>
-          </div>
-        )}
-      </div>
+      <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center border-b pb-2">
+        <FaBarcode className="mr-2 text-green-500" />
+        Escaneja i recicla
+      </h2>
       
-      <div className="p-4">
+      <p className="text-gray-600 mb-6">
+        Escaneja el codi de barres d'un producte per reciclar-lo i guanyar punts.
+      </p>
+      
+      {/* Formulario input - only show if not successful yet */}
+      {!success && (
+        <form onSubmit={handleSubmit} className="mb-6">
+          <div className="flex">
+            <input 
+              type="text" 
+              value={codigoBarras}
+              onChange={(e) => setCodigoBarras(e.target.value)}
+              className="flex-1 px-4 py-2 text-lg border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              placeholder="Introdueix un codi de barres..."
+              ref={inputRef}
+            />
+            <button
+              type="submit"
+              className="px-4 py-2 bg-green-600 text-white rounded-r-md hover:bg-green-700 transition-colors flex items-center"
+            >
+              <FaCamera className="mr-2" /> Escanejar
+            </button>
+          </div>
+        </form>
+      )}
+      
+      {/* Mensaje de error */}
+      {error && renderError()}
+      
+      {/* Resultado del escaneo */}
+      {success && renderSuccess()}
+      
+      <div className="mt-4">
         <div 
           id="scanner" 
           ref={scannerContainerRef} 
           className="bg-gray-100 rounded-lg overflow-hidden relative"
           style={{ minHeight: '300px', width: '100%' }}
         ></div>
-        
-        {renderError()}
-        
-        {!permissionGranted && (
-          <div className="mt-4 p-3 bg-amber-100 text-amber-700 rounded-lg">
-            <p className="font-bold mb-1">Cal permís de càmera</p>
-            <p className="text-sm">Per utilitzar l'escàner, necessitem accés a la càmera. Si us plau, accepta el permís quan el navegador ho sol·liciti.</p>
-            <button 
-              className="mt-2 bg-amber-500 text-white px-3 py-1 rounded text-sm"
-              onClick={() => {
-                navigator.mediaDevices.getUserMedia({ video: true })
-                  .then(stream => {
-                    stream.getTracks().forEach(track => track.stop());
-                    setPermissionGranted(true);
-                    toast.success('Permís de càmera concedit');
-                    initializeScanner();
-                  })
-                  .catch(err => logError('Permís de càmera denegat', err));
-              }}
-            >
-              Sol·licitar permís
-            </button>
-          </div>
-        )}
-        
-        {loading && (
-          <div className="mt-4 p-4 flex justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-green-500"></div>
-          </div>
-        )}
-        
-        {result && (
-          <div className="mt-4 p-4 bg-green-50 rounded-lg">
-            {!result.error ? (
-              // Resultado exitoso - Mostrar información del producto
-              <>
-                <div className="flex items-center mb-3">
-                  {result.producto?.imagen_url && (
-                    <img 
-                      src={result.producto.imagen_url} 
-                      alt={result.producto.nombre_producto} 
-                      className="w-16 h-16 object-contain mr-3 bg-white rounded p-1"
-                    />
-                  )}
-                  <div>
-                    <h3 className="font-bold">{result.producto?.nombre_producto || 'Producte'}</h3>
-                    {result.producto?.marca && (
-                      <p className="text-sm text-gray-600">{result.producto.marca}</p>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="flex justify-between items-center p-3 bg-white rounded-lg shadow-sm mb-3">
-                  <div>
-                    <p className="font-semibold text-gray-700">Material:</p>
-                    <p className="font-bold text-lg" style={{ color: result.material?.color || '#000' }}>
-                      {result.material?.nombre || 'Desconegut'}
-                    </p>
-                  </div>
-                  <div className="text-center">
-                    <p className="font-semibold text-gray-700">Contenidor:</p>
-                    <p className="font-bold text-lg">{result.material?.contenedor || 'N/A'}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="font-semibold text-gray-700">Punts:</p>
-                    <p className="font-bold text-lg text-green-600">+{result.puntos_nuevos || 0}</p>
-                  </div>
-                </div>
-              </>
-            ) : (
-              // Error al procesar - Mostrar mensaje de error y opciones
-              <div className="bg-red-50 p-4 rounded-lg mb-3">
-                <div className="flex items-center mb-2">
-                  <FaBug className="text-red-500 mr-2" />
-                  <h3 className="font-bold text-red-700">{result.titulo || "Error de processament"}</h3>
-                </div>
-                <p className="text-red-600 mb-2">{result.mensaje}</p>
-                <p className="text-sm text-gray-600">Codi: {result.barcode || result.codigo}</p>
-                
-                {/* Añadir mensajes específicos según el tipo de error */}
-                {result.tipo === "material_no_determinado" && (
-                  <div className="mt-3 text-sm text-gray-700 bg-yellow-50 p-3 rounded border border-yellow-200">
-                    <p className="font-medium mb-2">Prova amb aquests codis garantits:</p>
-                    <div className="grid grid-cols-2 gap-2 mt-2">
-                      {result.codigos_ejemplo && result.codigos_ejemplo.map(item => (
-                        <button 
-                          key={item.codigo} 
-                          onClick={() => {
-                            setResult(null);
-                            setLoading(true);
-                            escanearCodigo(item.codigo)
-                              .then(response => {
-                                setResult(response);
-                                if (!response.error) {
-                                  toast.success(`¡Producte reciclat! +${response.puntos_nuevos} punts`);
-                                }
-                              })
-                              .catch(err => {
-                                logError('Error amb producte verificat');
-                              })
-                              .finally(() => setLoading(false));
-                          }}
-                          className="text-xs bg-white border border-gray-300 rounded p-2 hover:bg-green-50"
-                        >
-                          {item.descripcion}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-            
-            <div className="grid grid-cols-1 gap-3">
-              <button
-                onClick={() => {
-                  setResult(null);
-                  startScanning();
-                }}
-                className="bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center"
-              >
-                <FaCamera className="mr-2" /> Escanejar un altre producte
-              </button>
-              
-              {/* Solo mostrar el botón de reintentar si no es un error de material no determinado */}
-              {result.error && result.tipo !== "material_no_determinado" && (result.barcode || result.codigo) && (
-                <button
-                  onClick={() => {
-                    setResult(null);
-                    setLoading(true);
-                    
-                    escanearCodigo(result.barcode || result.codigo)
-                      .then(response => {
-                        setResult(response);
-                        if (!response.error) {
-                          toast.success(`¡Producte reciclat! +${response.puntos_nuevos} punts`);
-                        } else {
-                          toast.error(response.mensaje);
-                        }
-                      })
-                      .catch(error => {
-                        if (error.response && error.response.data) {
-                          logError(error.response.data.error || error.response.data.message || 'Error al processar el codi');
-                        } else {
-                          logError('Error de connexió al servidor');
-                        }
-                        setResult({
-                          error: true,
-                          barcode: result.barcode,
-                          message: 'No s\'ha pogut processar el codi. Intenta amb un altre producte.'
-                        });
-                      })
-                      .finally(() => {
-                        setLoading(false);
-                      });
-                  }}
-                  className="bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center"
-                >
-                  <FaSync className="mr-2" /> Tornar a intentar amb aquest codi
-                </button>
-              )}
-            </div>
-          </div>
-        )}
         
         {/* Controles de cámara */}
         <div className="mt-4 flex justify-center space-x-3">
@@ -891,58 +881,6 @@ ${debugInfo}
         <p className="text-center text-sm text-gray-600">
           Escaneja els codis de barres de productes per reciclar i guanya punts
         </p>
-        
-        {/* Selector de códigos de prueba */}
-        <div className="mt-3">
-          <p className="text-xs text-gray-600 mb-1 text-center font-semibold">
-            <FaBarcode className="inline-block mr-1" /> 
-            Codis de productes verificats:
-          </p>
-          <div className="grid grid-cols-2 gap-2 mt-2">
-            {PRODUCTOS_VERIFICADOS.map(producto => (
-              <button 
-                key={producto.codigo} 
-                onClick={() => handleTestBarcode(producto.codigo)} 
-                className="text-xs bg-white border border-gray-300 rounded px-2 py-1 hover:bg-gray-50 flex flex-col"
-              >
-                <span className="font-medium">{producto.nombre}</span>
-                <span className="text-xs text-gray-500">{producto.material}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-        
-        {/* Entrada manual de código */}
-        <div className="mt-3">
-          <p className="text-xs text-gray-600 mb-1 text-center">
-            Introduir codi de barres manualment:
-          </p>
-          <div className="flex mt-1">
-            <input 
-              type="text" 
-              className="flex-1 px-3 py-1 text-sm border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-green-500"
-              placeholder="Introdueix un codi de barres EAN..."
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && e.target.value.trim()) {
-                  handleTestBarcode(e.target.value.trim());
-                  e.target.value = '';
-                }
-              }}
-            />
-            <button
-              onClick={() => {
-                const input = document.querySelector('input');
-                if (input && input.value.trim()) {
-                  handleTestBarcode(input.value.trim());
-                  input.value = '';
-                }
-              }}
-              className="bg-green-600 text-white px-3 py-1 text-sm rounded-r-md hover:bg-green-700"
-            >
-              Escanejar
-            </button>
-          </div>
-        </div>
         
         {/* Cámara seleccionada (visible siempre para depuración) */}
         <div className="mt-3 text-xs text-gray-500 text-center">
