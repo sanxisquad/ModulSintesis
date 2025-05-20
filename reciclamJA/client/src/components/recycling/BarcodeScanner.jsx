@@ -318,13 +318,35 @@ const BarcodeScanner = ({ onScanComplete }) => {
           return;
         }
         
-        // Respuesta exitosa
+        // Respuesta exitosa - mostrar modal de selección de bolsa automáticamente
         setResult(response);
+        
+        // Verificar si hay bolsas disponibles del mismo material
+        const bolsasCompatibles = response.bolsas_disponibles || [];
+        
+        // Establecer el estado para mostrar el modal de selección
+        setSuccess({
+          product: response.producto,
+          points: response.puntos_nuevos,
+          totalPoints: response.puntos_totales,
+          material: response.material,
+          availableBags: bolsasCompatibles,
+          addedToBag: response.agregado_a_bolsa,
+          bagInfo: response.bolsa
+        });
+        
+        // Si ya se agregó a una bolsa, mostrar mensaje específico
+        if (response.agregado_a_bolsa && response.bolsa) {
+          toast.success(`Producte afegit a la bossa: ${response.bolsa.nombre || 'Bossa #' + response.bolsa.id}`);
+        } else {
+          // Mensaje estándar de éxito
+          toast.success(`¡Producte reciclat! +${response.puntos_nuevos} punts`);
+        }
+        
         // Llamar al callback para informar al componente padre
         if (onScanComplete) {
           onScanComplete(response);
         }
-        toast.success(`¡Producte reciclat! +${response.puntos_nuevos} punts`);
       })
       .catch(error => {
         console.error("Error completo:", error);
@@ -721,6 +743,74 @@ ${debugInfo}
   const renderSuccess = () => {
     if (!success) return null;
     
+    // Si el producto ya se agregó a una bolsa, mostrar mensaje específico
+    if (success.addedToBag && success.bagInfo) {
+      return (
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-green-600 flex items-center">
+              <FaCheck className="mr-2" /> Producte reciclat amb èxit
+            </h3>
+            <span className="text-green-600 font-bold">+{success.points} pts</span>
+          </div>
+          
+          {/* Product details */}
+          <div className="mt-4 flex flex-col md:flex-row">
+            {success.product.imagen_url ? (
+              <img 
+                src={success.product.imagen_url} 
+                alt={success.product.nombre_producto} 
+                className="w-24 h-24 object-contain rounded mr-4 mb-4 md:mb-0"
+              />
+            ) : (
+              <div className="w-24 h-24 bg-gray-100 rounded flex items-center justify-center mr-4 mb-4 md:mb-0">
+                <FaBox className="text-gray-400 text-4xl" />
+              </div>
+            )}
+            
+            <div className="flex-1">
+              <h4 className="font-medium text-lg">{success.product.nombre_producto}</h4>
+              <p className="text-gray-600">{success.product.marca}</p>
+              <div className="flex items-center mt-2">
+                <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                  {success.material.nombre}
+                </span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-6 border-t pt-4">
+            <div className="bg-green-50 p-4 rounded-lg mb-4">
+              <p className="flex items-center text-green-700">
+                <FaCheck className="mr-2" /> 
+                Producte afegit a la bossa: <span className="font-bold ml-1">{success.bagInfo.nombre || 'Bossa #' + success.bagInfo.id}</span>
+              </p>
+            </div>
+            
+            <div className="flex justify-between mt-4">
+              <button
+                onClick={() => {
+                  setSuccess(null);
+                  setCodigoBarras("");
+                }}
+                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+              >
+                Continuar reciclant
+              </button>
+              
+              <Link 
+                to="/virtualbags" 
+                className="px-4 py-2 border border-green-500 text-green-500 rounded-lg hover:bg-green-50"
+              >
+                Veure les meves bosses
+              </Link>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    // Modal de selección de bolsa
     return (
       <div className="bg-white p-6 rounded-lg shadow-md">
         <div className="flex items-center justify-between">
@@ -757,7 +847,7 @@ ${debugInfo}
         
         {/* Available bags selection - Este es el bloque principal del modal */}
         <div className="mt-6 border-t pt-4">
-          <h4 className="font-medium mb-3 text-gray-800">Selecciona on guardar el producte</h4>
+          <h4 className="font-medium mb-3 text-gray-800">Vols afegir aquest producte a una bossa?</h4>
           
           {success.availableBags && success.availableBags.length > 0 ? (
             <>
@@ -819,9 +909,12 @@ ${debugInfo}
           ) : (
             // No bags available of this material type
             <div>
-              <p className="text-gray-600 mb-4">
-                No tens cap bossa per aquest material ({success.material.nombre}).
-              </p>
+              <div className="bg-yellow-50 p-4 rounded-lg mb-4">
+                <p className="text-gray-700 flex items-center">
+                  <FaExclamationTriangle className="text-yellow-500 mr-2" />
+                  No tens cap bossa per materials de tipus <strong className="ml-1 mr-1">{success.material.nombre}</strong>
+                </p>
+              </div>
               
               <div className="flex flex-col md:flex-row justify-between gap-3">
                 <button
@@ -834,24 +927,22 @@ ${debugInfo}
                   Continuar sense afegir
                 </button>
                 
-                <div className="flex flex-col md:flex-row gap-2">
-                  <button 
-                    onClick={handleCreateBag}
-                    disabled={creatingBag}
-                    className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center justify-center"
-                  >
-                    {creatingBag ? (
-                      <>
-                        <Spinner size="sm" className="mr-2" />
-                        Creant...
-                      </>
-                    ) : (
-                      <>
-                        <FaRecycle className="mr-2" /> Crear bossa i afegir
-                      </>
-                    )}
-                  </button>
-                </div>
+                <button 
+                  onClick={handleCreateBag}
+                  disabled={creatingBag}
+                  className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center justify-center"
+                >
+                  {creatingBag ? (
+                    <>
+                      <Spinner size="sm" className="mr-2" />
+                      Creant bossa...
+                    </>
+                  ) : (
+                    <>
+                      <FaPlus className="mr-2" /> Crear bossa de {success.material.nombre}
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           )}

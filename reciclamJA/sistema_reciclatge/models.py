@@ -76,3 +76,7 @@ class BolsaVirtual(models.Model):
         self.usuario.save(update_fields=['score'])
         
         return True
+    
+    class Meta:
+        verbose_name = "Bossa Virtual"
+        verbose_name_plural = "Bosses Virtuals"

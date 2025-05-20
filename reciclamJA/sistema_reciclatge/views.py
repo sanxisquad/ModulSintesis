@@ -204,11 +204,6 @@ def escanear_codigo(request):
             except BolsaVirtual.DoesNotExist:
                 bolsa = None
         
-        # Update user points only if not added to a bag
-        if not bolsa:
-            request.user.score += material.puntos
-            request.user.save(update_fields=['score'])
-        
         return Response({
             'producto': ProductoRecicladoSerializer(producto_reciclado).data,
             'puntos_nuevos': material.puntos,

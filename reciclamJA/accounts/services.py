@@ -68,7 +68,6 @@ def enviar_correo_credenciales(nombre, email, password, apellidos=None):
     </html>
     """
     
-    # Create email with HTML content
     msg = EmailMultiAlternatives(
         subject=subject,
         body=strip_tags(html_content),  # Plain text fallback
@@ -85,7 +84,6 @@ def enviar_correo_reset_password(email, reset_url):
     import uuid
     import time
     
-    # Generate a unique identifier for this reset request (prevents accumulation)
     unique_id = f"{uuid.uuid4()}-{int(time.time())}"
     reset_url = f"{reset_url}?rid={unique_id}"
     

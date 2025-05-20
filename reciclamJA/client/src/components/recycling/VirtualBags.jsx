@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { obtenerBolsas, crearBolsa, reciclarBolsa, obtenerDetalleBolsa } from '../../api/reciclajeApi';
 import { getAllPublicContenedors } from '../../api/zr.api';
 import { toast } from 'react-hot-toast';
-import { FaRecycle, FaTrash, FaPlus, FaBox, FaBoxOpen, FaMapMarkerAlt, FaSearch } from 'react-icons/fa';
+import { FaRecycle, FaTrash, FaPlus, FaBox, FaBoxOpen, FaMapMarkerAlt, FaSearch, FaInfoCircle } from 'react-icons/fa';
 import { Spinner } from '../common/Spinner';
 import { Link } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
@@ -190,7 +190,9 @@ export function VirtualBags() {
 
     try {
       const result = await reciclarBolsa(selectedBag.id, selectedContainer.id);
-      toast.success(`Bossa reciclada! Has guanyat ${result.puntos_obtenidos} punts`);
+      toast.success(`Bossa reciclada! Has guanyat ${result.puntos_obtenidos} punts`, {
+        duration: 5000 // Mostrar este mensaje más tiempo
+      });
       setShowRecycleModal(false);
       fetchBags();
     } catch (error) {
@@ -508,6 +510,14 @@ export function VirtualBags() {
               <div className="mb-4">
                 <p className="text-lg font-medium text-gray-800">Anem a reciclar la teva bossa de {selectedBag.tipo_material.nombre}!</p>
                 <p className="text-gray-600">Per completar el reciclatge, selecciona un dels contenidors propers al mapa:</p>
+              </div>
+              
+              {/* Añadir un mensaje destacado sobre los puntos */}
+              <div className="bg-blue-50 p-4 rounded-lg mb-4">
+                <p className="flex items-center text-blue-700">
+                  <FaInfoCircle className="mr-2" /> 
+                  En reciclar aquesta bossa obtindràs els punts acumulats de tots els productes que hi has afegit.
+                </p>
               </div>
               
               {loadingContainers ? (
