@@ -730,6 +730,7 @@ ${debugInfo}
           <span className="text-green-600 font-bold">+{success.points} pts</span>
         </div>
         
+        {/* Product details */}
         <div className="mt-4 flex flex-col md:flex-row">
           {success.product.imagen_url ? (
             <img 
@@ -754,104 +755,107 @@ ${debugInfo}
           </div>
         </div>
         
-        {/* UI de selección de bolsas virtuales */}
-        {success.availableBags && success.availableBags.length > 0 ? (
-          <div className="mt-6 border-t pt-4">
-            <h4 className="font-medium mb-3">Vols afegir a una bossa virtual?</h4>
-            <div className="space-y-2 max-h-48 overflow-y-auto mb-4">
-              {success.availableBags.map(bag => (
-                <button
-                  key={bag.id}
-                  onClick={() => setSelectedBag(bag.id)}
-                  className={`w-full p-3 border rounded-lg flex justify-between items-center ${
-                    selectedBag === bag.id 
-                      ? 'bg-green-50 border-green-500' 
-                      : 'hover:bg-gray-50'
-                  }`}
-                >
-                  <div className="flex items-center">
-                    <FaTrash className="text-gray-500 mr-2" />
-                    <span>{bag.nombre || `Bossa #${bag.id}`}</span>
-                  </div>
-                  <span className="text-sm text-green-600 font-medium">{bag.puntos_totales} pts</span>
-                </button>
-              ))}
-            </div>
-            
-            <div className="flex justify-between">
-              <button
-                onClick={() => {
-                  setSuccess(null);
-                  setCodigoBarras("");
-                }}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-              >
-                No, gràcies
-              </button>
-              <button
-                onClick={handleAddToBag}
-                disabled={!selectedBag || addingToBag}
-                className={`px-4 py-2 rounded-lg text-white ${
-                  selectedBag && !addingToBag
-                    ? 'bg-green-500 hover:bg-green-600' 
-                    : 'bg-gray-300 cursor-not-allowed'
-                }`}
-              >
-                {addingToBag ? (
-                  <>
-                    <Spinner size="sm" className="inline mr-2" />
-                    Afegint...
-                  </>
-                ) : (
-                  'Afegir a la bossa'
-                )}
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="mt-6 border-t pt-4">
-            <p className="text-gray-600 mb-3">
-              No tens bosses disponibles per aquest material ({success.material.nombre}).
-            </p>
-            <div className="flex flex-col md:flex-row justify-between gap-3">
-              <button
-                onClick={() => {
-                  setSuccess(null);
-                  setCodigoBarras("");
-                }}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-              >
-                Continuar sense afegir
-              </button>
+        {/* Available bags selection - Este es el bloque principal del modal */}
+        <div className="mt-6 border-t pt-4">
+          <h4 className="font-medium mb-3 text-gray-800">Selecciona on guardar el producte</h4>
+          
+          {success.availableBags && success.availableBags.length > 0 ? (
+            <>
+              <p className="text-sm text-gray-600 mb-3">
+                Tens {success.availableBags.length} {success.availableBags.length === 1 ? 'bossa disponible' : 'bosses disponibles'} per aquest material ({success.material.nombre}):
+              </p>
               
-              <div className="flex flex-col md:flex-row gap-2">
-                <button 
-                  onClick={handleCreateBag}
-                  disabled={creatingBag}
-                  className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center justify-center"
+              <div className="space-y-2 max-h-48 overflow-y-auto mb-4">
+                {success.availableBags.map(bag => (
+                  <button
+                    key={bag.id}
+                    onClick={() => setSelectedBag(bag.id)}
+                    className={`w-full p-3 border rounded-lg flex justify-between items-center ${
+                      selectedBag === bag.id 
+                        ? 'bg-green-50 border-green-500' 
+                        : 'hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-center">
+                      <FaTrash className="text-gray-500 mr-2" />
+                      <span>{bag.nombre || `Bossa #${bag.id}`}</span>
+                    </div>
+                    <span className="text-sm text-green-600 font-medium">{bag.puntos_totales} pts</span>
+                  </button>
+                ))}
+              </div>
+              
+              <div className="flex justify-between mt-4">
+                <button
+                  onClick={() => {
+                    setSuccess(null);
+                    setCodigoBarras("");
+                  }}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
                 >
-                  {creatingBag ? (
-                    <>
-                      <Spinner size="sm" className="mr-2" />
-                      Creant...
-                    </>
-                  ) : (
-                    <>
-                      <FaRecycle className="mr-2" /> Crear bossa i afegir
-                    </>
-                  )}
+                  No afegir a cap bossa
                 </button>
                 
-                <Link 
-                  to="/profile" 
-                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 flex items-center justify-center"
+                <button
+                  onClick={handleAddToBag}
+                  disabled={!selectedBag || addingToBag}
+                  className={`px-4 py-2 rounded-lg text-white ${
+                    selectedBag && !addingToBag
+                      ? 'bg-green-500 hover:bg-green-600' 
+                      : 'bg-gray-300 cursor-not-allowed'
+                  }`}
                 >
-                  <FaPlus className="mr-2" /> Gestionar bosses
-                </Link>
+                  {addingToBag ? (
+                    <>
+                      <Spinner size="sm" className="inline mr-2" />
+                      Afegint...
+                    </>
+                  ) : (
+                    'Afegir a la bossa'
+                  )}
+                </button>
+              </div>
+            </>
+          ) : (
+            // No bags available of this material type
+            <div>
+              <p className="text-gray-600 mb-4">
+                No tens cap bossa per aquest material ({success.material.nombre}).
+              </p>
+              
+              <div className="flex flex-col md:flex-row justify-between gap-3">
+                <button
+                  onClick={() => {
+                    setSuccess(null);
+                    setCodigoBarras("");
+                  }}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Continuar sense afegir
+                </button>
+                
+                <div className="flex flex-col md:flex-row gap-2">
+                  <button 
+                    onClick={handleCreateBag}
+                    disabled={creatingBag}
+                    className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center justify-center"
+                  >
+                    {creatingBag ? (
+                      <>
+                        <Spinner size="sm" className="mr-2" />
+                        Creant...
+                      </>
+                    ) : (
+                      <>
+                        <FaRecycle className="mr-2" /> Crear bossa i afegir
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     );
   };

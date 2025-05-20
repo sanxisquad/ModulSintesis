@@ -166,7 +166,7 @@ def escanear_codigo(request):
                 'mensaje': "No se ha podido determinar el material del producto"
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Obtener bolsas disponibles del mismo material
+        # Después de determinar el material del producto, obtener las bolsas disponibles
         bolsas_disponibles = BolsaVirtual.objects.filter(
             usuario=request.user,
             tipo_material=material,
@@ -184,7 +184,7 @@ def escanear_codigo(request):
             imagen_url=producto_info.get('image_url', '')
         )
         
-        # If a bag ID was provided, try to add the product to that bag
+        # Si bolsa_id está en la solicitud, añadir el producto a esa bolsa
         bolsa = None
         if bolsa_id:
             try:
@@ -199,7 +199,7 @@ def escanear_codigo(request):
                     bolsa.puntos_totales = bolsa.calcular_puntos()
                     bolsa.save()
                 else:
-                    # Material doesn't match, don't add to bag
+                    # Material doesn't match
                     bolsa = None
             except BolsaVirtual.DoesNotExist:
                 bolsa = None
