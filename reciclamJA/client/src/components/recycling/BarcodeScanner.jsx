@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
-import { FaCamera, FaQrcode, FaSync, FaLightbulb, FaPowerOff, FaStar } from 'react-icons/fa';
+import { FaCamera, FaQrcode, FaSync, FaLightbulb, FaPowerOff, FaStar, FaBug } from 'react-icons/fa';
 import { useAuth } from '../../../hooks/useAuth';
 
 const BarcodeScanner = ({ onScanComplete }) => {
@@ -14,29 +14,61 @@ const BarcodeScanner = ({ onScanComplete }) => {
   const [availableCameras, setAvailableCameras] = useState([]);
   const [torchOn, setTorchOn] = useState(false);
   const [error, setError] = useState('');
+  const [debugInfo, setDebugInfo] = useState('');
   const { user } = useAuth();
   
   const scannerContainerRef = useRef(null);
   
+  // Función para mostrar errores y registrarlos
+  const logError = (message, error) => {
+    const errorDetails = error ? `${message}: ${error.message || error}` : message;
+    console.error(errorDetails, error);
+    setError(errorDetails);
+    toast.error(errorDetails);
+    setDebugInfo(prev => prev + '\n' + new Date().toISOString() + ': ' + errorDetails);
+  };
+
   // Inicializar el escáner
   useEffect(() => {
     if (!html5QrCode && scannerContainerRef.current) {
-      const newHtml5QrCode = new Html5Qrcode('scanner');
-      setHtml5QrCode(newHtml5QrCode);
-      
-      // Obtener cámaras disponibles
-      Html5Qrcode.getCameras()
-        .then(devices => {
-          if (devices && devices.length) {
-            setAvailableCameras(devices);
-            setCameraId(devices[0].id); // Seleccionar la primera cámara por defecto
-          } else {
-            setError('No se han detectado cámaras en este dispositivo');
-          }
-        })
-        .catch(err => {
-          setError('Error al acceder a la cámara: ' + err.message);
-        });
+      try {
+        const newHtml5QrCode = new Html5Qrcode('scanner');
+        setHtml5QrCode(newHtml5QrCode);
+        
+        // Obtener cámaras disponibles
+        Html5Qrcode.getCameras()
+          .then(devices => {
+            if (devices && devices.length) {
+              setAvailableCameras(devices);
+              
+              // Intentar encontrar la cámara trasera primero
+              const rearCamera = devices.find(camera => 
+                camera.label.toLowerCase().includes('back') || 
+                camera.label.toLowerCase().includes('rear') ||
+                camera.label.toLowerCase().includes('environment'));
+              
+              if (rearCamera) {
+                setCameraId(rearCamera.id);
+                toast.success('Càmera posterior seleccionada');
+              } else {
+                // Si no hay etiqueta clara, usar la última cámara (generalmente la trasera en móviles)
+                setCameraId(devices[devices.length - 1].id);
+                toast.success('Càmera seleccionada: ' + devices[devices.length - 1].label);
+              }
+              
+              // Mostrar información de las cámaras disponibles
+              const cameraInfo = devices.map(d => `${d.id}: ${d.label}`).join('\n');
+              setDebugInfo('Càmeres disponibles:\n' + cameraInfo);
+            } else {
+              logError('No s\'han detectat càmeres en aquest dispositiu');
+            }
+          })
+          .catch(err => {
+            logError('Error al accedir a la càmera', err);
+          });
+      } catch (err) {
+        logError('Error al inicialitzar l\'escàner', err);
+      }
     }
     
     // Limpiar al desmontar
@@ -44,14 +76,17 @@ const BarcodeScanner = ({ onScanComplete }) => {
       if (html5QrCode && html5QrCode.isScanning) {
         html5QrCode.stop()
           .then(() => console.log('Scanner stopped'))
-          .catch(err => console.error('Error stopping scanner:', err));
+          .catch(err => logError('Error al detenir l\'escàner', err));
       }
     };
   }, []);
   
   // Función para iniciar el escaneo
   const startScanning = () => {
-    if (!html5QrCode || !cameraId) return;
+    if (!html5QrCode || !cameraId) {
+      logError('Escàner no inicialitzat o càmera no seleccionada');
+      return;
+    }
     
     setScanning(true);
     setResult(null);
@@ -59,8 +94,17 @@ const BarcodeScanner = ({ onScanComplete }) => {
     
     const config = {
       fps: 10,
-      qrbox: { width: 250, height: 150 }
+      qrbox: { width: 250, height: 150 },
+      aspectRatio: 1.333334,
+      formatsToSupport: [
+        Html5Qrcode.FORMATS.EAN_13,
+        Html5Qrcode.FORMATS.EAN_8,
+        Html5Qrcode.FORMATS.UPC_A,
+        Html5Qrcode.FORMATS.UPC_E
+      ]
     };
+    
+    toast.success('Intentant accedir a la càmera: ' + cameraId);
     
     html5QrCode.start(
       cameraId,
@@ -70,13 +114,16 @@ const BarcodeScanner = ({ onScanComplete }) => {
     )
     .then(() => {
       console.log('Scanner started');
-      // Intentar encender la linterna si está disponible
-      if (html5QrCode.getRunningTrackCapabilities().torch) {
-        setTorchOn(false); // Comenzar con la linterna apagada
+      toast.success('Escàner iniciat correctament');
+      
+      // Comprobar si la cámara tiene linterna
+      const cameraCapabilities = html5QrCode.getRunningTrackCameraCapabilities();
+      if (cameraCapabilities && cameraCapabilities.torch) {
+        toast.success('Linterna disponible');
       }
     })
     .catch(err => {
-      setError('Error al iniciar el escáner: ' + err.message);
+      logError('Error al iniciar l\'escàner', err);
       setScanning(false);
     });
   };
@@ -93,7 +140,7 @@ const BarcodeScanner = ({ onScanComplete }) => {
           }
         })
         .catch(err => {
-          console.error('Error stopping scanner:', err);
+          logError('Error al detenir l\'escàner', err);
         });
     }
   };
@@ -104,10 +151,10 @@ const BarcodeScanner = ({ onScanComplete }) => {
       html5QrCode.toggleFlash()
         .then(() => {
           setTorchOn(!torchOn);
+          toast.success(torchOn ? 'Linterna apagada' : 'Linterna encendida');
         })
         .catch(err => {
-          console.error('Error toggling flash:', err);
-          toast.error('No se puede controlar la linterna en este dispositivo');
+          logError('No es pot controlar la llanterna en aquest dispositiu', err);
         });
     }
   };
@@ -120,6 +167,7 @@ const BarcodeScanner = ({ onScanComplete }) => {
       const currentIndex = availableCameras.findIndex(camera => camera.id === cameraId);
       const nextIndex = (currentIndex + 1) % availableCameras.length;
       setCameraId(availableCameras[nextIndex].id);
+      toast.success('Canviant a càmera: ' + availableCameras[nextIndex].label);
       
       // Reiniciar el escaneo después de un breve retraso
       setTimeout(() => {
@@ -133,9 +181,11 @@ const BarcodeScanner = ({ onScanComplete }) => {
     // Detenemos el escaneo después de un resultado exitoso
     stopScanning();
     
+    toast.success(`Codi detectat: ${decodedText}`);
     setLoading(true);
+    
     // Consultar la API con el código de barras escaneado
-    axios.post('/api/reciclar/escanear/', { codigo: decodedText }, {
+    axios.post('/api/reciclar/escanejar/', { codigo: decodedText }, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       }
@@ -146,15 +196,13 @@ const BarcodeScanner = ({ onScanComplete }) => {
       if (onScanComplete) {
         onScanComplete(response.data);
       }
-      toast.success(`¡Producto reciclado! +${response.data.puntos_nuevos} puntos`);
+      toast.success(`¡Producte reciclat! +${response.data.puntos_nuevos} punts`);
     })
     .catch(error => {
       if (error.response && error.response.data) {
-        setError(error.response.data.error || error.response.data.message || 'Error al procesar el código');
-        toast.error(error.response.data.error || error.response.data.message || 'Error al procesar el código');
+        logError(error.response.data.error || error.response.data.message || 'Error al processar el codi');
       } else {
-        setError('Error de conexión');
-        toast.error('Error de conexión');
+        logError('Error de connexió al servidor');
       }
     })
     .finally(() => {
@@ -164,20 +212,38 @@ const BarcodeScanner = ({ onScanComplete }) => {
   
   // Manejar el fracaso del escaneo (no es necesario mostrar errores al usuario)
   const onScanFailure = (error) => {
-    // No hacemos nada, solo continuamos escaneando
+    // No mostrar cada fallo, solo registrarlo para depuración
     console.log('Code scan error:', error);
+  };
+  
+  // Enviar información de depuración por correo
+  const sendDebugInfo = () => {
+    const emailSubject = encodeURIComponent('ReciclamJA Scanner Debug Info');
+    const emailBody = encodeURIComponent(`
+Debug Information:
+User: ${user?.username || 'Not logged in'}
+Device: ${navigator.userAgent}
+Cameras: ${availableCameras.map(c => c.label).join(', ')}
+Selected Camera: ${availableCameras.find(c => c.id === cameraId)?.label || 'None'}
+Errors: ${error}
+Debug Log:
+${debugInfo}
+`);
+    
+    window.open(`mailto:msancheztasies@gmail.com?subject=${emailSubject}&body=${emailBody}`);
+    toast.success('S\'obrirà el client de correu per enviar la informació de depuració');
   };
   
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden">
       <div className="p-4 bg-green-600 text-white flex items-center justify-between">
         <h2 className="text-xl font-bold flex items-center">
-          <FaQrcode className="mr-2" /> Escáner de Reciclaje
+          <FaQrcode className="mr-2" /> Escàner de Reciclatge
         </h2>
         {user && (
           <div className="flex items-center bg-green-500 px-3 py-1 rounded-full">
             <FaStar className="text-yellow-300 mr-1" />
-            <span className="font-bold">{user.score || 0} puntos</span>
+            <span className="font-bold">{user.score || 0} punts</span>
           </div>
         )}
       </div>
@@ -192,7 +258,14 @@ const BarcodeScanner = ({ onScanComplete }) => {
         
         {error && (
           <div className="mt-4 p-3 bg-red-100 text-red-700 rounded-lg">
-            {error}
+            <p className="font-bold mb-1">Error:</p>
+            <p className="text-sm">{error}</p>
+            <button 
+              className="mt-2 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded" 
+              onClick={sendDebugInfo}
+            >
+              <FaBug className="inline-block mr-1" /> Enviar informe d'error
+            </button>
           </div>
         )}
         
@@ -244,7 +317,7 @@ const BarcodeScanner = ({ onScanComplete }) => {
               }}
               className="w-full mt-2 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors"
             >
-              Escanear otro producto
+              Escanejar un altre producte
             </button>
           </div>
         )}
@@ -257,7 +330,7 @@ const BarcodeScanner = ({ onScanComplete }) => {
               disabled={!cameraId || loading}
               className="bg-green-600 text-white py-2 px-6 rounded-lg hover:bg-green-700 transition-colors flex items-center"
             >
-              <FaCamera className="mr-2" /> Iniciar escaneo
+              <FaCamera className="mr-2" /> Iniciar escaneig
             </button>
           ) : (
             <>
@@ -273,7 +346,7 @@ const BarcodeScanner = ({ onScanComplete }) => {
                   onClick={switchCamera}
                   className="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
                 >
-                  <FaSync className="mr-2" /> Cambiar cámara
+                  <FaSync className="mr-2" /> Canviar càmera
                 </button>
               )}
               
@@ -281,7 +354,7 @@ const BarcodeScanner = ({ onScanComplete }) => {
                 onClick={toggleTorch}
                 className={`${torchOn ? 'bg-yellow-600' : 'bg-gray-600'} text-white py-2 px-4 rounded-lg hover:bg-yellow-700 transition-colors flex items-center`}
               >
-                <FaLightbulb className="mr-2" /> Linterna
+                <FaLightbulb className="mr-2" /> Llanterna
               </button>
             </>
           )}
@@ -290,8 +363,20 @@ const BarcodeScanner = ({ onScanComplete }) => {
       
       <div className="p-4 bg-gray-100 border-t">
         <p className="text-center text-sm text-gray-600">
-          Escanea los códigos de barras de productos para reciclar y gana puntos
+          Escaneja els codis de barres de productes per reciclar i guanya punts
         </p>
+        
+        {/* Debug Info (solo visible en modo desarrollo) */}
+        {debugInfo && process.env.NODE_ENV === 'development' && (
+          <div className="mt-4 p-2 bg-gray-800 text-gray-300 rounded text-xs overflow-auto" style={{maxHeight: '100px'}}>
+            <pre>{debugInfo}</pre>
+          </div>
+        )}
+        
+        {/* Cámara seleccionada (visible siempre para depuración) */}
+        <div className="mt-2 text-xs text-gray-500 text-center">
+          Càmera: {availableCameras.find(c => c.id === cameraId)?.label || 'Cap càmera seleccionada'}
+        </div>
       </div>
     </div>
   );
