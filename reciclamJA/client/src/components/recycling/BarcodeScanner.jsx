@@ -15,6 +15,7 @@ const BarcodeScanner = ({ onScanComplete }) => {
   const [torchOn, setTorchOn] = useState(false);
   const [error, setError] = useState('');
   const [debugInfo, setDebugInfo] = useState('');
+  const [permissionGranted, setPermissionGranted] = useState(false);
   const { user } = useAuth();
   
   const scannerContainerRef = useRef(null);
@@ -28,62 +29,88 @@ const BarcodeScanner = ({ onScanComplete }) => {
     setDebugInfo(prev => prev + '\n' + new Date().toISOString() + ': ' + errorDetails);
   };
 
-  // Inicializar el escáner
+  // Solicitar permisos de cámara explícitamente
   useEffect(() => {
-    if (!html5QrCode && scannerContainerRef.current) {
-      try {
-        const newHtml5QrCode = new Html5Qrcode('scanner');
-        setHtml5QrCode(newHtml5QrCode);
+    // Solicitar permiso de cámara explícitamente antes de inicializar el escáner
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => {
+        // Éxito - el usuario ha concedido permisos
+        setPermissionGranted(true);
+        toast.success('Permís de càmera concedit');
         
-        // Obtener cámaras disponibles
-        Html5Qrcode.getCameras()
-          .then(devices => {
-            if (devices && devices.length) {
-              setAvailableCameras(devices);
-              
-              // Intentar encontrar la cámara trasera primero
-              const rearCamera = devices.find(camera => 
-                camera.label.toLowerCase().includes('back') || 
-                camera.label.toLowerCase().includes('rear') ||
-                camera.label.toLowerCase().includes('environment'));
-              
-              if (rearCamera) {
-                setCameraId(rearCamera.id);
-                toast.success('Càmera posterior seleccionada');
-              } else {
-                // Si no hay etiqueta clara, usar la última cámara (generalmente la trasera en móviles)
-                setCameraId(devices[devices.length - 1].id);
-                toast.success('Càmera seleccionada: ' + devices[devices.length - 1].label);
-              }
-              
-              // Mostrar información de las cámaras disponibles
-              const cameraInfo = devices.map(d => `${d.id}: ${d.label}`).join('\n');
-              setDebugInfo('Càmeres disponibles:\n' + cameraInfo);
-            } else {
-              logError('No s\'han detectat càmeres en aquest dispositiu');
-            }
-          })
-          .catch(err => {
-            logError('Error al accedir a la càmera', err);
-          });
-      } catch (err) {
-        logError('Error al inicialitzar l\'escàner', err);
-      }
-    }
-    
-    // Limpiar al desmontar
-    return () => {
-      if (html5QrCode && html5QrCode.isScanning) {
-        html5QrCode.stop()
-          .then(() => console.log('Scanner stopped'))
-          .catch(err => logError('Error al detenir l\'escàner', err));
-      }
-    };
+        // Liberar la cámara inmediatamente
+        stream.getTracks().forEach(track => track.stop());
+        
+        // Ahora es seguro inicializar el escáner
+        initializeScanner();
+      })
+      .catch(err => {
+        logError('No s\'ha pogut accedir a la càmera. Si us plau, permet l\'accés a la càmera del navegador.', err);
+      });
   }, []);
-  
-  // Función para iniciar el escaneo
-  const startScanning = () => {
-    if (!html5QrCode || !cameraId) {
+
+  // Inicializar el escáner solo después de obtener permisos
+  const initializeScanner = () => {
+    try {
+      if (!scannerContainerRef.current) return;
+
+      // Verificar que el div de escáner existe
+      const scannerElement = document.getElementById('scanner');
+      if (!scannerElement) {
+        logError('No es troba l\'element del escàner al DOM');
+        return;
+      }
+
+      // Crear una nueva instancia del escáner
+      const newHtml5QrCode = new Html5Qrcode('scanner');
+      setHtml5QrCode(newHtml5QrCode);
+      
+      // Obtener cámaras disponibles
+      Html5Qrcode.getCameras()
+        .then(devices => {
+          if (devices && devices.length) {
+            setAvailableCameras(devices);
+            
+            // Intentar encontrar la cámara trasera primero
+            const rearCamera = devices.find(camera => 
+              /back|rear|trasera|environment|posterior/i.test(camera.label));
+            
+            if (rearCamera) {
+              setCameraId(rearCamera.id);
+              toast.success('Càmera posterior seleccionada: ' + rearCamera.label);
+              // Iniciar escáner automáticamente con la cámara trasera
+              setTimeout(() => {
+                startScanningWithCamera(newHtml5QrCode, rearCamera.id);
+              }, 1000);
+            } else {
+              // Si no hay etiqueta clara, usar la última cámara (generalmente la trasera en móviles)
+              const defaultCamera = devices[devices.length - 1];
+              setCameraId(defaultCamera.id);
+              toast.success('Càmera seleccionada: ' + defaultCamera.label);
+              // Iniciar escáner automáticamente
+              setTimeout(() => {
+                startScanningWithCamera(newHtml5QrCode, defaultCamera.id);
+              }, 1000);
+            }
+            
+            // Mostrar información de las cámaras disponibles
+            const cameraInfo = devices.map(d => `${d.id}: ${d.label}`).join('\n');
+            setDebugInfo('Càmeres disponibles:\n' + cameraInfo);
+          } else {
+            logError('No s\'han detectat càmeres en aquest dispositiu');
+          }
+        })
+        .catch(err => {
+          logError('Error al enumerar les càmeres', err);
+        });
+    } catch (err) {
+      logError('Error al inicialitzar l\'escàner', err);
+    }
+  };
+
+  // Función para iniciar el escaneo con una cámara específica
+  const startScanningWithCamera = (scanner, camId) => {
+    if (!scanner || !camId) {
       logError('Escàner no inicialitzat o càmera no seleccionada');
       return;
     }
@@ -96,18 +123,22 @@ const BarcodeScanner = ({ onScanComplete }) => {
       fps: 10,
       qrbox: { width: 250, height: 150 },
       aspectRatio: 1.333334,
+      // Usar todas las configuraciones de formato posibles
       formatsToSupport: [
         Html5Qrcode.FORMATS.EAN_13,
         Html5Qrcode.FORMATS.EAN_8,
         Html5Qrcode.FORMATS.UPC_A,
-        Html5Qrcode.FORMATS.UPC_E
+        Html5Qrcode.FORMATS.UPC_E,
+        Html5Qrcode.FORMATS.CODE_39,
+        Html5Qrcode.FORMATS.CODE_93,
+        Html5Qrcode.FORMATS.CODE_128
       ]
     };
     
-    toast.success('Intentant accedir a la càmera: ' + cameraId);
+    toast.success('Iniciant càmera: ' + camId);
     
-    html5QrCode.start(
-      cameraId,
+    scanner.start(
+      camId,
       config,
       onScanSuccess,
       onScanFailure
@@ -117,15 +148,63 @@ const BarcodeScanner = ({ onScanComplete }) => {
       toast.success('Escàner iniciat correctament');
       
       // Comprobar si la cámara tiene linterna
-      const cameraCapabilities = html5QrCode.getRunningTrackCameraCapabilities();
-      if (cameraCapabilities && cameraCapabilities.torch) {
-        toast.success('Linterna disponible');
+      try {
+        const cameraCapabilities = scanner.getRunningTrackCameraCapabilities();
+        if (cameraCapabilities && cameraCapabilities.torch) {
+          toast.success('Linterna disponible');
+        }
+      } catch (err) {
+        console.log('No se pudo verificar la linterna:', err);
       }
     })
     .catch(err => {
       logError('Error al iniciar l\'escàner', err);
       setScanning(false);
+      
+      // Intentar una configuración alternativa si falla
+      const simpleConfig = {
+        fps: 5,
+        qrbox: 250
+      };
+      
+      toast.info('Intentant configuració alternativa...');
+      
+      scanner.start(
+        camId,
+        simpleConfig,
+        onScanSuccess,
+        onScanFailure
+      )
+      .then(() => {
+        console.log('Scanner started with simple config');
+        toast.success('Escàner iniciat amb configuració alternativa');
+        setScanning(true);
+      })
+      .catch(secondErr => {
+        logError('Error també amb la configuració alternativa', secondErr);
+      });
     });
+  };
+  
+  // Limpiar al desmontar
+  useEffect(() => {
+    return () => {
+      if (html5QrCode && html5QrCode.isScanning) {
+        html5QrCode.stop()
+          .then(() => console.log('Scanner stopped'))
+          .catch(err => console.error('Error stopping scanner:', err));
+      }
+    };
+  }, [html5QrCode]);
+  
+  // Función para iniciar el escaneo
+  const startScanning = () => {
+    if (!html5QrCode || !cameraId) {
+      logError('Escàner no inicialitzat o càmera no seleccionada');
+      return;
+    }
+    
+    startScanningWithCamera(html5QrCode, cameraId);
   };
   
   // Función para detener el escaneo
@@ -151,7 +230,7 @@ const BarcodeScanner = ({ onScanComplete }) => {
       html5QrCode.toggleFlash()
         .then(() => {
           setTorchOn(!torchOn);
-          toast.success(torchOn ? 'Linterna apagada' : 'Linterna encendida');
+          toast.success(torchOn ? 'Llanterna apagada' : 'Llanterna encesa');
         })
         .catch(err => {
           logError('No es pot controlar la llanterna en aquest dispositiu', err);
@@ -171,7 +250,7 @@ const BarcodeScanner = ({ onScanComplete }) => {
       
       // Reiniciar el escaneo después de un breve retraso
       setTimeout(() => {
-        startScanning();
+        startScanningWithCamera(html5QrCode, availableCameras[nextIndex].id);
       }, 500);
     }
   };
@@ -210,7 +289,7 @@ const BarcodeScanner = ({ onScanComplete }) => {
     });
   };
   
-  // Manejar el fracaso del escaneo (no es necesario mostrar errores al usuario)
+  // Manejar el fracaso del escaneo
   const onScanFailure = (error) => {
     // No mostrar cada fallo, solo registrarlo para depuración
     console.log('Code scan error:', error);
@@ -225,6 +304,7 @@ User: ${user?.username || 'Not logged in'}
 Device: ${navigator.userAgent}
 Cameras: ${availableCameras.map(c => c.label).join(', ')}
 Selected Camera: ${availableCameras.find(c => c.id === cameraId)?.label || 'None'}
+Permission Granted: ${permissionGranted ? 'Yes' : 'No'}
 Errors: ${error}
 Debug Log:
 ${debugInfo}
@@ -253,7 +333,7 @@ ${debugInfo}
           id="scanner" 
           ref={scannerContainerRef} 
           className="bg-gray-100 rounded-lg overflow-hidden relative"
-          style={{ minHeight: '300px' }}
+          style={{ minHeight: '300px', width: '100%' }}
         ></div>
         
         {error && (
@@ -261,10 +341,32 @@ ${debugInfo}
             <p className="font-bold mb-1">Error:</p>
             <p className="text-sm">{error}</p>
             <button 
-              className="mt-2 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded" 
+              className="mt-2 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded flex items-center" 
               onClick={sendDebugInfo}
             >
-              <FaBug className="inline-block mr-1" /> Enviar informe d'error
+              <FaBug className="mr-1" /> Enviar informe d'error
+            </button>
+          </div>
+        )}
+        
+        {!permissionGranted && (
+          <div className="mt-4 p-3 bg-amber-100 text-amber-700 rounded-lg">
+            <p className="font-bold mb-1">Cal permís de càmera</p>
+            <p className="text-sm">Per utilitzar l'escàner, necessitem accés a la càmera. Si us plau, accepta el permís quan el navegador ho sol·liciti.</p>
+            <button 
+              className="mt-2 bg-amber-500 text-white px-3 py-1 rounded text-sm"
+              onClick={() => {
+                navigator.mediaDevices.getUserMedia({ video: true })
+                  .then(stream => {
+                    stream.getTracks().forEach(track => track.stop());
+                    setPermissionGranted(true);
+                    toast.success('Permís de càmera concedit');
+                    initializeScanner();
+                  })
+                  .catch(err => logError('Permís de càmera denegat', err));
+              }}
+            >
+              Sol·licitar permís
             </button>
           </div>
         )}
@@ -278,7 +380,7 @@ ${debugInfo}
         {result && (
           <div className="mt-4 p-4 bg-green-50 rounded-lg">
             <div className="flex items-center mb-3">
-              {result.producto.imagen_url && (
+              {result.producto?.imagen_url && (
                 <img 
                   src={result.producto.imagen_url} 
                   alt={result.producto.nombre_producto} 
@@ -286,8 +388,8 @@ ${debugInfo}
                 />
               )}
               <div>
-                <h3 className="font-bold">{result.producto.nombre_producto}</h3>
-                {result.producto.marca && (
+                <h3 className="font-bold">{result.producto?.nombre_producto || 'Producte'}</h3>
+                {result.producto?.marca && (
                   <p className="text-sm text-gray-600">{result.producto.marca}</p>
                 )}
               </div>
@@ -297,16 +399,16 @@ ${debugInfo}
               <div>
                 <p className="font-semibold text-gray-700">Material:</p>
                 <p className="font-bold text-lg" style={{ color: result.material?.color || '#000' }}>
-                  {result.material?.nombre}
+                  {result.material?.nombre || 'Desconegut'}
                 </p>
               </div>
               <div className="text-center">
-                <p className="font-semibold text-gray-700">Contenedor:</p>
-                <p className="font-bold text-lg">{result.material?.contenedor}</p>
+                <p className="font-semibold text-gray-700">Contenidor:</p>
+                <p className="font-bold text-lg">{result.material?.contenedor || 'N/A'}</p>
               </div>
               <div className="text-center">
-                <p className="font-semibold text-gray-700">Puntos:</p>
-                <p className="font-bold text-lg text-green-600">+{result.puntos_nuevos}</p>
+                <p className="font-semibold text-gray-700">Punts:</p>
+                <p className="font-bold text-lg text-green-600">+{result.puntos_nuevos || 0}</p>
               </div>
             </div>
             
@@ -327,8 +429,12 @@ ${debugInfo}
           {!scanning ? (
             <button
               onClick={startScanning}
-              disabled={!cameraId || loading}
-              className="bg-green-600 text-white py-2 px-6 rounded-lg hover:bg-green-700 transition-colors flex items-center"
+              disabled={!cameraId || loading || !permissionGranted}
+              className={`py-2 px-6 rounded-lg flex items-center ${
+                !cameraId || loading || !permissionGranted
+                  ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                  : 'bg-green-600 text-white hover:bg-green-700'
+              }`}
             >
               <FaCamera className="mr-2" /> Iniciar escaneig
             </button>
@@ -365,13 +471,6 @@ ${debugInfo}
         <p className="text-center text-sm text-gray-600">
           Escaneja els codis de barres de productes per reciclar i guanya punts
         </p>
-        
-        {/* Debug Info (solo visible en modo desarrollo) */}
-        {debugInfo && process.env.NODE_ENV === 'development' && (
-          <div className="mt-4 p-2 bg-gray-800 text-gray-300 rounded text-xs overflow-auto" style={{maxHeight: '100px'}}>
-            <pre>{debugInfo}</pre>
-          </div>
-        )}
         
         {/* Cámara seleccionada (visible siempre para depuración) */}
         <div className="mt-2 text-xs text-gray-500 text-center">
