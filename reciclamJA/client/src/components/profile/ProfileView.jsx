@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { FaUser, FaEnvelope, FaMapMarkerAlt, FaBuilding, FaTrophy, FaMedal, FaEdit, 
          FaSave, FaTimes, FaEye, FaEyeSlash, FaLock, FaIdCard } from 'react-icons/fa';
 import { UserTickets } from './UserTickets';
+import { VirtualBags } from '../recycling/VirtualBags';
 import { usePermissions } from '../../../hooks/usePermissions';
 import { toast } from 'react-hot-toast';
 
@@ -671,6 +672,9 @@ export const ProfileView = () => {
                                 </div>
                             </div>
                         </div>
+                        
+                        {/* Add the Virtual Bags component here */}
+                        <VirtualBags />
                         
                         {/* Always display the UserTickets component */}
                         <UserTickets />

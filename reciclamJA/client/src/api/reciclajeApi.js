@@ -136,7 +136,70 @@ export const obtenerHistorial = async () => {
     }
 };
 
+// Funciones para gestión de bolsas virtuales
+export const obtenerBolsas = async () => {
+  try {
+    const response = await reciclajeApi.get('/bolsas/');
+    return response.data;
+  } catch (error) {
+    console.error('Error obteniendo bolsas:', error);
+    throw error;
+  }
+};
+
+export const crearBolsa = async (tipoBolsa) => {
+  try {
+    const response = await reciclajeApi.post('/bolsas/crear/', {
+      tipo_material_id: tipoBolsa,
+      nombre: `Bolsa de ${new Date().toLocaleString()}`
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error creando bolsa:', error);
+    throw error;
+  }
+};
+
+export const obtenerDetalleBolsa = async (bolsaId) => {
+  try {
+    const response = await reciclajeApi.get(`/bolsas/${bolsaId}/`);
+    return response.data;
+  } catch (error) {
+    console.error('Error obteniendo detalle de bolsa:', error);
+    throw error;
+  }
+};
+
+export const agregarProductoABolsa = async (productoId, bolsaId) => {
+  try {
+    const response = await reciclajeApi.post(`/productos/${productoId}/agregar-a-bolsa/`, {
+      bolsa_id: bolsaId
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error agregando producto a bolsa:', error);
+    throw error;
+  }
+};
+
+export const reciclarBolsa = async (bolsaId, contenedorId) => {
+  try {
+    const response = await reciclajeApi.post(`/bolsas/${bolsaId}/reciclar/`, {
+      contenedor_id: contenedorId
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error reciclando bolsa:', error);
+    throw error;
+  }
+};
+
 export default {
-    escanearCodigo,
-    obtenerHistorial
+  escanearCodigo,
+  obtenerHistorial,
+  obtenerBolsas,
+  crearBolsa,
+  obtenerDetalleBolsa,
+  agregarProductoABolsa,
+  reciclarBolsa
 };
