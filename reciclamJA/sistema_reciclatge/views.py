@@ -4,6 +4,7 @@ from django.utils import timezone
 from django.db.models import Sum
 from rest_framework import status, permissions
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from .models import Material, ProductoReciclado
@@ -13,13 +14,33 @@ from .serializers import MaterialSerializer, ProductoRecicladoSerializer, Codigo
 def determinar_material(producto_info):
     # Lista de palabras clave para cada material
     materiales_keywords = {
-        'plastico': ['plastic', 'plástico', 'pet', 'hdpe', 'pvc', 'ldpe', 'pp', 'ps', 'botella de plástico'],
-        'papel': ['paper', 'papel', 'cardboard', 'cartón', 'cartó', 'periódico', 'revista'],
-        'vidrio': ['glass', 'vidrio', 'botella de vidrio', 'frasco de vidrio'],
-        'metal': ['metal', 'aluminio', 'aluminum', 'lata', 'can', 'tin', 'steel'],
+        'plastico': ['plastic', 'plástico', 'pet', 'hdpe', 'pvc', 'ldpe', 'pp', 'ps', 'botella de plástico', 'bottle'],
+        'papel': ['paper', 'papel', 'cardboard', 'cartón', 'cartó', 'periódico', 'revista', 'newspaper', 'journal'],
+        'vidrio': ['glass', 'vidrio', 'botella de vidrio', 'frasco de vidrio', 'beer', 'cervesa', 'cerveza'],
+        'metal': ['metal', 'aluminio', 'aluminum', 'lata', 'can', 'tin', 'steel', 'coca-cola', 'coca cola', 'soda'],
         'organico': ['organic', 'orgánico', 'food', 'comida', 'fruta', 'verdura', 'vegetal'],
         'resto': ['mixed', 'mixto', 'resto', 'other', 'otro']
     }
+    
+    # Códigos EAN conocidos para demostración/testing
+    codigos_conocidos = {
+        # Añadir unos códigos de ejemplo garantizados
+        '8480000160164': 'plastico',  # Agua Font Vella
+        '8414533043847': 'papel',     # Diario El País
+        '8410057320202': 'vidrio',    # Cerveza Estrella
+        '8410188012096': 'metal',     # Lata Coca-Cola
+        # Puedes añadir más códigos conocidos aquí
+    }
+    
+    # Comprobar si es un código conocido para demostración
+    barcode = producto_info.get('code', '')
+    if barcode in codigos_conocidos:
+        try:
+            print(f"⭐ Código conocido detectado: {barcode}, material: {codigos_conocidos[barcode]}")
+            return Material.objects.get(nombre__iexact=codigos_conocidos[barcode])
+        except Material.DoesNotExist:
+            print(f"❌ Material {codigos_conocidos[barcode]} no encontrado en la base de datos")
+            pass
     
     # Categorías del producto que vienen de la API
     categorias = producto_info.get('categories', '').lower()
@@ -28,14 +49,17 @@ def determinar_material(producto_info):
     packaging = producto_info.get('packaging', '').lower()
     
     texto_completo = f"{categorias} {nombre} {ingredientes} {packaging}"
+    print(f"📝 Texto analizado: {texto_completo[:100]}...")
     
     # Buscar el material basado en palabras clave
     for material, keywords in materiales_keywords.items():
         for keyword in keywords:
             if keyword in texto_completo:
                 try:
+                    print(f"✅ Material detectado: {material}, keyword: {keyword}")
                     return Material.objects.get(nombre__iexact=material)
                 except Material.DoesNotExist:
+                    print(f"⚠️ Material {material} no encontrado en la base de datos")
                     continue
     
     # Si no se encuentra ninguna coincidencia, devolver material por defecto (resto)
@@ -43,6 +67,7 @@ def determinar_material(producto_info):
         return Material.objects.get(nombre__iexact='resto')
     except Material.DoesNotExist:
         # Si no existe ni siquiera el material "resto", crear un error genérico
+        print("❌ No se pudo determinar ningún material, incluso 'resto' no existe en la base de datos")
         return None
 
 @api_view(['POST'])
@@ -65,7 +90,46 @@ def escanear_codigo(request):
                 'producto': ProductoRecicladoSerializer(producto_existente).data
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Consultar la API de Open Food Facts
+        # Primero comprobar si es un código conocido para demostración
+        codigos_conocidos = {
+            '8480000160164': ('plastico', 'Agua Font Vella'),  # Agua Font Vella
+            '8414533043847': ('papel', 'Diario El País'),     # Diario El País
+            '8410057320202': ('vidrio', 'Cerveza Estrella'),    # Cerveza Estrella
+            '8410188012096': ('metal', 'Lata Coca-Cola'),     # Lata Coca-Cola
+        }
+        
+        if codigo in codigos_conocidos:
+            try:
+                material_nombre, producto_nombre = codigos_conocidos[codigo]
+                material = Material.objects.get(nombre__iexact=material_nombre)
+                
+                # Crear registro de producto reciclado
+                producto_reciclado = ProductoReciclado.objects.create(
+                    usuario=request.user,
+                    codigo_barras=codigo,
+                    nombre_producto=producto_nombre,
+                    material=material,
+                    marca='Demo',
+                    puntos_obtenidos=material.puntos,
+                    imagen_url=''
+                )
+                
+                # Actualizar puntos del usuario
+                request.user.score += material.puntos
+                request.user.save(update_fields=['score'])
+                
+                return Response({
+                    'producto': ProductoRecicladoSerializer(producto_reciclado).data,
+                    'puntos_nuevos': material.puntos,
+                    'puntos_totales': request.user.score,
+                    'material': MaterialSerializer(material).data
+                }, status=status.HTTP_201_CREATED)
+                
+            except Material.DoesNotExist:
+                # Si el material no existe, continuamos con el flujo normal
+                pass
+        
+        # Si no es un código conocido, consultar la API de Open Food Facts
         api_url = f"https://world.openfoodfacts.org/api/v0/product/{codigo}.json"
         try:
             response = requests.get(api_url, timeout=10)
@@ -141,4 +205,15 @@ def historial_reciclaje(request):
             'total_productos': productos.count(),
             'por_material': productos_por_material
         }
+    })
+
+# Add this test view at the end of the file
+@api_view(['GET', 'POST'])
+@permission_classes([AllowAny])  # No authentication required for testing
+def test_view(request):
+    """Simple test view to verify routing is working."""
+    return Response({
+        'message': 'Test endpoint is working!',
+        'method': request.method,
+        'received_data': request.data if request.method == 'POST' else None
     })

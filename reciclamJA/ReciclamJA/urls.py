@@ -6,12 +6,13 @@ urlpatterns = [
     # Admin
     path('admin/', admin.site.urls),
     
-    # Ruta para las tareas (si tienes alguna app de tareas)
-
-    path('auth/', include('accounts.urls', namespace='auth')),  # Aquí llamamos a las rutas de 'accounts'
-
-    path('zr/', include('zonesreciclatge.urls', namespace='zr')),  # Aquí llamamos a las rutas de 'zonesreciclatge'
-    path('api/reciclar/', include('sistema_reciclatge.urls')),  # URLs específicas de reciclaje
-    # Documentación API
+    # Authentication and other apps
+    path('auth/', include('accounts.urls', namespace='auth')),
+    path('zr/', include('zonesreciclatge.urls', namespace='zr')),
+    
+    # Sistema reciclatge - temporarily remove namespace for testing
+    path('api/reciclar/', include('sistema_reciclatge.urls')),
+    
+    # Documentation
     path('docs/', include_docs_urls(title='API Documentation')),
 ]
