@@ -19,37 +19,37 @@ L.Icon.Default.mergeOptions({
 
 // Custom icons for different container types
 const containerIcons = {
-  papel: new L.Icon({
+  paper: new L.Icon({
     iconUrl: '/icons/contenedor-azul.png',
     iconSize: [32, 32],
     iconAnchor: [16, 32],
     popupAnchor: [0, -32]
   }),
-  plastico: new L.Icon({
+  plàstic: new L.Icon({
     iconUrl: '/icons/contenedor-amarillo.png',
     iconSize: [32, 32],
     iconAnchor: [16, 32],
     popupAnchor: [0, -32]
   }),
-  vidrio: new L.Icon({
+  vidre: new L.Icon({
     iconUrl: '/icons/contenedor-verde.png',
     iconSize: [32, 32],
     iconAnchor: [16, 32],
     popupAnchor: [0, -32]
   }),
-  organico: new L.Icon({
+  orgànic: new L.Icon({
     iconUrl: '/icons/contenedor-marron.png',
     iconSize: [32, 32],
     iconAnchor: [16, 32],
     popupAnchor: [0, -32]
   }),
-  resto: new L.Icon({
+  resta: new L.Icon({
     iconUrl: '/icons/contenedor-gris.png',
     iconSize: [32, 32],
     iconAnchor: [16, 32],
     popupAnchor: [0, -32]
   }),
-  metal: new L.Icon({
+  metall: new L.Icon({
     iconUrl: '/icons/contenedor-amarillo.png', // Metal usually goes in yellow container
     iconSize: [32, 32],
     iconAnchor: [16, 32],
@@ -203,12 +203,12 @@ export function VirtualBags() {
   // Render material badge
   const MaterialBadge = ({ material }) => {
     const colors = {
-      plastico: "bg-yellow-100 text-yellow-800",
-      papel: "bg-blue-100 text-blue-800",
-      vidrio: "bg-green-100 text-green-800",
-      metal: "bg-orange-100 text-orange-800",
-      organico: "bg-amber-100 text-amber-800",
-      resto: "bg-gray-100 text-gray-800"
+      plàstic: "bg-yellow-100 text-yellow-800",
+      paper: "bg-blue-100 text-blue-800",
+      vidre: "bg-green-100 text-green-800",
+      metall: "bg-orange-100 text-orange-800",
+      orgànic: "bg-amber-100 text-amber-800",
+      resta: "bg-gray-100 text-gray-800"
     };
 
     return (

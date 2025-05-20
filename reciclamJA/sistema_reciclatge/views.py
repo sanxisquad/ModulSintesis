@@ -135,7 +135,7 @@ def escanear_codigo(request):
                 segundos_restantes = int(tiempo_restante.total_seconds() % 60)
                 
                 return Response({
-                    'error': 'Producto reciclado recientemente',
+                    'error': 'Producte reciclat recentment',
                     'titulo': 'Espera un moment',
                     'tipo': 'cooldown',
                     'mensaje': f'Ja has reciclat aquest producte. Podràs reciclar-lo de nou en {minutos_restantes} minut(s) i {segundos_restantes} segon(s).',
@@ -153,8 +153,8 @@ def escanear_codigo(request):
         # Si no se encuentra el producto, devolver error
         if not producto_info:
             return Response({
-                'error': 'Producto no encontrado',
-                'mensaje': 'No se ha encontrado el producto en la base de datos'
+                'error': 'Producte no trobat',
+                'mensaje': 'No s\'ha trobat el producte a la base de dades'
             }, status=status.HTTP_404_NOT_FOUND)
         
         # Determinar el material según el packaging
@@ -163,7 +163,7 @@ def escanear_codigo(request):
         if not material:
             return Response({
                 'error': "No s'ha pogut determinar el material",
-                'mensaje': "No se ha podido determinar el material del producto"
+                'mensaje': "No s'ha pogut determinar el material del producte"
             }, status=status.HTTP_400_BAD_REQUEST)
         
         # Después de determinar el material del producto, obtener las bolsas disponibles

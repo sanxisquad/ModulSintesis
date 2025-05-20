@@ -1,7 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
-import { toast } from 'react-hot-toast';
-import { FaCamera, FaQrcode, FaSync, FaLightbulb, FaPowerOff, FaStar, FaBug, FaBarcode } from 'react-icons/fa';
+import { 
+  FaCamera, 
+  FaQrcode, 
+  FaSync, 
+  FaPowerOff, 
+  FaStar, 
+  FaBug, 
+  FaBarcode,
+  FaCheck,
+  FaExclamationTriangle,
+  FaBox,
+  FaEye,
+  FaTrash,
+  FaPlus
+} from 'react-icons/fa';
 import { useAuth } from '../../../hooks/useAuth';
 import { escanearCodigo, agregarProductoABolsa, crearBolsa } from '../../api/reciclajeApi';
 import { Link } from 'react-router-dom';
@@ -14,7 +27,6 @@ const BarcodeScanner = ({ onScanComplete }) => {
   const [loading, setLoading] = useState(false);
   const [cameraId, setCameraId] = useState(null);
   const [availableCameras, setAvailableCameras] = useState([]);
-  const [torchOn, setTorchOn] = useState(false);
   const [error, setError] = useState('');
   const [debugInfo, setDebugInfo] = useState('');
   const [permissionGranted, setPermissionGranted] = useState(false);
@@ -27,7 +39,6 @@ const BarcodeScanner = ({ onScanComplete }) => {
     const errorDetails = error ? `${message}: ${error.message || error}` : message;
     console.error(errorDetails, error);
     setError(errorDetails);
-    toast.error(errorDetails);
     setDebugInfo(prev => prev + '\n' + new Date().toISOString() + ': ' + errorDetails);
   };
 
@@ -42,7 +53,6 @@ const BarcodeScanner = ({ onScanComplete }) => {
       .then(stream => {
         // Éxito - el usuario ha concedido permisos
         setPermissionGranted(true);
-        toast.success('Permís de càmera concedit');
         
         // Liberar la cámara inmediatamente
         stream.getTracks().forEach(track => track.stop());
@@ -89,7 +99,6 @@ const BarcodeScanner = ({ onScanComplete }) => {
             if (rearCamera) {
               setCameraId(rearCamera.id);
               console.log("Cámara trasera detectada por etiqueta:", rearCamera.label);
-              toast.success('Càmera posterior seleccionada: ' + rearCamera.label);
               
               // Iniciar escáner con un retraso para dar tiempo a que se configure la cámara
               setTimeout(() => {
@@ -100,7 +109,6 @@ const BarcodeScanner = ({ onScanComplete }) => {
               const defaultCamera = devices[devices.length - 1];
               setCameraId(defaultCamera.id);
               console.log("Usando última cámara como trasera:", defaultCamera.label);
-              toast.success('Càmera posterior (assumida): ' + defaultCamera.label);
               
               setTimeout(() => {
                 startScanningWithCamera(newHtml5QrCode, defaultCamera.id);
@@ -110,7 +118,6 @@ const BarcodeScanner = ({ onScanComplete }) => {
               const onlyCamera = devices[0];
               setCameraId(onlyCamera.id);
               console.log("Solo hay una cámara disponible:", onlyCamera.label);
-              toast.success('Càmera única disponible: ' + onlyCamera.label);
               
               setTimeout(() => {
                 startScanningWithCamera(newHtml5QrCode, onlyCamera.id);
@@ -163,10 +170,16 @@ const BarcodeScanner = ({ onScanComplete }) => {
         0x10, // UPC_A
         0x20, // UPC_E
         0x40, // UPC_EAN_EXTENSION
+        0x80, // QR Code
+        0x100, // Data Matrix
+        0x200, // Aztec
+        0x400, // Codabar
+        0x800, // ITF
+        0x1000, // RSS14
+        0x2000  // PDF417
       ]
     };
     
-    toast.success('Iniciant càmera: ' + camId);
     console.log("Iniciando cámara con ID:", camId);
     
     scanner.start(
@@ -177,17 +190,6 @@ const BarcodeScanner = ({ onScanComplete }) => {
     )
     .then(() => {
       console.log('Scanner started');
-      toast.success('Escàner iniciat correctament');
-      
-      // Comprobar si la cámara tiene linterna
-      try {
-        const cameraCapabilities = scanner.getRunningTrackCameraCapabilities();
-        if (cameraCapabilities && cameraCapabilities.torch) {
-          toast.success('Linterna disponible');
-        }
-      } catch (err) {
-        console.log('No se pudo verificar la linterna:', err);
-      }
     })
     .catch(err => {
       logError('Error al iniciar l\'escàner', err);
@@ -199,8 +201,6 @@ const BarcodeScanner = ({ onScanComplete }) => {
         qrbox: 250
       };
       
-      toast.info('Intentant configuració bàsica...');
-      
       scanner.start(
         camId,
         simpleConfig,
@@ -209,7 +209,6 @@ const BarcodeScanner = ({ onScanComplete }) => {
       )
       .then(() => {
         console.log('Scanner started with basic config');
-        toast.success('Escàner iniciat amb configuració bàsica');
         setScanning(true);
       })
       .catch(secondErr => {
@@ -246,26 +245,9 @@ const BarcodeScanner = ({ onScanComplete }) => {
         .then(() => {
           console.log('Scanner stopped');
           setScanning(false);
-          if (torchOn) {
-            setTorchOn(false);
-          }
         })
         .catch(err => {
           logError('Error al detenir l\'escàner', err);
-        });
-    }
-  };
-  
-  // Función para alternar la linterna
-  const toggleTorch = () => {
-    if (html5QrCode && html5QrCode.isScanning) {
-      html5QrCode.toggleFlash()
-        .then(() => {
-          setTorchOn(!torchOn);
-          toast.success(torchOn ? 'Llanterna apagada' : 'Llanterna encesa');
-        })
-        .catch(err => {
-          logError('No es pot controlar la llanterna en aquest dispositiu', err);
         });
     }
   };
@@ -278,7 +260,6 @@ const BarcodeScanner = ({ onScanComplete }) => {
       const currentIndex = availableCameras.findIndex(camera => camera.id === cameraId);
       const nextIndex = (currentIndex + 1) % availableCameras.length;
       setCameraId(availableCameras[nextIndex].id);
-      toast.success('Canviant a càmera: ' + availableCameras[nextIndex].label);
       
       // Reiniciar el escaneo después de un breve retraso
       setTimeout(() => {
@@ -292,7 +273,6 @@ const BarcodeScanner = ({ onScanComplete }) => {
     // Detenemos el escaneo después de un resultado exitoso
     stopScanning();
     
-    toast.success(`Codi detectat: ${decodedText}`);
     setLoading(true);
     
     // Usar el servicio API con manejo de errores mejorado
@@ -335,13 +315,7 @@ const BarcodeScanner = ({ onScanComplete }) => {
           bagInfo: response.bolsa
         });
         
-        // Si ya se agregó a una bolsa, mostrar mensaje específico
-        if (response.agregado_a_bolsa && response.bolsa) {
-          toast.success(`Producte afegit a la bossa: ${response.bolsa.nombre || 'Bossa #' + response.bolsa.id}`);
-        } else {
-          // Mensaje estándar de éxito
-          toast.success(`¡Producte reciclat! +${response.puntos_nuevos} punts`);
-        }
+        // Remove toast notifications for product recycling and points
         
         // Llamar al callback para informar al componente padre
         if (onScanComplete) {
@@ -485,7 +459,7 @@ ${debugInfo}
       '8480000160164': {
         nombre_producto: 'Aigua Font Vella 1,5L',
         marca: 'Font Vella',
-        material: { id: 1, nombre: 'plastico' },
+        material: { id: 1, nombre: 'plàstic' },
         imagen_url: 'https://prod-mercadona.imgix.net/images/6420bdab35c34e82c0bd76a1.jpg',
         puntos_obtenidos: 15,
         codigo_barras: '8480000160164',
@@ -493,7 +467,7 @@ ${debugInfo}
       '8414533043847': {
         nombre_producto: 'Diari El País',
         marca: 'El País',
-        material: { id: 2, nombre: 'papel' },
+        material: { id: 2, nombre: 'paper' },
         imagen_url: 'https://estaticos-cdn.prensaiberica.es/clip/9b41cf53-a9e8-450e-8d3e-5a5f8a5bf801_16-9-aspect-ratio_default_0.jpg',
         puntos_obtenidos: 20,
         codigo_barras: '8414533043847',
@@ -501,7 +475,7 @@ ${debugInfo}
       '8410057320202': {
         nombre_producto: 'Cervesa Estrella Damm 33cl',
         marca: 'Estrella Damm',
-        material: { id: 3, nombre: 'vidrio' },
+        material: { id: 3, nombre: 'vidre' },
         imagen_url: 'https://sgfm.elcorteingles.es/SGFM/dctm/MEDIA03/202204/04/00118602800916____3__600x600.jpg',
         puntos_obtenidos: 25,
         codigo_barras: '8410057320202',
@@ -509,7 +483,7 @@ ${debugInfo}
       '8410188012096': {
         nombre_producto: 'Llauna Coca-Cola 33cl',
         marca: 'Coca-Cola',
-        material: { id: 4, nombre: 'metal' },
+        material: { id: 4, nombre: 'metall' },
         imagen_url: 'https://sgfm.elcorteingles.es/SGFM/dctm/MEDIA03/202204/04/00120646800966____1__600x600.jpg',
         puntos_obtenidos: 18,
         codigo_barras: '8410188012096',
@@ -521,12 +495,14 @@ ${debugInfo}
 
   // Añadir esta función para crear bolsas virtuales de demostración
   const getDemoBolsas = (materialId) => {
-    // Mapear IDs de material a sus nombres en español
+    // Mapear IDs de material a sus nombres en catalán
     const materialNames = {
-      1: 'plastico',
-      2: 'papel',
-      3: 'vidrio',
-      4: 'metal'
+      1: 'plàstic',
+      2: 'paper',
+      3: 'vidre',
+      4: 'metall',
+      5: 'orgànic',
+      6: 'resta'
     };
     
     // Crear bolsas dummy del tipo de material solicitado
@@ -611,14 +587,12 @@ ${debugInfo}
     setAddingToBag(true);
     try {
       await agregarProductoABolsa(success.product.id, selectedBag);
-      toast.success("Producte afegit a la bossa correctament");
       // Después de agregar, limpiar el estado para seguir escaneando
       setSuccess(null);
       setCodigoBarras("");
       setSelectedBag(null);
     } catch (error) {
       console.error("Error al añadir a la bolsa:", error);
-      toast.error("No s'ha pogut afegir el producte a la bossa");
     } finally {
       setAddingToBag(false);
     }
@@ -627,7 +601,6 @@ ${debugInfo}
   // Función para crear una nueva bolsa del tipo de material escaneado
   const handleCreateBag = async () => {
     if (!success || !success.material || !success.material.id) {
-      toast.error("No es pot crear una bossa sense material");
       return;
     }
     
@@ -640,15 +613,12 @@ ${debugInfo}
       // Añadir el producto a la bolsa recién creada
       await agregarProductoABolsa(success.product.id, newBagId);
       
-      toast.success("S'ha creat una nova bossa i s'ha afegit el producte");
-      
       // Actualizar state y cerrar el modal
       setSuccess(null);
       setCodigoBarras("");
       setSelectedBag(null);
     } catch (error) {
       console.error("Error al crear la bossa:", error);
-      toast.error("No s'ha pogut crear la bossa");
     } finally {
       setCreatingBag(false);
     }
@@ -1018,7 +988,7 @@ ${debugInfo}
                 onClick={stopScanning}
                 className="bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors flex items-center"
               >
-                <FaPowerOff className="mr-2" /> Parar
+                <FaPowerOff className="mr-2" /> Aturar
               </button>
               
               {availableCameras.length > 1 && (
@@ -1029,13 +999,6 @@ ${debugInfo}
                   <FaSync className="mr-2" /> Canviar càmera
                 </button>
               )}
-              
-              <button
-                onClick={toggleTorch}
-                className={`${torchOn ? 'bg-yellow-600' : 'bg-gray-600'} text-white py-2 px-4 rounded-lg hover:bg-yellow-700 transition-colors flex items-center`}
-              >
-                <FaLightbulb className="mr-2" /> Llanterna
-              </button>
             </>
           )}
         </div>
@@ -1044,7 +1007,7 @@ ${debugInfo}
       {/* Sección para pruebas - Para usar en PC sin cámara */}
       <div className="p-4 bg-gray-100 border-t">
         <p className="text-center text-sm text-gray-600">
-          Escaneja els codis de barres de productes per reciclar i guanya punts
+          Escaneja els codis de barres de productes per reciclar i guanyar punts
         </p>
         
         {/* Cámara seleccionada (visible siempre para depuración) */}
