@@ -114,7 +114,7 @@ def escanear_codigo(request):
     serializer = CodigoBarrasSerializer(data=request.data)
     if serializer.is_valid():
         codigo = serializer.validated_data['codigo']
-        bolsa_id = request.data.get('bolsa_id')  # Optional bag ID
+        bolsa_id = request.data.get('bolsa_id')  # ID opcional de bolsa para agregar directamente
         
         # Buscar en la base de datos de productos reciclados
         producto_existente = ProductoReciclado.objects.filter(
@@ -124,7 +124,6 @@ def escanear_codigo(request):
         
         # Comprobar si el producto existe y el tiempo transcurrido
         if producto_existente:
-            # Definir período de espera (10 minutos = 600 segundos)
             tiempo_espera = timedelta(minutes=1)
             tiempo_actual = timezone.now()
             tiempo_minimo = producto_existente.fecha_reciclaje + tiempo_espera

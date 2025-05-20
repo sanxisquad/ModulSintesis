@@ -3,7 +3,7 @@ import { Html5Qrcode } from 'html5-qrcode';
 import { toast } from 'react-hot-toast';
 import { FaCamera, FaQrcode, FaSync, FaLightbulb, FaPowerOff, FaStar, FaBug, FaBarcode } from 'react-icons/fa';
 import { useAuth } from '../../../hooks/useAuth';
-import { escanearCodigo, agregarProductoABolsa } from '../../api/reciclajeApi';
+import { escanearCodigo, agregarProductoABolsa, crearBolsa } from '../../api/reciclajeApi';
 import { Link } from 'react-router-dom';
 import { Spinner } from '../common/Spinner';
 
@@ -443,6 +443,7 @@ ${debugInfo}
   const [success, setSuccess] = useState(null);
   const [selectedBag, setSelectedBag] = useState(null);
   const [addingToBag, setAddingToBag] = useState(false);
+  const [creatingBag, setCreatingBag] = useState(false);
   
   // ref para el input de código de barras
   const inputRef = useRef(null);
@@ -582,6 +583,55 @@ ${debugInfo}
     }
   };
 
+  const handleAddToBag = async () => {
+    if (!selectedBag) return;
+    
+    setAddingToBag(true);
+    try {
+      await agregarProductoABolsa(success.product.id, selectedBag);
+      toast.success("Producte afegit a la bossa correctament");
+      // Después de agregar, limpiar el estado para seguir escaneando
+      setSuccess(null);
+      setCodigoBarras("");
+      setSelectedBag(null);
+    } catch (error) {
+      console.error("Error al añadir a la bolsa:", error);
+      toast.error("No s'ha pogut afegir el producte a la bossa");
+    } finally {
+      setAddingToBag(false);
+    }
+  };
+
+  // Función para crear una nueva bolsa del tipo de material escaneado
+  const handleCreateBag = async () => {
+    if (!success || !success.material || !success.material.id) {
+      toast.error("No es pot crear una bossa sense material");
+      return;
+    }
+    
+    try {
+      setCreatingBag(true);
+      // Crear nueva bolsa del mismo tipo que el material escaneado
+      const response = await crearBolsa(success.material.id);
+      const newBagId = response.id;
+      
+      // Añadir el producto a la bolsa recién creada
+      await agregarProductoABolsa(success.product.id, newBagId);
+      
+      toast.success("S'ha creat una nova bossa i s'ha afegit el producte");
+      
+      // Actualizar state y cerrar el modal
+      setSuccess(null);
+      setCodigoBarras("");
+      setSelectedBag(null);
+    } catch (error) {
+      console.error("Error al crear la bossa:", error);
+      toast.error("No s'ha pogut crear la bossa");
+    } finally {
+      setCreatingBag(false);
+    }
+  };
+  
   // Renderizar mensaje de error
   const renderError = () => {
     if (!error) return null;
@@ -599,7 +649,7 @@ ${debugInfo}
               <div className="mt-2 text-sm text-yellow-700">
                 <p>{error.message}</p>
                 <p className="mt-2 font-medium">
-                  Temps restant: {error.tiempo_restante.minutos}m {error.tiempo_restante.segons}s
+                  Temps restant: {error.tiempo_restant.minutos}m {error.tiempo_restant.segons}s
                 </p>
               </div>
             </div>
@@ -760,10 +810,10 @@ ${debugInfo}
           </div>
         ) : (
           <div className="mt-6 border-t pt-4">
-            <p className="text-gray-600">
+            <p className="text-gray-600 mb-3">
               No tens bosses disponibles per aquest material ({success.material.nombre}).
             </p>
-            <div className="flex justify-between mt-4">
+            <div className="flex flex-col md:flex-row justify-between gap-3">
               <button
                 onClick={() => {
                   setSuccess(null);
@@ -771,14 +821,34 @@ ${debugInfo}
                 }}
                 className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
               >
-                Continuar
+                Continuar sense afegir
               </button>
-              <Link 
-                to="/profile" 
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 flex items-center"
-              >
-                <FaPlus className="mr-2" /> Crear bossa nova
-              </Link>
+              
+              <div className="flex flex-col md:flex-row gap-2">
+                <button 
+                  onClick={handleCreateBag}
+                  disabled={creatingBag}
+                  className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center justify-center"
+                >
+                  {creatingBag ? (
+                    <>
+                      <Spinner size="sm" className="mr-2" />
+                      Creant...
+                    </>
+                  ) : (
+                    <>
+                      <FaRecycle className="mr-2" /> Crear bossa i afegir
+                    </>
+                  )}
+                </button>
+                
+                <Link 
+                  to="/profile" 
+                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 flex items-center justify-center"
+                >
+                  <FaPlus className="mr-2" /> Gestionar bosses
+                </Link>
+              </div>
             </div>
           </div>
         )}
