@@ -557,11 +557,11 @@ export function Navigation() {
                                         </Link>
                                         {isUser && (
                                             <Link 
-                                                to="/tasks" 
+                                                to="/escaneig" 
                                                 className="block px-4 py-2 text-gray-800 hover:bg-gray-100" 
                                                 onClick={() => setUserMenuOpen(false)}
                                             >
-                                                Escaneja QR
+                                                Escaneja i Recicla
                                             </Link>
                                         )}
                                         <button
@@ -632,12 +632,12 @@ export function Navigation() {
                                 {isUser && (
                                     <li>
                                         <Link 
-                                            to="/tasks" 
+                                            to="/escaneig" 
                                             className="flex items-center px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
                                             onClick={() => setMobileMenuOpen(false)}
                                         >
                                             <FaQrcode className="mr-3" />
-                                            Escaneja QR
+                                            Reciclar i Guanyar Punts
                                         </Link>
                                     </li>
                                 )}

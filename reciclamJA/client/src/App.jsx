@@ -22,6 +22,7 @@ import { GestioTiquets } from './pages/gestor/GestioTiquets';
 import { TiquetView } from './components/tiquets/TiquetView';
 import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage';
 import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
+import RecyclePage from "./pages/RecyclePage";
 
 import { ConfirmDialogProvider } from './components/common/ConfirmDialog';
 
@@ -65,6 +66,9 @@ function App() {
                 <Route path="/contenedor/:id" element={<ContenedorFormPage />} />
                 
               </Route>
+
+              {/* Rutas protegidas de usuario */}
+              <Route path="/escaneig" element={<RecyclePage />} />
             </Routes>
           </div>
           <Toaster />

@@ -53,8 +53,8 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'accounts',
     'rest_framework_simplejwt.token_blacklist',
-    'zonesreciclatge'
-
+    'zonesreciclatge',
+    'sistema_reciclatge',  # Nombre actualizado de la aplicación
 ]
 
 MIDDLEWARE = [
