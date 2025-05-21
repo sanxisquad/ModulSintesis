@@ -32,7 +32,8 @@ import {
   FaCheck,
   FaTimes as FaTimesIcon,
   FaSpinner,
-  FaComment
+  FaComment,
+  FaStar  // Fixed: Added back the missing FaStar import
 } from "react-icons/fa";
 import { MdManageAccounts } from "react-icons/md";
 
@@ -43,7 +44,6 @@ export function Navigation() {
     const [userMenuOpen, setUserMenuOpen] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [notificacionesOpen, setNotificacionesOpen] = useState(false); // Add state for notifications popup
-    // Always show the install button for testing
     const [showInstallButton, setShowInstallButton] = useState(true);
     const [deferredPrompt, setDeferredPrompt] = useState(null);
     const [installInstructions, setInstallInstructions] = useState(false);
@@ -54,7 +54,6 @@ export function Navigation() {
     const mobileMenuRef = useRef(null);
     const notificacionesRef = useRef(null);
     
-    // Use notification context
     const { 
         notificaciones, 
         notificacionesNoLeidas, 
@@ -63,24 +62,17 @@ export function Navigation() {
         loadingNotificaciones 
     } = useNotification();
 
-    // Detect if the app can be installed
     useEffect(() => {
-        // Detect mobile devices more reliably
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         setInstallPlatform(isMobile ? 'mobile' : 'desktop');
         console.log("Device detected as:", isMobile ? "Mobile" : "Desktop");
         
-        // Log when we're trying to set up the install prompt
         console.log("Setting up install prompt listener");
         
-        // Listen for the beforeinstallprompt event
         window.addEventListener('beforeinstallprompt', (e) => {
             console.log("Install prompt detected!", e);
-            // Prevent Chrome 76+ from automatically showing the prompt
             e.preventDefault();
-            // Stash the event so it can be triggered later
             setDeferredPrompt(e);
-            // Always show the button (we'll use fallback for browsers that don't support install)
             setShowInstallButton(true);
         });
 
@@ -90,17 +82,13 @@ export function Navigation() {
             setDeferredPrompt(null);
         });
         
-        // Always show button even if the event doesn't fire (for testing)
         setShowInstallButton(true);
     }, []);
 
-    // State to track if we need to show manual desktop shortcut instructions
     const [showManualShortcutInstructions, setShowManualShortcutInstructions] = useState(false);
 
-    // Function to download desktop shortcut
     const downloadDesktopShortcut = () => {
         try {
-            // Create HTML file that will serve as a shortcut
             const fileContent = `
 <!DOCTYPE html>
 <html>

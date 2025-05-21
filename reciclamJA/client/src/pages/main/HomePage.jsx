@@ -240,7 +240,7 @@ export const HomePage = () => {
                   <p className="text-gray-600">
                     Des del teu perfil, utilitza la secció "Bosses Virtuals" per reciclar les bosses en els contenidors adequats i guanyar punts.
                   </p>
-                  <Link to="/virtualbags" className="mt-4 inline-block text-green-600 hover:text-green-700 font-medium">
+                  <Link to="/profile" className="mt-4 inline-block text-green-600 hover:text-green-700 font-medium">
                     Les meves bosses →
                   </Link>
                 </div>
