@@ -19,6 +19,7 @@ import { useAuth } from '../../../hooks/useAuth';
 import { escanearCodigo, agregarProductoABolsa, crearBolsa } from '../../api/reciclajeApi';
 import { Link } from 'react-router-dom';
 import { Spinner } from '../common/Spinner';
+import { toast } from 'react-hot-toast';
 
 const BarcodeScanner = ({ onScanComplete }) => {
   const [scanning, setScanning] = useState(false);
@@ -269,108 +270,132 @@ const BarcodeScanner = ({ onScanComplete }) => {
   };
   
   // Manejar el éxito del escaneo
-  const onScanSuccess = (decodedText) => {
-    // Detenemos el escaneo después de un resultado exitoso
-    stopScanning();
-    
-    setLoading(true);
-    
-    // Usar el servicio API con manejo de errores mejorado
-    escanearCodigo(decodedText)
-      .then(response => {
-        console.log("Respuesta de escaneo:", response);
-        
-        // Si la respuesta contiene un error controlado
-        if (response && response.error) {
+ const onScanSuccess = (decodedText) => {
+  // Detenemos el escaneo después de un resultado exitoso
+  stopScanning();
+  
+  setLoading(true);
+  
+  // Usar el servicio API con manejo de errores mejorado
+  escanearCodigo(decodedText)
+    .then(response => {
+      console.log("Respuesta de escaneo:", response);
+      
+      // Si la respuesta contiene un error controlado
+      if (response && response.error) {
+        // Verificar específicamente si es un error de cooldown
+        if (response.tipo === "cooldown" && response.tiempo_restante) {
+          // Mostrar toast para errores de cooldown
+          toast.error(
+            `Has d'esperar ${response.tiempo_restante.minutos} minut${response.tiempo_restante.minutos !== 1 ? 's' : ''} i ${response.tiempo_restante.segundos} segon${response.tiempo_restante.segundos !== 1 ? 's' : ''} abans de tornar a escanejar aquest producte`, 
+            {
+              duration: 5000,
+              icon: '⏱️',
+            }
+          );
+          // No almacenar el resultado para cooldown
+          setResult(null);
+        } else if (response.tipo === "url_error") {
+          // Para errores de URL, mantener el comportamiento actual
           setResult(response);
+          toast.error('No s\'ha pogut connectar amb el servidor. URL incorrecta.');
+          console.error("Detalle de error de URL:", response.detalle);
           
-          // Si es un error de URL, mostrar mensaje más específico
-          if (response.tipo === "url_error") {
-            toast.error('No s\'ha pogut connectar amb el servidor. URL incorrecta.');
-            console.error("Detalle de error de URL:", response.detalle);
-            
-            // Añadir información de depuración
-            setDebugInfo(prev => prev + '\n' + new Date().toISOString() + ': Error de URL: ' + response.detalle);
-          } else {
-            // Otros errores
-            toast.error(response.mensaje || 'Error al processar el codi');
-          }
-          return;
-        }
-        
-        // Respuesta exitosa - mostrar modal de selección de bolsa automáticamente
-        setResult(response);
-        
-        // Verificar si hay bolsas disponibles del mismo material
-        const bolsasCompatibles = response.bolsas_disponibles || [];
-        
-        // Establecer el estado para mostrar el modal de selección
-        setSuccess({
-          product: response.producto,
-          points: response.puntos_nuevos,
-          totalPoints: response.puntos_totales,
-          material: response.material,
-          availableBags: bolsasCompatibles,
-          addedToBag: response.agregado_a_bolsa,
-          bagInfo: response.bolsa
-        });
-        
-        // Remove toast notifications for product recycling and points
-        
-        // Llamar al callback para informar al componente padre
-        if (onScanComplete) {
-          onScanComplete(response);
-        }
-      })
-      .catch(error => {
-        console.error("Error completo:", error);
-        
-        // Solo manejar aquí errores no manejados por el servicio API
-        if (error.response) {
-          // El servidor respondió con un código de estado diferente de 2xx
-          const errorData = error.response.data;
-          const errorMessage = errorData.error || errorData.message || 'Error al processar el codi';
-          const errorDetail = errorData.detail || '';
-          
-          logError(`${errorMessage}${errorDetail ? ': ' + errorDetail : ''}`);
-          
-          // Si es un error específico (producto ya reciclado, no encontrado, etc.) mostrarlo de forma amigable
-          if (errorData.error === 'Ja has reciclat aquest producte en les últimes 24 hores') {
-            toast.error('Aquest producte ja ha estat reciclat avui. Prova demà o amb un altre producte.');
-          } else if (errorData.error === 'Producte no trobat') {
-            toast.error('No hem pogut identificar aquest producte. Prova amb un altre.');
-          } else if (errorData.error === 'No s\'ha pogut determinar el material') {
-            toast.error('No hem pogut identificar el material d\'aquest producte.');
-          }
-          
-          // Añadir detalles adicionales al registro de depuración
-          if (errorData.producto) {
-            setDebugInfo(prev => prev + '\nDetalle del producto: ' + JSON.stringify(errorData.producto));
-          }
-        } else if (error.request) {
-          // La petición fue hecha pero no se recibió respuesta
-          logError('No s\'ha rebut resposta del servidor. Comprova la connexió a Internet.');
+          // Añadir información de depuración
+          setDebugInfo(prev => prev + '\n' + new Date().toISOString() + ': Error de URL: ' + response.detalle);
         } else {
-          // Error desconocido
-          logError('Error al processar el codi: ' + error.message);
+          // Otros errores
+          setResult(response);
+          toast.error(response.mensaje || 'Error al processar el codi');
+        }
+        return;
+      }
+      
+      // Respuesta exitosa - mostrar modal de selección de bolsa automáticamente
+      setResult(response);
+      
+      // Verificar si hay bolsas disponibles del mismo material
+      const bolsasCompatibles = response.bolsas_disponibles || [];
+      
+      // Establecer el estado para mostrar el modal de selección
+      setSuccess({
+        product: response.producto,
+        points: response.puntos_nuevos,
+        totalPoints: response.puntos_totales,
+        material: response.material,
+        availableBags: bolsasCompatibles,
+        addedToBag: response.agregado_a_bolsa,
+        bagInfo: response.bolsa
+      });
+      
+      // Llamar al callback para informar al componente padre
+      if (onScanComplete) {
+        onScanComplete(response);
+      }
+    })
+    .catch(error => {
+      console.error("Error completo:", error);
+      
+      // Verificar si la respuesta incluye datos sobre cooldown
+      if (error.response && error.response.data && error.response.data.tipo === 'cooldown') {
+        const cooldownData = error.response.data;
+        
+        // Mostrar toast para cooldown con la información de tiempo restante
+        toast.error(
+          `Has d'esperar ${cooldownData.tiempo_restante.minutos} minut${cooldownData.tiempo_restante.minutos !== 1 ? 's' : ''} i ${cooldownData.tiempo_restante.segundos} segon${cooldownData.tiempo_restante.segundos !== 1 ? 's' : ''} abans de tornar a escanejar aquest producte`, 
+          {
+            duration: 5000,
+            icon: '⏱️',
+          }
+        );
+        
+        // Añadir detalles al log de depuración
+        setDebugInfo(prev => prev + '\nCooldown detectado para código: ' + decodedText);
+      } else if (error.response) {
+        // El servidor respondió con un código de estado diferente de 2xx
+        const errorData = error.response.data;
+        const errorMessage = errorData.error || errorData.message || 'Error al processar el codi';
+        const errorDetail = errorData.detail || '';
+        
+        logError(`${errorMessage}${errorDetail ? ': ' + errorDetail : ''}`);
+        
+        // Si es un error específico (producto ya reciclado, no encontrado, etc.) mostrarlo de forma amigable
+        if (errorData.error === 'Ja has reciclat aquest producte en les últimes 24 hores') {
+          toast.error('Aquest producte ja ha estat reciclat avui. Prova demà o amb un altre producte.');
+        } else if (errorData.error === 'Producte no trobat') {
+          toast.error('No hem pogut identificar aquest producte. Prova amb un altre.');
+        } else if (errorData.error === 'No s\'ha pogut determinar el material') {
+          toast.error('No hem pogut identificar el material d\'aquest producte.');
         }
         
-        // Añadir código de barras al log para depuración
-        setDebugInfo(prev => prev + '\nCódigo escaneado: ' + decodedText);
-        
-        // Añadir botón para volver a intentar con el mismo código
-        setResult({
-          error: true,
-          tipo: "error_generico",
-          titulo: "Error de processament",
-          mensaje: 'Error al processar el codi. Pots provar de nou o escanejar un altre producte.',
-          barcode: decodedText
-        });
-      })
-      .finally(() => {
-        setLoading(false);
+        // Añadir detalles adicionales al registro de depuración
+        if (errorData.producto) {
+          setDebugInfo(prev => prev + '\nDetalle del producto: ' + JSON.stringify(errorData.producto));
+        }
+      } else if (error.request) {
+        // La petición fue hecha pero no se recibió respuesta
+        logError('No s\'ha rebut resposta del servidor. Comprova la connexió a Internet.');
+      } else {
+        // Error desconocido
+        logError('Error al processar el codi: ' + error.message);
+      }
+      
+      // Añadir código de barras al log para depuración
+      setDebugInfo(prev => prev + '\nCódigo escaneado: ' + decodedText);
+      
+      // Añadir botón para volver a intentar con el mismo código
+      setResult({
+        error: true,
+        tipo: "error_generico",
+        titulo: "Error de processament",
+        mensaje: 'Error al processar el codi. Pots provar de nou o escanejar un altre producte.',
+        barcode: decodedText
       });
-  };
+    })
+    .finally(() => {
+      setLoading(false);
+    });
+};
   
   // Manejar el fracaso del escaneo con throttling para evitar spam de errores
   const onScanFailure = (error) => {
@@ -641,7 +666,7 @@ ${debugInfo}
               <div className="mt-2 text-sm text-yellow-700">
                 <p>{error.message}</p>
                 <p className="mt-2 font-medium">
-                  Temps restant: {error.tiempo_restant.minutos}m {error.tiempo_restant.segons}s
+                  Temps restant: {error.tiempo_restant.minuts}m {error.tiempo_restant.segons}s
                 </p>
               </div>
             </div>
@@ -905,6 +930,56 @@ ${debugInfo}
         </div>
       </div>
     );
+  };
+
+  // Function to handle code scanning
+  const handleScan = async (code) => {
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+    
+    try {
+      const response = await escanearCodigo(code, selectedBolsa);
+      
+      // On success
+      setSuccess({
+        title: 'Codi escanejat correctament',
+        message: `S'ha identificat el producte "${response.data.nombre || code}"`,
+        producto: response.data
+      });
+      
+      // Call the callback if provided
+      if (onScanComplete) {
+        onScanComplete(response.data);
+      }
+      
+    } catch (error) {
+      console.error('Error escaneando código:', error);
+      
+      const errorData = error.response?.data;
+      
+      // Check for cooldown error and show toast instead of UI error
+      if (errorData?.tipo === 'cooldown' && errorData?.tiempo_restante) {
+        // Display cooldown error as toast in Catalan
+        toast.error(
+          `Has d'esperar ${errorData.tiempo_restante.minutos} minut${errorData.tiempo_restante.minutos !== 1 ? 's' : ''} i ${errorData.tiempo_restante.segundos} segon${errorData.tiempo_restante.segons !== 1 ? 's' : ''} abans de tornar a escanejar aquest producte`, 
+          {
+            duration: 5000,
+            icon: '⏱️',
+          }
+        );
+      } else {
+        // Set normal UI error for other errors
+        setError({
+          title: errorData?.titulo || 'Error en escanejar el codi',
+          message: errorData?.mensaje || 'No s\'ha pogut processar el codi. Si us plau, prova-ho de nou o amb un altre producte.',
+          type: errorData?.tipo || 'generic',
+          codigos_ejemplo: errorData?.codigos_ejemplo
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
