@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Material, ProductoReciclado, BolsaVirtual
+from .models import Material, ProductoReciclado, BolsaVirtual, Prize, PrizeRedemption
 
 class MaterialSerializer(serializers.ModelSerializer):
     class Meta:
@@ -46,3 +46,42 @@ class ProductoRecicladoSerializer(serializers.ModelSerializer):
         
 class CodigoBarrasSerializer(serializers.Serializer):
     codigo = serializers.CharField(max_length=50)
+
+class PrizeSerializer(serializers.ModelSerializer):
+    empresa_nombre = serializers.SerializerMethodField()
+    creado_por_nombre = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Prize
+        fields = [
+            'id', 'nombre', 'descripcion', 'imagen', 'puntos_costo', 
+            'cantidad', 'empresa', 'empresa_nombre', 'creado_por',
+            'creado_por_nombre', 'fecha_creacion', 'activo'
+        ]
+        read_only_fields = ['creado_por', 'fecha_creacion']
+    
+    def get_empresa_nombre(self, obj):
+        return obj.empresa.nom if obj.empresa else None
+    
+    def get_creado_por_nombre(self, obj):
+        return obj.creado_por.username
+
+class PrizeRedemptionSerializer(serializers.ModelSerializer):
+    usuario_nombre = serializers.SerializerMethodField()
+    premio_nombre = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = PrizeRedemption
+        fields = [
+            'id', 'usuario', 'usuario_nombre', 'premio', 'premio_nombre',
+            'fecha_redencion', 'puntos_gastados', 'estado',
+            'codigo_confirmacion', 'notas'
+        ]
+        read_only_fields = ['usuario', 'premio', 'fecha_redencion', 
+                           'puntos_gastados', 'codigo_confirmacion']
+    
+    def get_usuario_nombre(self, obj):
+        return obj.usuario.username
+    
+    def get_premio_nombre(self, obj):
+        return obj.premio.nombre

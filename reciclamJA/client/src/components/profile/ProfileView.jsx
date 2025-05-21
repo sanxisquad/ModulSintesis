@@ -6,6 +6,7 @@ import { FaUser, FaEnvelope, FaMapMarkerAlt, FaBuilding, FaTrophy, FaMedal, FaEd
          FaSave, FaTimes, FaEye, FaEyeSlash, FaLock, FaIdCard } from 'react-icons/fa';
 import { UserTickets } from './UserTickets';
 import { VirtualBags } from '../recycling/VirtualBags';
+import { UserRedemptions } from './UserRedemptions';
 import { usePermissions } from '../../../hooks/usePermissions';
 import { toast } from 'react-hot-toast';
 
@@ -675,6 +676,9 @@ export const ProfileView = () => {
                         
                         {/* Add the Virtual Bags component here */}
                         <VirtualBags />
+                        
+                        {/* Add UserRedemptions component before UserTickets */}
+                        <UserRedemptions />
                         
                         {/* Always display the UserTickets component */}
                         <UserTickets />

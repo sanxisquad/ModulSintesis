@@ -33,7 +33,8 @@ import {
   FaTimes as FaTimesIcon,
   FaSpinner,
   FaComment,
-  FaStar  // Fixed: Added back the missing FaStar import
+  FaStar,
+  FaGift  // Añadido el icono para premios
 } from "react-icons/fa";
 import { MdManageAccounts } from "react-icons/md";
 
@@ -682,6 +683,20 @@ export function Navigation() {
                                         Instal·lar App al {installPlatform === 'mobile' ? 'Mòbil' : 'Escriptori'}
                                     </button>
                                 </li>
+                                
+                                {/* Añadir opción de gestión de premios para usuarios con permisos */}
+                                {canMenu && (
+                                    <li>
+                                        <Link 
+                                            to="/gestor-premis" 
+                                            className="flex items-center px-3 py-2 rounded-md hover:bg-gray-800"
+                                            onClick={() => setMobileMenuOpen(false)}
+                                        >
+                                            <FaGift className="mr-3" />
+                                            Gestionar Premis
+                                        </Link>
+                                    </li>
+                                )}
                             </ul>
                         </nav>
                     </div>
@@ -707,6 +722,18 @@ export function Navigation() {
                                         >
                                             <FaChartBar className="w-5 h-5 text-gray-400 group-hover:text-white" />
                                             <span className="ml-3">Dashboard</span>
+                                        </Link>
+                                    </li>
+                                    
+                                    {/* Añadir opción de gestión de premios */}
+                                    <li>
+                                        <Link 
+                                            to="/gestor-premis" 
+                                            className="flex items-center p-2 rounded-lg hover:bg-gray-800 group"
+                                            onClick={() => toggleMenu()}
+                                        >
+                                            <FaGift className="w-5 h-5 text-gray-400 group-hover:text-white" />
+                                            <span className="ml-3">Gestionar Premis</span>
                                         </Link>
                                     </li>
                                     

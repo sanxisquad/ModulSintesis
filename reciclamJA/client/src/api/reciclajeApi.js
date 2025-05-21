@@ -156,13 +156,15 @@ export const obtenerBolsas = async () => {
 
 export const crearBolsa = async (tipoBolsa) => {
   try {
+    console.log("Creating bag with material type ID:", tipoBolsa);
     const response = await reciclajeApi.post('/bolsas/crear/', {
       tipo_material_id: tipoBolsa,
-      nombre: `Bolsa de ${new Date().toLocaleString()}`
+      nombre: `Bossa de ${new Date().toLocaleString('ca')}`  // Use Catalan locale
     });
     return response.data;
   } catch (error) {
     console.error('Error creando bolsa:', error);
+    console.error('Error response:', error.response?.data);
     throw error;
   }
 };

@@ -1,6 +1,12 @@
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework.documentation import include_docs_urls
+from rest_framework.routers import DefaultRouter
+from sistema_reciclatge.api import PrizeViewSet, PrizeRedemptionViewSet
+
+router = DefaultRouter()
+router.register(r'premios', PrizeViewSet)
+router.register(r'premios-redenciones', PrizeRedemptionViewSet, basename='premio-redencion')
 
 urlpatterns = [
     # Admin

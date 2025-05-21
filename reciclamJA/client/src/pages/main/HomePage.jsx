@@ -10,6 +10,7 @@ import {
   getAllPublicZones 
 } from '../../api/zr.api.js';
 import { Link } from 'react-router-dom';
+import { PrizeCarousel } from '../../components/home/PrizeCarousel';
 
 export const HomePage = () => {
   const { isAuthenticated } = useAuth();
@@ -276,7 +277,15 @@ export const HomePage = () => {
           </div>
         </section>
         
-        {/* Map Section - Updated to use the new HomeMapView component */}
+        {/* Add PrizeCarousel before the map section */}
+        <section id="premis" className="w-full py-16 bg-white">
+          <div className="max-w-6xl mx-auto px-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-gray-800">Premis per Reciclar</h2>
+            <PrizeCarousel />
+          </div>
+        </section>
+        
+        {/* Map section continues */}
         <section id="mapa" className="w-full py-16 bg-gray-50">
           <div className="max-w-6xl mx-auto px-4">
             <h2 className="text-3xl md:text-4xl font-bold text-center mb-8 text-gray-800">Troba contenidors a prop teu</h2>

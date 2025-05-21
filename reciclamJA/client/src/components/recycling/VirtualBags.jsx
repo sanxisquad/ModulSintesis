@@ -9,53 +9,83 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
-// Fix Leaflet icon issue
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-});
+// Define icon directly here to ensure it works
+const createDefaultIcon = () => {
+  return L.icon({
+    iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+    iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
+    shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+  });
+};
+
+// Create icon for user location (person icon) - más pequeño y simple
+const createUserLocationIcon = () => {
+  return L.divIcon({
+    html: `<div style="background-color: #3b82f6; width: 24px; height: 24px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center;">
+            <div style="width: 10px; height: 10px; background-color: white; border-radius: 50%;"></div>
+          </div>`,
+    className: '',
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+    popupAnchor: [0, -12]
+  });
+};
+
+// Create our default icon
+const DefaultIcon = createDefaultIcon();
+const UserLocationIcon = createUserLocationIcon();
 
 // Custom icons for different container types
 const containerIcons = {
-  paper: new L.Icon({
-    iconUrl: '/icons/contenedor-azul.png',
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
-    popupAnchor: [0, -32]
+  paper: L.icon({
+    iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34]
   }),
-  plàstic: new L.Icon({
-    iconUrl: '/icons/contenedor-amarillo.png',
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
-    popupAnchor: [0, -32]
+  plàstic: L.icon({
+    iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34]
   }),
-  vidre: new L.Icon({
-    iconUrl: '/icons/contenedor-verde.png',
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
-    popupAnchor: [0, -32]
+  vidre: L.icon({
+    iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34]
   }),
-  orgànic: new L.Icon({
-    iconUrl: '/icons/contenedor-marron.png',
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
-    popupAnchor: [0, -32]
+  orgànic: L.icon({
+    iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34]
   }),
-  resta: new L.Icon({
-    iconUrl: '/icons/contenedor-gris.png',
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
-    popupAnchor: [0, -32]
+  resta: L.icon({
+    iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34]
   }),
-  metall: new L.Icon({
-    iconUrl: '/icons/contenedor-amarillo.png', // Metal usually goes in yellow container
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
-    popupAnchor: [0, -32]
+  metall: L.icon({
+    iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34]
   }),
 };
+
+// Fix the Leaflet icon issue directly here
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+});
 
 export function VirtualBags() {
   const [bags, setBags] = useState([]);
@@ -94,23 +124,15 @@ export function VirtualBags() {
     }
 
     try {
-      // Convertir el ID numérico al tipo correspondiente en el backend
-      const materialTypeMap = {
-        1: 'plàstic',   // Asegurar que esto coincide con los valores en el modelo Django
-        2: 'paper',
-        3: 'vidre',
-        4: 'plàstic',   // Metall se recicla en el contenedor de plàstic
-        5: 'orgànic',
-        6: 'rebuig'
-      };
-      
-      // Pasar el tipo de material como string en lugar de ID
-      await crearBolsa(materialTypeMap[newBagType] || newBagType);
+      // Simplify this - just send the numeric ID directly
+      // The backend expects a tipo_material_id value
+      await crearBolsa(newBagType);
       toast.success("Bossa creada correctament");
       setCreateBagModal(false);
       fetchBags();
     } catch (error) {
-      toast.error("Error al crear la bossa");
+      console.error("Error creating bag:", error);
+      toast.error("Error al crear la bossa: " + (error.response?.data?.error || error.message || "Error desconegut"));
     }
   };
 
@@ -151,10 +173,10 @@ export function VirtualBags() {
       // Get all containers
       const response = await getAllPublicContenedors();
       
-      // Normalizar el tipo de material para coincidir con los contenedores
+      // Normalizar el tipo de material para coincidir con los contenedors
       const normalizedMaterialType = materialType.toLowerCase();
       
-      // Mapeo de tipos de materiales a tipos de contenedores
+      // Mapeo de tipos de materiales a tipos de contenedors
       const materialToContainerMap = {
         'metal': 'plàstic',       // El metal va al contenedor amarillo
         'metall': 'plàstic', 
@@ -184,6 +206,10 @@ export function VirtualBags() {
           );
           return { ...container, distance };
         }).sort((a, b) => a.distance - b.distance);
+        
+        // Filtrar por distancia máxima (2 km es más razonable)
+        const MAX_DISTANCE_KM = 2;
+        filtered = filtered.filter(container => container.distance <= MAX_DISTANCE_KM);
       }
       
       setNearbyContainers(filtered);
@@ -571,12 +597,7 @@ export function VirtualBags() {
                     {userLocation && (
                       <Marker 
                         position={userLocation}
-                        icon={new L.Icon({
-                          iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
-                          iconSize: [25, 41],
-                          iconAnchor: [12, 41],
-                          popupAnchor: [1, -34]
-                        })}
+                        icon={UserLocationIcon}
                       >
                         <Popup>La teva ubicació actual</Popup>
                       </Marker>
@@ -584,9 +605,9 @@ export function VirtualBags() {
                     
                     {/* Container markers */}
                     {nearbyContainers.map(container => {
-                      // Get the right icon or fallback to default
+                      // Get the right icon
                       const iconKey = container.tipus ? container.tipus.toLowerCase() : 'default';
-                      const icon = containerIcons[iconKey] || L.Icon.Default;
+                      const icon = containerIcons[iconKey] || DefaultIcon;
                       
                       return (
                         <Marker 

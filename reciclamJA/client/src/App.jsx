@@ -23,6 +23,8 @@ import { TiquetView } from './components/tiquets/TiquetView';
 import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage';
 import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
 import RecyclePage from "./pages/RecyclePage";
+import { GestorPremios } from './pages/gestor/GestorPremios';
+import { PrizesPage } from './pages/main/PrizesPage';
 
 import { ConfirmDialogProvider } from './components/common/ConfirmDialog';
 
@@ -64,11 +66,12 @@ function App() {
                 <Route path="/gestor-tiquets" element={<GestioTiquets />} />
                 <Route path="/gestor/tiquets/:id" element={<TiquetView />} />
                 <Route path="/contenedor/:id" element={<ContenedorFormPage />} />
-                
+                <Route path="/gestor-premis" element={<GestorPremios />} />
               </Route>
 
               {/* Rutas protegidas de usuario */}
               <Route path="/escaneig" element={<RecyclePage />} />
+              <Route path="/premis" element={<PrizesPage />} />
             </Routes>
           </div>
           <Toaster />
