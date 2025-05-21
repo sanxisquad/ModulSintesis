@@ -81,13 +81,16 @@ def determinar_material_producto(producto_info):
             max_matches = matches
             best_match = material_type
     
-    # Si encontramos una coincidencia, buscar el material correspondiente
+    # Si encontramos una coincidencia, normalizar el nombre y buscar el material correspondiente
     if best_match and max_matches > 0:
+        normalized_material_name = normalize_material_name(best_match)
         try:
-            return Material.objects.get(nombre__iexact=best_match)
-        except Material.DoesNotExist:
-            print(f"Material '{best_match}' no encontrado en la base de datos")
-            pass
+            # Buscar por nombre normalizado
+            material = Material.objects.filter(nombre__iexact=normalized_material_name).first()
+            if material:
+                return material
+        except Exception as e:
+            print(f"Error al buscar material normalizado '{normalized_material_name}': {e}")
     
     # Por defecto, intentar asignar según categoría del producto
     categories = producto_info.get('categories', '').lower()
@@ -97,16 +100,65 @@ def determinar_material_producto(producto_info):
     # Si parece una bebida, probablemente sea vidrio o plástico
     if 'drink' in all_categories or 'bebida' in all_categories or 'water' in all_categories:
         try:
-            return Material.objects.get(nombre__iexact='plastico')
-        except Material.DoesNotExist:
-            pass
+            # Usar el nombre normalizado
+            plastic_name = normalize_material_name('plastico')
+            return Material.objects.filter(nombre__iexact=plastic_name).first()
+        except Exception as e:
+            print(f"Error al buscar material plástico: {e}")
     
-    # Si no se puede determinar, devolver el material más común (plástico)
+    # Si no se puede determinar, buscar plàstic (normalizado)
     try:
-        return Material.objects.filter(nombre__iexact='plastico').first()
-    except:
-        # Si todo falla, devolver el primer material disponible
-        return materiales.first() if materiales.exists() else None
+        plastic_name = normalize_material_name('plastico')
+        material = Material.objects.filter(nombre__iexact=plastic_name).first()
+        if material:
+            return material
+    except Exception as e:
+        print(f"Error al buscar material plástico por defecto: {e}")
+    
+    # Si todo falla, devolver el primer material disponible
+    return materiales.first() if materiales.exists() else None
+
+# Add this material normalization mapping function
+def normalize_material_name(material_name):
+    """
+    Normalize material names from different sources to the standardized names in our database.
+    This handles variations in language (Spanish, Catalan) and formatting.
+    """
+    if not material_name:
+        return None
+        
+    # Convert to lowercase for case-insensitive matching
+    material_name = material_name.lower().strip()
+    
+    # Mapping from various names to our standardized database names
+    material_mapping = {
+        # Spanish to Catalan
+        'plastico': 'plàstic',
+        'plástico': 'plàstic',
+        'papel': 'paper',
+        'vidrio': 'vidre',
+        'organico': 'orgànic',
+        'orgánico': 'orgànic',
+        'resto': 'rebuig',
+        'metal': 'plàstic',  # Metal goes in plastic container
+        
+        # English to Catalan
+        'plastic': 'plàstic',
+        'paper': 'paper',
+        'glass': 'vidre',
+        'organic': 'orgànic',
+        'waste': 'rebuig',
+        'metal': 'plàstic',
+        
+        # Common variations
+        'carton': 'paper',
+        'cartón': 'paper',
+        'cartró': 'paper',
+        'metall': 'plàstic',
+    }
+    
+    # Return the normalized name or the original if not found
+    return material_mapping.get(material_name, material_name)
 
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
@@ -115,6 +167,40 @@ def escanear_codigo(request):
     if serializer.is_valid():
         codigo = serializer.validated_data['codigo']
         bolsa_id = request.data.get('bolsa_id')  # ID opcional de bolsa para agregar directamente
+        
+        # Obtener el material directamente desde el request si se proporciona
+        material_name = request.data.get('material')
+        material = None
+        
+        # Si se proporcionó un material, normalizarlo y buscarlo
+        if material_name:
+            normalized_material_name = normalize_material_name(material_name)
+            print(f"Material name from request: '{material_name}', normalized to: '{normalized_material_name}'")
+            try:
+                material = Material.objects.filter(nombre__iexact=normalized_material_name).first()
+                if not material:
+                    # Intentar buscar con caracteres especiales convertidos (à -> a, è -> e, etc.)
+                    import unicodedata
+                    simplified_name = ''.join(
+                        c for c in unicodedata.normalize('NFD', normalized_material_name)
+                        if unicodedata.category(c) != 'Mn'
+                    )
+                    material = Material.objects.filter(nombre__iexact=simplified_name).first()
+                    
+                if not material:
+                    # Último intento: imprimir todos los materiales disponibles
+                    all_materials = list(Material.objects.values_list('nombre', flat=True))
+                    print(f"Material '{normalized_material_name}' not found. Available materials: {all_materials}")
+                    return Response({
+                        "error": f"Material '{material_name}' (normalizado a '{normalized_material_name}') no encontrado en la base de datos",
+                        "available_materials": all_materials
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            except Exception as e:
+                print(f"Error buscando material '{normalized_material_name}': {str(e)}")
+                return Response({
+                    "error": f"Error al buscar el material '{material_name}'",
+                    "detail": str(e)
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         # Buscar en la base de datos de productos reciclados
         producto_existente = ProductoReciclado.objects.filter(
@@ -157,8 +243,9 @@ def escanear_codigo(request):
                 'mensaje': 'No s\'ha trobat el producte a la base de dades'
             }, status=status.HTTP_404_NOT_FOUND)
         
-        # Determinar el material según el packaging
-        material = determinar_material_producto(producto_info)
+        # Si no se especificó material en la solicitud, determinarlo según el packaging
+        if not material:
+            material = determinar_material_producto(producto_info)
         
         if not material:
             return Response({

@@ -496,6 +496,12 @@ export function Navigation() {
                             Com Reciclar
                         </a>
                         <a 
+                            href="/#com-funciona" 
+                            className="text-white hover:text-green-400 transition-colors border-b-2 border-transparent hover:border-green-400 py-1 px-2"
+                        >
+                            Guanyar Punts
+                        </a>
+                        <a 
                             href="/#mapa" 
                             className="text-white hover:text-green-400 transition-colors border-b-2 border-transparent hover:border-green-400 py-1 px-2"
                         >
@@ -621,6 +627,16 @@ export function Navigation() {
                                 </li>
                                 <li>
                                     <a 
+                                        href="/#com-funciona" 
+                                        className="flex items-center px-3 py-2 rounded-md hover:bg-gray-800"
+                                        onClick={() => setMobileMenuOpen(false)}
+                                    >
+                                        <FaStar className="mr-3" />
+                                        Guanyar Punts
+                                    </a>
+                                </li>
+                                <li>
+                                    <a 
                                         href="/#mapa" 
                                         className="flex items-center px-3 py-2 rounded-md hover:bg-gray-800"
                                         onClick={() => setMobileMenuOpen(false)}
@@ -629,6 +645,7 @@ export function Navigation() {
                                         Mapa
                                     </a>
                                 </li>
+                                
                                 {isUser && (
                                     <li>
                                         <Link 

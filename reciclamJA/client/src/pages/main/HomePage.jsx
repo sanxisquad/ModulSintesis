@@ -9,6 +9,7 @@ import {
   getAllPublicContenedors, 
   getAllPublicZones 
 } from '../../api/zr.api.js';
+import { Link } from 'react-router-dom';
 
 export const HomePage = () => {
   const { isAuthenticated } = useAuth();
@@ -190,6 +191,87 @@ export const HomePage = () => {
                   <li>• Medicaments caducats</li>
                 </ul>
               </div>
+            </div>
+          </div>
+        </section>
+        
+        {/* NEW SECTION: How it Works - Steps to earn points */}
+        <section id="com-funciona" className="w-full py-16 bg-green-50">
+          <div className="max-w-6xl mx-auto px-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-center mb-4 text-gray-800">Com guanyar punts reciclant</h2>
+            <p className="text-xl text-center text-gray-600 mb-12 max-w-3xl mx-auto">
+              El nostre sistema de recompenses t'anima a reciclar més i millor. Segueix aquests passos per guanyar punts!
+            </p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {/* Step 1 */}
+              <div className="bg-white p-6 rounded-lg shadow-md relative overflow-hidden">
+                <div className="absolute top-0 right-0 bg-green-500 text-white text-xl font-bold w-12 h-12 flex items-center justify-center rounded-bl-lg">
+                  1
+                </div>
+                <div className="flex flex-col items-center text-center pt-4">
+                  <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-bold mb-3 text-gray-800">Escaneja Productes</h3>
+                  <p className="text-gray-600">
+                    Utilitza l'escàner de l'aplicació per identificar els productes que vulguis reciclar i afegeix-los a una bossa virtual.
+                  </p>
+                  <Link to="/escaneig" className="mt-4 inline-block text-green-600 hover:text-green-700 font-medium">
+                    Anar a escanejar →
+                  </Link>
+                </div>
+              </div>
+              
+              {/* Step 2 */}
+              <div className="bg-white p-6 rounded-lg shadow-md relative overflow-hidden">
+                <div className="absolute top-0 right-0 bg-green-500 text-white text-xl font-bold w-12 h-12 flex items-center justify-center rounded-bl-lg">
+                  2
+                </div>
+                <div className="flex flex-col items-center text-center pt-4">
+                  <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-bold mb-3 text-gray-800">Recicla les Bosses</h3>
+                  <p className="text-gray-600">
+                    Des del teu perfil, utilitza la secció "Bosses Virtuals" per reciclar les bosses en els contenidors adequats i guanyar punts.
+                  </p>
+                  <Link to="/virtualbags" className="mt-4 inline-block text-green-600 hover:text-green-700 font-medium">
+                    Les meves bosses →
+                  </Link>
+                </div>
+              </div>
+              
+              {/* Step 3 */}
+              <div className="bg-white p-6 rounded-lg shadow-md relative overflow-hidden">
+                <div className="absolute top-0 right-0 bg-green-500 text-white text-xl font-bold w-12 h-12 flex items-center justify-center rounded-bl-lg">
+                  3
+                </div>
+                <div className="flex flex-col items-center text-center pt-4">
+                  <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-bold mb-3 text-gray-800">Bescanvia Premis</h3>
+                  <p className="text-gray-600">
+                    Acumula punts i bescanvia'ls per recompenses exclusives en el nostre catàleg de premis sostenibles.
+                  </p>
+                  <Link to="/profile" className="mt-4 inline-block text-green-600 hover:text-green-700 font-medium">
+                    Els meus punts →
+                  </Link>
+                </div>
+              </div>
+            </div>
+            
+            <div className="mt-12 text-center">
+              <Link to="/escaneig" className="px-6 py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition-colors shadow-lg hover:shadow-green-500/30">
+                Comença a reciclar ara
+              </Link>
             </div>
           </div>
         </section>

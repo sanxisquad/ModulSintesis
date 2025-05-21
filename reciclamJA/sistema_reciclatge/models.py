@@ -5,8 +5,8 @@ from django.utils import timezone
 
 class Material(models.Model):
     TIPOS_CHOICES = [
-        ('paper', 'Paper/Cartró'),
         ('plàstic', 'Plàstic'),
+        ('paper', 'Paper/Cartró'),
         ('vidre', 'Vidre'),
         ('orgànic', 'Orgànic'),
         ('rebuig', 'Rebuig'),
@@ -20,11 +20,52 @@ class Material(models.Model):
     contenedor = models.CharField(max_length=50)  # Tipo de contenedor (azul, amarillo, verde, etc.)
     
     def __str__(self):
-        return self.nombre
+        return self.get_nombre_display() or self.nombre
         
     class Meta:
         verbose_name = "Material"
         verbose_name_plural = "Materials"
+        
+    @staticmethod
+    def normalize_material_name(material_name):
+        """
+        Normalizes material names from different sources (same function as in views.py)
+        """
+        if not material_name:
+            return None
+            
+        # Convert to lowercase for case-insensitive matching
+        material_name = material_name.lower().strip()
+        
+        # Mapping from various names to our standardized database names
+        material_mapping = {
+            # Spanish to Catalan
+            'plastico': 'plàstic',
+            'plástico': 'plàstic',
+            'papel': 'paper',
+            'vidrio': 'vidre',
+            'organico': 'orgànic',
+            'orgánico': 'orgànic',
+            'resto': 'rebuig',
+            'metal': 'plàstic',  # Metal goes in plastic container
+            
+            # English to Catalan
+            'plastic': 'plàstic',
+            'paper': 'paper',
+            'glass': 'vidre',
+            'organic': 'orgànic',
+            'waste': 'rebuig',
+            'metal': 'plàstic',
+            
+            # Common variations
+            'carton': 'paper',
+            'cartón': 'paper',
+            'cartró': 'paper',
+            'metall': 'plàstic',
+        }
+        
+        # Return the normalized name or the original if not found
+        return material_mapping.get(material_name, material_name)
 
 class ProductoReciclado(models.Model):
     usuario = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='productos_reciclados')

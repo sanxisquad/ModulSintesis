@@ -691,22 +691,8 @@ ${debugInfo}
       );
     }
     
-    // Error genérico
-    return (
-      <div className="bg-red-50 border-l-4 border-red-400 p-4">
-        <div className="flex">
-          <div className="flex-shrink-0">
-            <FaExclamationTriangle className="h-5 w-5 text-red-400" />
-          </div>
-          <div className="ml-3">
-            <h3 className="text-sm font-medium text-red-800">{error.title}</h3>
-            <div className="mt-2 text-sm text-red-700">
-              <p>{error.message}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    // Error genérico (sin el fondo rojo)
+
   };
 
   // Render success message with bag selection UI
@@ -1004,7 +990,7 @@ ${debugInfo}
         </div>
       </div>
       
-      {/* Sección para pruebas - Para usar en PC sin cámara */}
+      {/* Simplificada la sección para pruebas - removido historial */}
       <div className="p-4 bg-gray-100 border-t">
         <p className="text-center text-sm text-gray-600">
           Escaneja els codis de barres de productes per reciclar i guanyar punts
