@@ -4,7 +4,16 @@ from django.conf import settings
 from django.utils import timezone
 
 class Material(models.Model):
-    nombre = models.CharField(max_length=100)
+    TIPOS_CHOICES = [
+        ('paper', 'Paper/Cartró'),
+        ('plàstic', 'Plàstic'),
+        ('vidre', 'Vidre'),
+        ('orgànic', 'Orgànic'),
+        ('rebuig', 'Rebuig'),
+        ('indiferenciat', 'Indiferenciat'),
+    ]
+    
+    nombre = models.CharField(max_length=100, choices=TIPOS_CHOICES)
     descripcion = models.TextField(blank=True, null=True)
     color = models.CharField(max_length=7, default="#000000")  # Formato HEX del color
     puntos = models.IntegerField(default=10)  # Puntos que se otorgan por reciclar este material

@@ -94,7 +94,18 @@ export function VirtualBags() {
     }
 
     try {
-      await crearBolsa(newBagType);
+      // Convertir el ID numérico al tipo correspondiente en el backend
+      const materialTypeMap = {
+        1: 'plàstic',   // Asegurar que esto coincide con los valores en el modelo Django
+        2: 'paper',
+        3: 'vidre',
+        4: 'plàstic',   // Metall se recicla en el contenedor de plàstic
+        5: 'orgànic',
+        6: 'rebuig'
+      };
+      
+      // Pasar el tipo de material como string en lugar de ID
+      await crearBolsa(materialTypeMap[newBagType] || newBagType);
       toast.success("Bossa creada correctament");
       setCreateBagModal(false);
       fetchBags();
@@ -140,10 +151,29 @@ export function VirtualBags() {
       // Get all containers
       const response = await getAllPublicContenedors();
       
-      // Filter by material type
-      let filtered = response.data.filter(c => 
-        c.tipus && c.tipus.toLowerCase() === materialType.toLowerCase()
-      );
+      // Normalizar el tipo de material para coincidir con los contenedores
+      const normalizedMaterialType = materialType.toLowerCase();
+      
+      // Mapeo de tipos de materiales a tipos de contenedores
+      const materialToContainerMap = {
+        'metal': 'plàstic',       // El metal va al contenedor amarillo
+        'metall': 'plàstic', 
+        'papel': 'paper',
+        'paper/cartró': 'paper',
+        'resto': 'rebuig',
+        'resta': 'rebuig'
+      };
+      
+      // Obtener el tipo de contenedor correspondiente al material
+      const containerType = materialToContainerMap[normalizedMaterialType] || normalizedMaterialType;
+      
+      console.log(`Buscando contenedores de tipo: ${containerType} para material: ${materialType}`);
+      
+      // Filter by material type, usando el mapeo si es necesario
+      let filtered = response.data.filter(c => {
+        const containerTipus = c.tipus && c.tipus.toLowerCase();
+        return containerTipus === containerType;
+      });
       
       // Sort by proximity if location is available
       if (lat && lng) {
@@ -410,7 +440,7 @@ export function VirtualBags() {
               
               <div className="grid grid-cols-2 gap-3 mb-6">
                 <button 
-                  onClick={() => setNewBagType(1)} // Assuming 1 is plastico
+                  onClick={() => setNewBagType(1)} // plàstic
                   className={`border p-3 rounded-lg text-center hover:bg-yellow-50 ${newBagType === 1 ? 'bg-yellow-100 border-yellow-500' : ''}`}
                 >
                   <div className="w-12 h-12 bg-yellow-200 rounded-full mx-auto flex items-center justify-center mb-2">
@@ -420,7 +450,7 @@ export function VirtualBags() {
                 </button>
                 
                 <button 
-                  onClick={() => setNewBagType(2)} // Assuming 2 is papel
+                  onClick={() => setNewBagType(2)} // paper
                   className={`border p-3 rounded-lg text-center hover:bg-blue-50 ${newBagType === 2 ? 'bg-blue-100 border-blue-500' : ''}`}
                 >
                   <div className="w-12 h-12 bg-blue-200 rounded-full mx-auto flex items-center justify-center mb-2">
@@ -430,7 +460,7 @@ export function VirtualBags() {
                 </button>
                 
                 <button 
-                  onClick={() => setNewBagType(3)} // Assuming 3 is vidrio
+                  onClick={() => setNewBagType(3)} // vidre
                   className={`border p-3 rounded-lg text-center hover:bg-green-50 ${newBagType === 3 ? 'bg-green-100 border-green-500' : ''}`}
                 >
                   <div className="w-12 h-12 bg-green-200 rounded-full mx-auto flex items-center justify-center mb-2">
@@ -440,7 +470,7 @@ export function VirtualBags() {
                 </button>
                 
                 <button 
-                  onClick={() => setNewBagType(4)} // Assuming 4 is metal
+                  onClick={() => setNewBagType(4)} // metall (en plàstic)
                   className={`border p-3 rounded-lg text-center hover:bg-orange-50 ${newBagType === 4 ? 'bg-orange-100 border-orange-500' : ''}`}
                 >
                   <div className="w-12 h-12 bg-orange-200 rounded-full mx-auto flex items-center justify-center mb-2">
@@ -450,7 +480,7 @@ export function VirtualBags() {
                 </button>
                 
                 <button 
-                  onClick={() => setNewBagType(5)} // Assuming 5 is organico
+                  onClick={() => setNewBagType(5)} // orgànic
                   className={`border p-3 rounded-lg text-center hover:bg-amber-50 ${newBagType === 5 ? 'bg-amber-100 border-amber-500' : ''}`}
                 >
                   <div className="w-12 h-12 bg-amber-200 rounded-full mx-auto flex items-center justify-center mb-2">
@@ -460,13 +490,13 @@ export function VirtualBags() {
                 </button>
                 
                 <button 
-                  onClick={() => setNewBagType(6)} // Assuming 6 is resto
+                  onClick={() => setNewBagType(6)} // rebuig
                   className={`border p-3 rounded-lg text-center hover:bg-gray-50 ${newBagType === 6 ? 'bg-gray-100 border-gray-500' : ''}`}
                 >
                   <div className="w-12 h-12 bg-gray-200 rounded-full mx-auto flex items-center justify-center mb-2">
                     <FaRecycle className="text-gray-600" />
                   </div>
-                  <span className="font-medium">Resta</span>
+                  <span className="font-medium">Rebuig</span>
                 </button>
               </div>
               
