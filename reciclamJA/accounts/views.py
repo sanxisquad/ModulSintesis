@@ -121,6 +121,9 @@ class UserProfileView(APIView):
             'empresa': empresa_data,
             'score': user.score,
             'location': user.location,
+            'total_score': user.total_score,
+            'tickets_rechazados_acumulados': user.tickets_rechazados_acumulados,
+            'ultima_penalizacion': user.ultima_penalizacion,
         })
     
 class LogoutView(APIView):

@@ -126,9 +126,9 @@ export const ProfileView = () => {
 
     // Determine user level based on points
     const getUserLevel = (score) => {
-        if (score >= 1000) return { level: "Expert", color: "text-amber-500" };
-        if (score >= 500) return { level: "Avançat", color: "text-blue-500" };
-        if (score >= 200) return { level: "Intermedi", color: "text-green-500" };
+        if (score >= 2000) return { level: "Expert", color: "text-amber-500" };
+        if (score >= 1000) return { level: "Avançat", color: "text-blue-500" };
+        if (score >= 600) return { level: "Intermedi", color: "text-green-500" };
         return { level: "Principiant", color: "text-gray-500" };
     };
 
@@ -623,52 +623,65 @@ export const ProfileView = () => {
                             
                             <div className="mb-4">
                                 <div className="flex justify-between mb-1">
-                                    <span className="text-sm font-medium">Nivell {Math.floor(profile.score / 100) + 1}</span>
-                                    <span className="text-sm font-medium">{profile.score} / {Math.ceil(profile.score / 100) * 100} punts</span>
+                                    <span className="text-sm font-medium">
+                                        {profile.total_score >= 2000 
+                                            ? `Nivell Expert` 
+                                            : `Nivell ${Math.floor(profile.total_score / 300) + 1}`
+                                        }
+                                    </span>
+                                    <span className="text-sm font-medium">
+                                        {profile.total_score >= 2000 
+                                            ? `${profile.total_score} punts` 
+                                            : `${profile.total_score} / ${(Math.floor(profile.total_score / 300) + 1) * 300} punts`
+                                        }
+                                    </span>
                                 </div>
                                 <div className="w-full bg-gray-200 rounded-full h-2.5">
                                     <div 
                                         className="bg-green-500 h-2.5 rounded-full" 
-                                        style={{ width: `${(profile.score % 100) / 100 * 100}%` }}
+                                        style={{ width: profile.total_score >= 2000 
+                                            ? '100%' 
+                                            : `${(profile.total_score % 300) / 300 * 100}%` 
+                                        }}
                                     ></div>
                                 </div>
                             </div>
                             
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-                                <div className={`p-4 rounded-lg border ${profile.score >= 100 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+                                <div className={`p-4 rounded-lg border ${profile.total_score >= 300 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
                                     <div className="text-center">
-                                        <div className={`inline-block p-3 rounded-full ${profile.score >= 100 ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+                                        <div className={`inline-block p-3 rounded-full ${profile.total_score >= 300 ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
                                             <FaMedal className="h-6 w-6" />
                                         </div>
                                         <h3 className="font-medium mt-2">Nivell 1</h3>
-                                        <p className="text-sm text-gray-500">100 punts</p>
+                                        <p className="text-sm text-gray-500">300 punts</p>
                                     </div>
                                 </div>
-                                <div className={`p-4 rounded-lg border ${profile.score >= 250 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+                                <div className={`p-4 rounded-lg border ${profile.total_score >= 600 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
                                     <div className="text-center">
-                                        <div className={`inline-block p-3 rounded-full ${profile.score >= 250 ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+                                        <div className={`inline-block p-3 rounded-full ${profile.total_score >= 600 ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
                                             <FaMedal className="h-6 w-6" />
                                         </div>
                                         <h3 className="font-medium mt-2">Nivell 2</h3>
-                                        <p className="text-sm text-gray-500">250 punts</p>
+                                        <p className="text-sm text-gray-500">600 punts</p>
                                     </div>
                                 </div>
-                                <div className={`p-4 rounded-lg border ${profile.score >= 500 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+                                <div className={`p-4 rounded-lg border ${profile.total_score >= 1000 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
                                     <div className="text-center">
-                                        <div className={`inline-block p-3 rounded-full ${profile.score >= 500 ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+                                        <div className={`inline-block p-3 rounded-full ${profile.total_score >= 1000 ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
                                             <FaMedal className="h-6 w-6" />
                                         </div>
                                         <h3 className="font-medium mt-2">Nivell 3</h3>
-                                        <p className="text-sm text-gray-500">500 punts</p>
+                                        <p className="text-sm text-gray-500">1000 punts</p>
                                     </div>
                                 </div>
-                                <div className={`p-4 rounded-lg border ${profile.score >= 1000 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+                                <div className={`p-4 rounded-lg border ${profile.total_score >= 2000 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
                                     <div className="text-center">
-                                        <div className={`inline-block p-3 rounded-full ${profile.score >= 1000 ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+                                        <div className={`inline-block p-3 rounded-full ${profile.total_score >= 2000 ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
                                             <FaTrophy className="h-6 w-6" />
                                         </div>
                                         <h3 className="font-medium mt-2">Expert</h3>
-                                        <p className="text-sm text-gray-500">1000 punts</p>
+                                        <p className="text-sm text-gray-500">2000 punts</p>
                                     </div>
                                 </div>
                             </div>

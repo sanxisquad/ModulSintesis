@@ -334,7 +334,8 @@ class ReporteContenedorViewSet(viewsets.ModelViewSet):
             # Añadir puntos al usuario que creó el reporte (si existe)
             if updated_instance.usuario:
                 reporter_user = updated_instance.usuario
-                reporter_user.score += 100  # Añadir 100 puntos
+                reporter_user.score += 50  # Añadir 100 puntos
+                reporter_user.total_score += 50
                 reporter_user.save()
                 
                 # Crear notificación para el usuario que reportó
@@ -358,17 +359,13 @@ class ReporteContenedorViewSet(viewsets.ModelViewSet):
                     relacion_reporte=updated_instance
                 )
                 
-                # Incrementar contador de tickets rechazados
                 usuario_reporte = updated_instance.usuario
                 
-                # Verificar si han pasado 6 meses desde el último ticket rechazado
                 usuario_reporte.verificar_inactividad_tickets_rechazados()
                 
-                # Actualizar fecha del último ticket rechazado
                 usuario_reporte.ultimo_ticket_rechazado = timezone.now()
                 usuario_reporte.tickets_rechazados_acumulados += 1
                 
-                # Verificar si se debe aplicar la penalización
                 if usuario_reporte.tickets_rechazados_acumulados >= 5:
                     usuario_reporte.aplicar_penalizacion_tickets_rechazados()
                 else:

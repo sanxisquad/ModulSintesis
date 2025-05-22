@@ -30,6 +30,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
     is_superadmin = serializers.SerializerMethodField()
     is_user = serializers.SerializerMethodField()
     score = serializers.SerializerMethodField()
+    total_score = serializers.IntegerField
     location = serializers.CharField(required=False, allow_blank=True)
 
     class Meta:
@@ -37,7 +38,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'username', 'location','email', 'first_name', 'last_name', 'age', 'location',
             'role', 'role_id', 'empresa', 'empresa_id', 'CP', 'password',
-            'is_gestor', 'is_admin', 'is_superadmin', 'is_user', 'score'
+            'is_gestor', 'is_admin', 'is_superadmin', 'is_user', 'score','total_score'
         )
 
     def create(self, validated_data):

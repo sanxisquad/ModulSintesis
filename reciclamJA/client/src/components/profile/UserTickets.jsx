@@ -237,6 +237,14 @@ export const UserTickets = () => {
                     {ticket.tipo === 'contenedor_lleno' ? 'Contenidor ple' : 
                      ticket.tipo === 'contenedor_roto' ? 'Contenidor trencat' : 
                      ticket.tipo === 'contenedor_sucio' ? 'Contenidor brut' : 
+                     ticket.tipo === 'mal_estado' ? 'Mal estat' :
+                     ticket.tipo === 'vandalismo' ? 'Vandalisme' :
+                     ticket.tipo === 'ubicacion' ? 'Ubicació incorrecta' :
+                     ticket.tipo === 'olores' ? 'Mals olors' :
+                     ticket.tipo === 'falta_contenedor' ? 'Falta de contenidor' :
+                     ticket.tipo === 'otro' ? 'Altre problema' :
+
+
                      ticket.tipo}
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
@@ -277,6 +285,45 @@ export const UserTickets = () => {
                 <FaTicketAlt className="mr-2 text-green-500" />
                 Els meus Tiquets
             </h2>
+            
+            {/* Simplified Penalty Information Section */}
+            {user && user.tickets_rechazados_acumulados > 0 && (
+                <div className="mb-6">
+                    <div className={`rounded-lg p-3 ${user.tickets_rechazados_acumulados > 3 ? 'bg-red-50 border border-red-200' : 'bg-amber-50 border border-amber-200'}`}>
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                                <FaExclamationTriangle className={`mr-2 ${user.tickets_rechazados_acumulados > 3 ? 'text-red-500' : 'text-amber-500'}`} />
+                                <span className="font-medium">
+                                    Tiquets rebutjats acumulats: 
+                                    <span className={`ml-1 ${user.tickets_rechazados_acumulados > 3 ? 'text-red-600' : 'text-amber-600'}`}>
+                                        {user.tickets_rechazados_acumulados} / 5
+                                    </span>
+                                </span>
+                            </div>
+                            <div className="relative group">
+                                <button 
+                                    className="flex items-center justify-center w-5 h-5 rounded-full bg-gray-200 hover:bg-gray-300 text-gray-600"
+                                    aria-label="Més informació"
+                                >
+                                    <span className="text-xs font-bold">i</span>
+                                </button>
+                                <div className="absolute right-0 mt-2 w-64 bg-white shadow-lg rounded-md border border-gray-200 p-3 z-10 hidden group-hover:block">
+                                    <p className="text-sm text-gray-700">
+                                        <strong>Penalitzacions:</strong>
+                                    </p>
+                                    <ul className="text-xs text-gray-600 mt-1 list-disc pl-4 space-y-1">
+                                        <li>5 tiquets rebutjats resulten en una penalització de -500 punts</li>
+                                        <li>El comptador es reinicia després de 6 mesos d'inactivitat</li>
+                                        {user.ultima_penalizacion && (
+                                            <li>Última penalització: {formatDate(user.ultima_penalizacion)}</li>
+                                        )}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
             
             {/* Filter Buttons - Only show if there are tickets */}
             {tickets.length > 0 && (

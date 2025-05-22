@@ -78,6 +78,7 @@ class ReporteContenedor(models.Model):
         ('vandalismo', 'Vandalisme'),
         ('ubicacion', 'Problema amb la ubicació'),
         ('olores', 'Mals olors'),
+        ('falta_contenedor', 'Falta un contenidor'),
         ('otro', 'Altre problema')
     ]
     

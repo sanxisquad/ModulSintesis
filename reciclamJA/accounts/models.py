@@ -17,6 +17,7 @@ class CustomUser(AbstractUser):
     location = models.CharField(max_length=255, blank=True, null=True)
     role = models.ForeignKey(Role, on_delete=models.SET_NULL, null=True, blank=True)  # Relación con Role
     score = models.IntegerField(default=0)
+    total_score = models.IntegerField(default=0)
     empresa = models.ForeignKey('Empresa', related_name='usuarios', on_delete=models.CASCADE, null=True, blank=True)  # Relación uno a muchos: cada usuario pertenece a una empresa
     CP = models.CharField(max_length=5, blank=True, null=True)
     tickets_rechazados_acumulados = models.PositiveIntegerField(default=0)  # Contador de tickets rechazados
@@ -57,8 +58,10 @@ class CustomUser(AbstractUser):
         if self.tickets_rechazados_acumulados >= 5:
             # Restar puntos
             self.score -= 500
+            self.total_score -= 500
             if self.score < 0:
                 self.score = 0  # Evitar puntuación negativa si se desea
+                self.total_score = 0
                 
             # Resetear contador a 0 después de aplicar la penalización
             self.tickets_rechazados_acumulados = 0
