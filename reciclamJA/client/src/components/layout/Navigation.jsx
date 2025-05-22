@@ -265,7 +265,7 @@ export function Navigation() {
             
             if (notificacionesRef.current && !notificacionesRef.current.contains(event.target) &&
                 !event.target.closest('button[aria-label="Toggle notifications"]')) {
-                // setNotificacionesOpen(false);
+                setNotificacionesOpen(false);
             }
             
             if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target) &&
@@ -279,6 +279,27 @@ export function Navigation() {
             document.removeEventListener("mousedown", handleClickOutside);
         };
     }, [toggleMenu, menuOpen]);
+
+    // Añadir un efecto específico para manejar el menú de notificaciones
+    useEffect(() => {
+        if (!notificacionesOpen) return;
+        
+        function handleClickAway(event) {
+            // Si el menú está abierto y se hace clic fuera del menú y no en el botón de toggle
+            if (notificacionesRef.current && 
+                !notificacionesRef.current.contains(event.target) && 
+                !event.target.closest('[aria-label="Toggle notifications"]')) {
+                setNotificacionesOpen(false);
+            }
+        }
+        
+        // Agregar evento
+        document.addEventListener('mousedown', handleClickAway);
+        // Limpiar
+        return () => {
+            document.removeEventListener('mousedown', handleClickAway);
+        };
+    }, [notificacionesOpen]);
 
     // Función auxiliar para formatear fechas sin date-fns
     const formatearFechaRelativa = (fecha) => {
@@ -335,7 +356,11 @@ export function Navigation() {
         return (
             <div className="relative" ref={notificacionesRef}>
                 <button
-                    onClick={() => setNotificacionesOpen(!notificacionesOpen)}
+                    aria-label="Toggle notifications"
+                    onClick={(e) => {
+                        e.stopPropagation(); // Detener propagación para evitar conflictos
+                        setNotificacionesOpen(!notificacionesOpen);
+                    }}
                     className="relative flex items-center justify-center p-2 rounded-full text-gray-600 hover:bg-gray-100"
                 >
                     <FaBell className="h-6 w-6" />
@@ -347,7 +372,10 @@ export function Navigation() {
                 </button>
                 
                 {notificacionesOpen && (
-                    <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg overflow-hidden z-50">
+                    <div 
+                        className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg overflow-hidden z-50"
+                        onClick={(e) => e.stopPropagation()} // Detener la propagación en el contenido
+                    >
                         <div className="py-2 px-3 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
                             <span className="text-sm font-medium text-gray-800">Notificacions</span>
                             <button
