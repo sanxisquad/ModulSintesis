@@ -620,3 +620,87 @@ def detalle_redencion(request, pk):
         return Response(serializer.data)
     except PrizeRedemption.DoesNotExist:
         return Response({"error": "Redención no encontrada"}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['PATCH'])
+@permission_classes([permissions.IsAuthenticated])
+def actualizar_estado_redencion(request, pk):
+    """Actualiza el estado de una redención (solo gestores/admins)"""
+    user = request.user
+    
+    # Verificar que el usuario tiene permisos para actualizar estados
+    if not (user.is_gestor() or user.is_admin() or user.is_superadmin()):
+        return Response(
+            {"error": "No tens permisos per actualitzar l'estat d'una redempció"}, 
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    try:
+        # Obtener la redención según los permisos del usuario
+        if user.is_admin() or user.is_superadmin():
+            # Los admins pueden actualizar cualquier redención
+            redencion = PrizeRedemption.objects.get(pk=pk)
+        elif user.is_gestor() and user.empresa:
+            # Los gestores solo pueden actualizar redenciones de premios de su empresa
+            redencion = PrizeRedemption.objects.get(pk=pk, premio__empresa=user.empresa)
+        else:
+            return Response(
+                {"error": "No tens permisos per actualitzar aquesta redempció"}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Validar el nuevo estado
+        nuevo_estado = request.data.get('estado')
+        if nuevo_estado not in dict(PrizeRedemption.ESTADO_CHOICES).keys():
+            return Response(
+                {"error": f"Estat '{nuevo_estado}' no vàlid"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Actualizar el estado y notas si se proporcionan
+        redencion.estado = nuevo_estado
+        if 'notas' in request.data:
+            redencion.notas = request.data['notas']
+        
+        redencion.save()
+        
+        # Si se cancela la redención, devolver puntos al usuario
+        if nuevo_estado == 'cancelado' and redencion.estado != 'cancelado':
+            # Devolver puntos al usuario
+            redencion.usuario.score += redencion.puntos_gastados
+            redencion.usuario.save(update_fields=['score'])
+            
+            # Incrementar cantidad de premio disponible
+            redencion.premio.cantidad += 1
+            redencion.premio.save(update_fields=['cantidad'])
+            
+            # Crear notificación para el usuario
+            from zonesreciclatge.models import Notificacion
+            Notificacion.objects.create(
+                usuario=redencion.usuario,
+                tipo='premi',
+                titulo=f'Redempció cancel·lada: {redencion.premio.nombre}',
+                mensaje=f'La teva sol·licitud del premi "{redencion.premio.nombre}" ha estat cancel·lada.\n\nMotiu: {redencion.notas or "No s\'ha especificat cap motiu"}\n\nEls {redencion.puntos_gastados} punts han estat retornats al teu compte.'
+            )
+        
+        # Crear notificación para el usuario cuando se cambia a procesando o entregado
+        if nuevo_estado in ['procesando', 'entregado']:
+            from zonesreciclatge.models import Notificacion
+            
+            if nuevo_estado == 'procesando':
+                titulo = f'Premi en procés: {redencion.premio.nombre}'
+                mensaje = f'La teva sol·licitud del premi "{redencion.premio.nombre}" està sent processada.\n\n{redencion.notas or ""}'
+            else:  # entregado
+                titulo = f'Premi lliurat: {redencion.premio.nombre}'
+                mensaje = f'El teu premi "{redencion.premio.nombre}" ha estat marcat com a lliurat.\n\n{redencion.notas or ""}'
+            
+            Notificacion.objects.create(
+                usuario=redencion.usuario,
+                tipo='premi',
+                titulo=titulo,
+                mensaje=mensaje
+            )
+        
+        return Response(PrizeRedemptionSerializer(redencion).data)
+            
+    except PrizeRedemption.DoesNotExist:
+        return Response({"error": "Redempció no trobada"}, status=status.HTTP_404_NOT_FOUND)

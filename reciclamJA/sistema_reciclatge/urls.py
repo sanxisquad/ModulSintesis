@@ -26,4 +26,5 @@ urlpatterns = [
     # Rutas para redenciones de premios
     path('premios-redenciones/', views.lista_redenciones, name='lista_redenciones'),
     path('premios-redenciones/<int:pk>/', views.detalle_redencion, name='detalle_redencion'),
+    path('premios-redenciones/<int:pk>/actualizar-estado/', views.actualizar_estado_redencion, name='actualizar_estado_redencion'),
 ]
