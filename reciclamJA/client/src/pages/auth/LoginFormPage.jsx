@@ -164,7 +164,7 @@ export function LoginFormPage() {
                                         required: 'La contrasenya és obligatòria',
                                         minLength: {
                                             value: 6,
-                                            message: 'Mínim 6 caràcters'
+                                            message: 'Mínim 8 caràcters'
                                         },
                                         maxLength: {
                                             value: 100,

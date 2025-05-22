@@ -78,7 +78,7 @@ function MapCitySearch({ onCitySearch }) {
 
   const handleSearch = async () => {
     if (!searchTerm.trim()) {
-      toast.error('Please enter a city or address');
+      toast.error('Si us plau, introdueix una ciutat o adreça');
       return;
     }
 
@@ -88,7 +88,7 @@ function MapCitySearch({ onCitySearch }) {
       setAddress(location.address);
       onCitySearch(location);
     } else {
-      toast.error('Location not found');
+      toast.error('Ubicació no trobada');
     }
   };
 
@@ -289,7 +289,7 @@ export function HomeMapView({ contenedores: propContenedores = [], zonas: propZo
   const handleReportProblem = (item, type) => {
     // Verify if user is authenticated
     if (!isAuthenticated) {
-      toast.error("Debes iniciar sesión para reportar problemas");
+      toast.error("Has d'iniciar sessió per reportar problemes");
       return;
     }
     
