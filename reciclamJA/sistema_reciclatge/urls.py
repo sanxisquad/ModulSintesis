@@ -14,4 +14,16 @@ urlpatterns = [
     path('bolsas/<int:pk>/', views.detalles_bolsa, name='detalles_bolsa'),
     path('bolsas/<int:pk>/reciclar/', views.reciclar_bolsa, name='reciclar_bolsa'),
     path('productos/<int:producto_id>/agregar-a-bolsa/', views.agregar_a_bolsa, name='agregar_a_bolsa'),
+    
+    # Rutas para premios
+    path('premios/', views.lista_premios, name='lista_premios'),
+    path('premios/<int:pk>/', views.detalle_premio, name='detalle_premio'),
+    path('premios/crear/', views.crear_premio, name='crear_premio'),
+    path('premios/<int:pk>/actualizar/', views.actualizar_premio, name='actualizar_premio'),
+    path('premios/<int:pk>/eliminar/', views.eliminar_premio, name='eliminar_premio'),
+    path('premios/<int:pk>/redeem/', views.canjear_premio, name='canjear_premio'),
+    
+    # Rutas para redenciones de premios
+    path('premios-redenciones/', views.lista_redenciones, name='lista_redenciones'),
+    path('premios-redenciones/<int:pk>/', views.detalle_redencion, name='detalle_redencion'),
 ]

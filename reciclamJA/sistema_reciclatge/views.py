@@ -3,12 +3,14 @@ from django.utils import timezone
 from rest_framework import status, permissions
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from .models import Material, ProductoReciclado, BolsaVirtual
+from .models import Material, ProductoReciclado, BolsaVirtual, Prize, PrizeRedemption
 from .serializers import (
     CodigoBarrasSerializer, 
     ProductoRecicladoSerializer, 
     MaterialSerializer,
-    BolsaVirtualSerializer
+    BolsaVirtualSerializer,
+    PrizeSerializer,
+    PrizeRedemptionSerializer
 )
 from datetime import timedelta
 
@@ -435,3 +437,186 @@ def reciclar_bolsa(request, pk):
         "puntos_obtenidos": bolsa.puntos_totales,
         "puntos_totales": request.user.score
     })
+
+# Permisos para gestores y admins (movidos desde api.py)
+class IsGestorAdminOrSuperAdmin(permissions.BasePermission):
+    def has_permission(self, request, view):
+        # Verificar si el usuario está autenticado y tiene uno de los roles necesarios
+        return (
+            request.user and 
+            request.user.is_authenticated and 
+            (request.user.is_gestor() or request.user.is_admin() or request.user.is_superadmin())
+        )
+
+# Premio API views
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def lista_premios(request):
+    """Obtiene la lista de premios disponibles"""
+    queryset = Prize.objects.all()
+    
+    # Para usuarios normales, filtrar por activo y cantidad
+    if not (request.user.is_gestor() or request.user.is_admin() or request.user.is_superadmin()):
+        queryset = queryset.filter(activo=True, cantidad__gt=0)
+    
+    serializer = PrizeSerializer(queryset, many=True)
+    return Response(serializer.data)
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def detalle_premio(request, pk):
+    """Obtiene los detalles de un premio específico"""
+    try:
+        premio = Prize.objects.get(pk=pk)
+        
+        # Si no es gestor/admin y el premio no está activo o disponible
+        if (not (request.user.is_gestor() or request.user.is_admin() or request.user.is_superadmin()) and 
+            (not premio.activo or premio.cantidad <= 0)):
+            return Response({"error": "Premio no disponible"}, status=status.HTTP_404_NOT_FOUND)
+            
+        serializer = PrizeSerializer(premio)
+        return Response(serializer.data)
+    except Prize.DoesNotExist:
+        return Response({"error": "Premio no encontrado"}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def crear_premio(request):
+    """Crea un nuevo premio (solo para gestores/admins)"""
+    if not (request.user.is_gestor() or request.user.is_admin() or request.user.is_superadmin()):
+        return Response({"error": "No tienes permisos para crear premios"}, status=status.HTTP_403_FORBIDDEN)
+    
+    serializer = PrizeSerializer(data=request.data)
+    if serializer.is_valid():
+        # Set the creado_por field to the current user
+        user = request.user
+        
+        # If empresa is not explicitly set and user has an empresa, set it automatically
+        if 'empresa' not in serializer.validated_data and user.empresa:
+            serializer.save(creado_por=user, empresa=user.empresa)
+        else:
+            serializer.save(creado_por=user)
+        
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['PUT', 'PATCH'])
+@permission_classes([permissions.IsAuthenticated])
+def actualizar_premio(request, pk):
+    """Actualiza un premio existente (solo para gestores/admins)"""
+    if not (request.user.is_gestor() or request.user.is_admin() or request.user.is_superadmin()):
+        return Response({"error": "No tienes permisos para actualizar premios"}, status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        premio = Prize.objects.get(pk=pk)
+        
+        # Para updates parciales usar PATCH
+        if request.method == 'PATCH':
+            serializer = PrizeSerializer(premio, data=request.data, partial=True)
+        else:
+            serializer = PrizeSerializer(premio, data=request.data)
+            
+        if serializer.is_valid():
+            # Regular users and gestors can only set their own empresa
+            user = request.user
+            if not (user.is_admin() or user.is_superadmin()):
+                if 'empresa' in serializer.validated_data and serializer.validated_data['empresa'] != user.empresa:
+                    serializer.validated_data['empresa'] = user.empresa
+            
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Prize.DoesNotExist:
+        return Response({"error": "Premio no encontrado"}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['DELETE'])
+@permission_classes([permissions.IsAuthenticated])
+def eliminar_premio(request, pk):
+    """Elimina un premio (solo para gestores/admins)"""
+    if not (request.user.is_gestor() or request.user.is_admin() or request.user.is_superadmin()):
+        return Response({"error": "No tienes permisos para eliminar premios"}, status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        premio = Prize.objects.get(pk=pk)
+        premio.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    except Prize.DoesNotExist:
+        return Response({"error": "Premio no encontrado"}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def canjear_premio(request, pk):
+    """Canjea un premio por puntos"""
+    try:
+        premio = Prize.objects.get(pk=pk)
+        user = request.user
+        
+        # Check if the prize is available
+        if not premio.is_available:
+            return Response(
+                {"error": "Aquest premi no està disponible actualment"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check if user has enough points
+        if user.score < premio.puntos_costo:
+            return Response(
+                {"error": f"No tens prou punts. Necessites {premio.puntos_costo} punts."}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Create redemption
+        redemption = PrizeRedemption.objects.create(
+            usuario=user,
+            premio=premio,
+            puntos_gastados=premio.puntos_costo
+        )
+        
+        return Response(
+            PrizeRedemptionSerializer(redemption).data,
+            status=status.HTTP_201_CREATED
+        )
+    except Prize.DoesNotExist:
+        return Response({"error": "Premio no encontrado"}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def lista_redenciones(request):
+    """Obtiene la lista de redenciones de premios"""
+    user = request.user
+    
+    # If admin/gestor/superadmin, show all if requested
+    if user.is_gestor() or user.is_admin() or user.is_superadmin():
+        # For company managers, filter by their company's prizes
+        if 'all' in request.query_params and (user.is_admin() or user.is_superadmin()):
+            queryset = PrizeRedemption.objects.all()
+        elif user.empresa:
+            queryset = PrizeRedemption.objects.filter(premio__empresa=user.empresa)
+        else:
+            queryset = PrizeRedemption.objects.none()
+    else:
+        # Regular users only see their own redemptions
+        queryset = PrizeRedemption.objects.filter(usuario=user)
+    
+    serializer = PrizeRedemptionSerializer(queryset, many=True)
+    return Response(serializer.data)
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def detalle_redencion(request, pk):
+    """Obtiene detalles de una redención específica"""
+    user = request.user
+    
+    try:
+        # Determine if the user can access this redemption
+        if user.is_admin() or user.is_superadmin():
+            redencion = PrizeRedemption.objects.get(pk=pk)
+        elif user.is_gestor() and user.empresa:
+            redencion = PrizeRedemption.objects.get(pk=pk, premio__empresa=user.empresa)
+        else:
+            redencion = PrizeRedemption.objects.get(pk=pk, usuario=user)
+            
+        serializer = PrizeRedemptionSerializer(redencion)
+        return Response(serializer.data)
+    except PrizeRedemption.DoesNotExist:
+        return Response({"error": "Redención no encontrada"}, status=status.HTTP_404_NOT_FOUND)

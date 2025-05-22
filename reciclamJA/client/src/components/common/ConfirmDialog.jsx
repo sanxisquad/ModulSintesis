@@ -100,7 +100,12 @@ export const ConfirmDialog = ({
         <div className="p-4 sm:p-6">
           <h3 className="text-lg font-medium text-gray-900">{title}</h3>
           <div className="mt-2">
-            <p className="text-sm text-gray-500">{message}</p>
+            {/* Ahora el mensaje puede ser un string o un elemento JSX */}
+            {typeof message === 'string' ? (
+              <p className="text-sm text-gray-500">{message}</p>
+            ) : (
+              message
+            )}
           </div>
           
           <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">

@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getAllPrizes, redeemPrize } from '../../api/premio.api';
 import { useAuth } from '../../../hooks/useAuth';
-import { FaGift, FaCoins, FaSearch, FaCrown, FaRegSadTear } from 'react-icons/fa';
+import { FaGift, FaCoins, FaSearch, FaCrown, FaRegSadTear, FaCheckCircle, FaInfoCircle } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
-import { ConfirmDialogProvider } from '../../components/common/ConfirmDialog';
+import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 
 export const PrizesPage = () => {
   const [prizes, setPrizes] = useState([]);
@@ -193,15 +193,58 @@ export const PrizesPage = () => {
         </div>
       )}
       
-      {/* Confirmation Dialog */}
+      {/* Confirmation Dialog - Personalizado */}
       {showConfirm && selectedPrize && (
         <ConfirmDialog
           isOpen={showConfirm}
           onClose={() => setShowConfirm(false)}
           onConfirm={handleConfirmRedeem}
           title="Bescanviar Premi"
-          message={`Estàs segur que vols bescanviar ${selectedPrize.puntos_costo} punts per aquest premi?`}
-          confirmText="Bescanviar"
+          message={
+            <div className="space-y-4">
+              <div className="flex items-center">
+                <div className="flex-shrink-0 h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
+                  <FaGift className="h-6 w-6 text-green-600" />
+                </div>
+                <div className="ml-4">
+                  <h3 className="text-lg font-semibold">{selectedPrize.nombre}</h3>
+                  <p className="text-sm text-gray-500">
+                    {selectedPrize.empresa_nombre ? `De ${selectedPrize.empresa_nombre}` : 'Premi de ReciclamJA'}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <div className="flex justify-between mb-2">
+                  <span className="text-sm font-medium">Cost del premi:</span>
+                  <span className="text-sm font-bold text-green-600 flex items-center">
+                    <FaCoins className="mr-1" /> {selectedPrize.puntos_costo} punts
+                  </span>
+                </div>
+                <div className="flex justify-between mb-2">
+                  <span className="text-sm font-medium">Els teus punts actuals:</span>
+                  <span className="text-sm font-bold">{user.score} punts</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium">Punts restants després:</span>
+                  <span className="text-sm font-bold">{user.score - selectedPrize.puntos_costo} punts</span>
+                </div>
+              </div>
+              
+              <div className="bg-blue-50 p-3 rounded-lg flex">
+                <FaInfoCircle className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5 mr-2" />
+                <div className="text-sm text-blue-700">
+                  <p>En bescanviar aquest premi, rebràs un codi de confirmació que podràs mostrar per reclamar-lo.</p>
+                  <p className="mt-1">Aquesta acció no es pot desfer.</p>
+                </div>
+              </div>
+              
+              <p className="text-sm text-gray-600">
+                ¿Estàs segur que vols bescanviar aquest premi?
+              </p>
+            </div>
+          }
+          confirmText="Bescanviar ara"
           cancelText="Cancel·lar"
         />
       )}
