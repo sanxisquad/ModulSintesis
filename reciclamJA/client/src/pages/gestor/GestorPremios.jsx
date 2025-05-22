@@ -4,6 +4,7 @@ import {
   FaList, FaTh, FaPlus, FaExclamationTriangle, FaCheckCircle,
   FaSpinner, FaTimesCircle, FaExchangeAlt, FaUser, FaCalendarAlt
 } from 'react-icons/fa';
+import { RefreshCw } from 'lucide-react'; // Add this import
 import { 
   getAllPrizes, createPrize, updatePrize, deletePrize,
   getCompanyRedemptions, getAllRedemptions, handleApiError
@@ -325,12 +326,12 @@ export function GestorPremios() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="flex flex-col items-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-          <p className="mt-4 text-lg text-gray-800">Carregant dades...</p>
-        </div>
+    <div className="flex items-center justify-center h-screen">
+      <div className="flex flex-col items-center">
+        <RefreshCw className="animate-spin h-12 w-12 text-blue-500" />
+        <p className="mt-4 text-lg text-gray-800">Carregant dades...</p>
       </div>
+    </div>
     );
   }
 

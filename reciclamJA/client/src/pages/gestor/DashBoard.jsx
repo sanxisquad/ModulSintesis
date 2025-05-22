@@ -25,27 +25,27 @@ export function DashBoard() {
   const [reportFilter, setReportFilter] = useState('all');
   const [activeSection, setActiveSection] = useState('reciclaje');
   const [selectedEstat, setSelectedEstat] = useState(null); 
-  const [alertaFilter, setAlertaFilter] = useState(false); // New state for alert filtering
-  const [reportStatusFilter, setReportStatusFilter] = useState(null); // State for report status filtering
-  const [reportPriorityFilter, setReportPriorityFilter] = useState(null); // State for report priority filtering
-  const [reportFilterMode, setReportFilterMode] = useState('estat'); // Toggle between 'estat' and 'prioritat'
+  const [alertaFilter, setAlertaFilter] = useState(false);
+  const [reportStatusFilter, setReportStatusFilter] = useState(null);
+  const [reportPriorityFilter, setReportPriorityFilter] = useState(null); 
+  const [reportFilterMode, setReportFilterMode] = useState('estat'); 
 
-  // Colors per al gràfic
+  
   const COLORS = ['#00C49F', '#FFBB28', '#FF8042'];
   
-  // Custom chart colors
+  
   const COLORS_ESTAT = {
-    abierto: '#FFBB28',    // Yellow - Oberts
-    en_proceso: '#0088FE', // Blue - En procés 
-    resuelto: '#00C49F',   // Green - Resolts
-    rechazado: '#FF8042'   // Orange - Rebutjats
+    abierto: '#FFBB28',    
+    en_proceso: '#0088FE',  
+    resuelto: '#00C49F',   
+    rechazado: '#FF8042'   
   };
   
   const COLORS_PRIORITAT = {
-    baja: '#00C49F',     // Green - Baixa
-    normal: '#0088FE',   // Blue - Normal
-    alta: '#FFBB28',     // Yellow - Alta
-    urgente: '#FF8042'   // Orange - Urgent
+    baja: '#00C49F',     
+    normal: '#0088FE',   
+    alta: '#FFBB28',     
+    urgente: '#FF8042'   
   };
   
   // Colors for report types chart

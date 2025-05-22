@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useMenu } from '../../context/MenuContext';
 import { ZonaReciclatgeList } from '../../components/zr/ZonaReciclatgeList';
@@ -6,7 +6,10 @@ import { MapView } from '../../components/MapView/MapContainer.jsx';
 import { FilterPanel } from '../../components/common/FilterPanel';
 import { getAllZones, getAllContenedors } from '../../api/zr.api.js';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { MapPin, Database, Filter, PlusCircle, Map, List, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
+import { 
+  RefreshCw, Search, PlusCircle, Edit, Trash2, MapPin, Filter,
+  Database, ChevronUp, ChevronDown, Map, List
+} from 'lucide-react';
 
 export function GestorZona() {
   const { menuOpen } = useMenu();
@@ -82,7 +85,7 @@ export function GestorZona() {
   if (loading) return (
     <div className="flex items-center justify-center h-screen">
       <div className="flex flex-col items-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        <RefreshCw className="animate-spin h-12 w-12 text-blue-500" />
         <p className="mt-4 text-lg text-gray-800">Carregant dades...</p>
       </div>
     </div>
