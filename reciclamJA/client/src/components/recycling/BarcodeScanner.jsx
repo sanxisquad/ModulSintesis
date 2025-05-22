@@ -13,6 +13,7 @@ import {
   FaBox,
   FaEye,
   FaTrash,
+  FaRecycle,
   FaPlus
 } from 'react-icons/fa';
 import { useAuth } from '../../../hooks/useAuth';
@@ -287,7 +288,7 @@ const BarcodeScanner = ({ onScanComplete }) => {
         if (response.tipo === "cooldown" && response.tiempo_restante) {
           // Mostrar toast para errores de cooldown
           toast.error(
-            `Has d'esperar ${response.tiempo_restante.minutos} minut${response.tiempo_restante.minutos !== 1 ? 's' : ''} i ${response.tiempo_restante.segundos} segon${response.tiempo_restante.segundos !== 1 ? 's' : ''} abans de tornar a escanejar aquest producte`, 
+            `Has d'esperar ${response.tiempo_restante.minutos} minut${response.tiempo_restante.minutos !== 1 ? 's' : ''} i ${response.tiempo_restante.segundos} segon${response.tiempo_restante.segons !== 1 ? 's' : ''} abans de tornar a escanejar aquest producte`, 
             {
               duration: 5000,
               icon: '⏱️',
@@ -342,7 +343,7 @@ const BarcodeScanner = ({ onScanComplete }) => {
         
         // Mostrar toast para cooldown con la información de tiempo restante
         toast.error(
-          `Has d'esperar ${cooldownData.tiempo_restante.minutos} minut${cooldownData.tiempo_restante.minutos !== 1 ? 's' : ''} i ${cooldownData.tiempo_restante.segundos} segon${cooldownData.tiempo_restante.segundos !== 1 ? 's' : ''} abans de tornar a escanejar aquest producte`, 
+          `Has d'esperar ${cooldownData.tiempo_restante.minutos} minut${cooldownData.tiempo_restante.minutos !== 1 ? 's' : ''} i ${cooldownData.tiempo_restante.segundos} segon${cooldownData.tiempo_restante.segons !== 1 ? 's' : ''} abans de tornar a escanejar aquest producte`, 
           {
             duration: 5000,
             icon: '⏱️',
@@ -595,7 +596,6 @@ ${debugInfo}
         });
       }
     } catch (error) {
-      console.error('Error al escanear código:', error);
       setError({
         title: "Error al escanear",
         message: error.message || "Ha ocurrido un error al escanear el código",
@@ -717,7 +717,21 @@ ${debugInfo}
     }
     
     // Error genérico (sin el fondo rojo)
-
+    return (
+      <div className="bg-red-50 border-l-4 border-red-400 p-4">
+        <div className="flex">
+          <div className="flex-shrink-0">
+            <FaExclamationTriangle className="h-5 w-5 text-red-400" />
+          </div>
+          <div className="ml-3">
+            <h3 className="text-sm font-medium text-red-800">{error.title || "Error"}</h3>
+            <div className="mt-2 text-sm text-red-700">
+              <p>{error.message || "Ha ocurrido un error."}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   // Render success message with bag selection UI
@@ -735,7 +749,7 @@ ${debugInfo}
             <span className="text-green-600 font-bold">+{success.points} pts</span>
           </div>
           
-          {/* Product details */}
+          {/* Product details with improved material display */}
           <div className="mt-4 flex flex-col md:flex-row">
             {success.product.imagen_url ? (
               <img 
@@ -750,12 +764,13 @@ ${debugInfo}
             )}
             
             <div className="flex-1">
-              <h4 className="font-medium text-lg">{success.product.nombre_producto}</h4>
-              <p className="text-gray-600">{success.product.marca}</p>
-              <div className="flex items-center mt-2">
-                <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                  {success.material.nombre}
-                </span>
+              {/* Larger product name */}
+              <h4 className="font-bold text-xl text-gray-800">{success.product.nombre_producto}</h4>
+              <p className="text-gray-600 text-sm">{success.product.marca}</p>
+              
+              {/* Material badge with more prominence */}
+              <div className="mt-3">
+                {getMaterialBadge(success.material.nombre)}
               </div>
             </div>
           </div>
@@ -801,7 +816,7 @@ ${debugInfo}
           <span className="text-green-600 font-bold">+{success.points} pts</span>
         </div>
         
-        {/* Product details */}
+        {/* Product details with improved material display */}
         <div className="mt-4 flex flex-col md:flex-row">
           {success.product.imagen_url ? (
             <img 
@@ -816,12 +831,13 @@ ${debugInfo}
           )}
           
           <div className="flex-1">
-            <h4 className="font-medium text-lg">{success.product.nombre_producto}</h4>
-            <p className="text-gray-600">{success.product.marca}</p>
-            <div className="flex items-center mt-2">
-              <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                {success.material.nombre}
-              </span>
+            {/* Larger product name */}
+            <h4 className="font-bold text-xl text-gray-800">{success.product.nombre_producto}</h4>
+            <p className="text-gray-600 text-sm">{success.product.marca}</p>
+            
+            {/* Material badge with more prominence */}
+            <div className="mt-3">
+              {getMaterialBadge(success.material.nombre)}
             </div>
           </div>
         </div>
@@ -928,6 +944,52 @@ ${debugInfo}
             </div>
           )}
         </div>
+      </div>
+    );
+  };
+
+  // Función para generar un badge de material visualmente distintivo según el tipo
+  const getMaterialBadge = (materialName) => {
+    // Normalizar el nombre del material (a minúsculas y sin acentos)
+    const normalizedName = materialName.toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    
+    // Configuración de colores por tipo de material
+    const materialStyles = {
+      'plastic': { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-300', icon: <FaRecycle className="mr-2 text-yellow-600" /> },
+      'plastico': { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-300', icon: <FaRecycle className="mr-2 text-yellow-600" /> },
+      'plastic': { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-300', icon: <FaRecycle className="mr-2 text-yellow-600" /> },
+      'paper': { bg: 'bg-blue-100', text: 'text-blue-800', border: 'border-blue-300', icon: <FaRecycle className="mr-2 text-blue-600" /> },
+      'papel': { bg: 'bg-blue-100', text: 'text-blue-800', border: 'border-blue-300', icon: <FaRecycle className="mr-2 text-blue-600" /> },
+      'paper': { bg: 'bg-blue-100', text: 'text-blue-800', border: 'border-blue-300', icon: <FaRecycle className="mr-2 text-blue-600" /> },
+      'glass': { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-300', icon: <FaRecycle className="mr-2 text-green-600" /> },
+      'vidre': { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-300', icon: <FaRecycle className="mr-2 text-green-600" /> },
+      'vidrio': { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-300', icon: <FaRecycle className="mr-2 text-green-600" /> },
+      'metal': { bg: 'bg-gray-100', text: 'text-gray-800', border: 'border-gray-300', icon: <FaRecycle className="mr-2 text-gray-600" /> },
+      'metall': { bg: 'bg-gray-100', text: 'text-gray-800', border: 'border-gray-300', icon: <FaRecycle className="mr-2 text-gray-600" /> },
+      'organic': { bg: 'bg-amber-100', text: 'text-amber-800', border: 'border-amber-300', icon: <FaRecycle className="mr-2 text-amber-600" /> },
+      'resta': { bg: 'bg-gray-100', text: 'text-gray-800', border: 'border-gray-300', icon: <FaTrash className="mr-2 text-gray-600" /> },
+    };
+    
+    // Buscar coincidencia en las claves
+    let style = null;
+    for (const key in materialStyles) {
+      if (normalizedName.includes(key)) {
+        style = materialStyles[key];
+        break;
+      }
+    }
+    
+    // Si no hay coincidencia, usar un estilo por defecto
+    if (!style) {
+      style = { bg: 'bg-purple-100', text: 'text-purple-800', border: 'border-purple-300', icon: <FaRecycle className="mr-2 text-purple-600" /> };
+    }
+    
+    // Devolver el badge con el estilo correspondiente
+    return (
+      <div className={`${style.bg} ${style.text} ${style.border} border px-4 py-2 rounded-lg inline-flex items-center font-medium text-sm md:text-base`}>
+        {style.icon}
+        <span className="capitalize">{materialName}</span>
       </div>
     );
   };
