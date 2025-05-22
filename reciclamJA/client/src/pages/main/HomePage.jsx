@@ -297,15 +297,7 @@ export const HomePage = () => {
                 </p>
               </div>
             )}
-            
-            {!isAuthenticated && (
-              <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
-                <p className="text-blue-700">
-                  Estàs veient la versió pública de ReciclamJa. 
-                  <a href="/login" className="ml-2 font-medium underline">Inicia sessió</a> per accedir a més funcionalitats i continguts.
-                </p>
-              </div>
-            )}
+
             
             {loading ? (
               <div className="flex justify-center items-center h-64 bg-white rounded-lg shadow-sm">

@@ -36,12 +36,35 @@ export const redeemPrize = (id) => {
 
 // For admins/gestors/superadmins only
 export const createPrize = (prizeData) => {
+  // Cuando usamos FormData para enviar archivos, NO debemos establecer el Content-Type
+  // Axios configurará automáticamente el Content-Type adecuado con el boundary
+  const config = {
+    headers: {
+      // No incluir Content-Type aquí, axios lo configurará automáticamente
+      'Authorization': `Bearer ${localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')}`
+    }
+  };
+  
+  // Log para depuración
+  console.log("FormData prizeData entries:", 
+    Array.from(prizeData.entries()).map(([k, v]) => 
+      k === 'imagen' ? [k, 'File object'] : [k, v]
+    )
+  );
+  
   // Fixing the URL to match the backend route
-  return api.post('/premios/crear/', prizeData);
+  return axios.post(`${apiConfig.getBaseUrl()}/api/reciclar/premios/crear/`, prizeData, config);
 };
 
 export const updatePrize = (id, prizeData) => {
-  return api.put(`/premios/${id}/actualizar/`, prizeData);
+  // Similar al anterior, no establecer Content-Type cuando usamos FormData
+  const config = {
+    headers: {
+      'Authorization': `Bearer ${localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')}`
+    }
+  };
+  
+  return axios.put(`${apiConfig.getBaseUrl()}/api/reciclar/premios/${id}/actualizar/`, prizeData, config);
 };
 
 export const deletePrize = (id) => {

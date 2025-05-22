@@ -169,6 +169,7 @@ export const PrizesPage = () => {
                   <span className="text-sm text-gray-500">
                     {prize.cantidad} {prize.cantidad === 1 ? 'unitat' : 'unitats'} disponibles
                   </span>
+                  {/* Botón condicional de canjear/iniciar sesión */}
                   {isAuthenticated ? (
                     <button
                       onClick={() => handleRedeemClick(prize)}

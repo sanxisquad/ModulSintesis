@@ -450,30 +450,43 @@ class IsGestorAdminOrSuperAdmin(permissions.BasePermission):
 
 # Premio API views
 @api_view(['GET'])
-@permission_classes([permissions.IsAuthenticated])
+@permission_classes([permissions.AllowAny])  # Permitir acceso público
 def lista_premios(request):
     """Obtiene la lista de premios disponibles"""
+    # Obtener todos los premios
     queryset = Prize.objects.all()
     
-    # Para usuarios normales, filtrar por activo y cantidad
-    if not (request.user.is_gestor() or request.user.is_admin() or request.user.is_superadmin()):
+    # Para usuarios no autenticados o usuarios normales, filtrar solo premios activos y con stock
+    if not request.user.is_authenticated or not (
+        hasattr(request.user, 'is_gestor') and (
+            request.user.is_gestor() or 
+            request.user.is_admin() or 
+            request.user.is_superadmin()
+        )
+    ):
         queryset = queryset.filter(activo=True, cantidad__gt=0)
     
     serializer = PrizeSerializer(queryset, many=True)
     return Response(serializer.data)
 
 @api_view(['GET'])
-@permission_classes([permissions.IsAuthenticated])
+@permission_classes([permissions.AllowAny])  # Permitir acceso público
 def detalle_premio(request, pk):
     """Obtiene los detalles de un premio específico"""
     try:
         premio = Prize.objects.get(pk=pk)
         
-        # Si no es gestor/admin y el premio no está activo o disponible
-        if (not (request.user.is_gestor() or request.user.is_admin() or request.user.is_superadmin()) and 
-            (not premio.activo or premio.cantidad <= 0)):
-            return Response({"error": "Premio no disponible"}, status=status.HTTP_404_NOT_FOUND)
-            
+        # Verificar si el premio está disponible para usuarios no autenticados o usuarios normales
+        if not request.user.is_authenticated or not (
+            hasattr(request.user, 'is_gestor') and (
+                request.user.is_gestor() or 
+                request.user.is_admin() or 
+                request.user.is_superadmin()
+            )
+        ):
+            if not premio.activo or premio.cantidad <= 0:
+                return Response({"error": "Premio no disponible"}, status=status.HTTP_404_NOT_FOUND)
+        
         serializer = PrizeSerializer(premio)
         return Response(serializer.data)
     except Prize.DoesNotExist:

@@ -534,13 +534,7 @@ export function HomeMapView({ contenedores: propContenedores = [], zonas: propZo
   
   return (
     <div className="w-full flex flex-col items-center">
-      {!isAuthenticated && (
-        <div className="w-full bg-blue-50 border border-blue-200 text-blue-700 p-3 mb-4 rounded-lg">
-          <p className="text-sm">
-            Estàs veient la vista pública. <a href="/login" className="underline font-medium">Inicia sessió</a> per veure més contingut.
-          </p>
-        </div>
-      )}
+      {/* Removed authentication message */}
       
       {/* Fix the layout to prevent the blank space issue */}
       <div className="w-full grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -695,26 +689,6 @@ export function HomeMapView({ contenedores: propContenedores = [], zonas: propZo
                 </p>
               </div>
             )}
-          </div>
-        )}
-      </div>
-      
-      {/* Counters and additional information */}
-      <div className="mt-3 text-sm text-gray-700 flex flex-wrap gap-6">
-        {filteredContenedores.length > 0 && (
-          <div className="flex items-center">
-            <span className="font-medium">{filteredContenedores.length} contenidors individuals visibles</span>
-          </div>
-        )}
-        {filteredZonas.length > 0 && (
-          <div className="flex items-center">
-            <span className="font-medium">{filteredZonas.length} zones visibles</span>
-          </div>
-        )}
-        
-        {isAuthenticated && canViewAllContent && (
-          <div className="flex items-center ml-auto">
-            <span className="text-xs text-blue-600">Mode administrador: Visualització completa</span>
           </div>
         )}
       </div>
