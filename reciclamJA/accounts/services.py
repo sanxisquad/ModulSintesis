@@ -2,8 +2,9 @@ from django.core.mail import EmailMultiAlternatives
 from django.conf import settings
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
+import time  # Añadimos la importación del módulo time
 
-def enviar_correo_credenciales(nombre, email, password, apellidos=None):
+def enviar_correo_credenciales(username,nombre, email, password, apellidos=None):
     """
     Envia un correu amb les credencials en crear un usuari nou.
     """
@@ -16,52 +17,101 @@ def enviar_correo_credenciales(nombre, email, password, apellidos=None):
         <title>Usuari creat a ReciclamJA</title>
         <style>
             body {{
-                font-family: Arial, sans-serif;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
                 line-height: 1.6;
                 color: #333;
+                background-color: #f9f9f9;
+                margin: 0;
+                padding: 0;
             }}
             .container {{
-                width: 80%;
+                max-width: 600px;
                 margin: 0 auto;
                 padding: 20px;
-                border: 1px solid #ddd;
-                border-radius: 10px;
-                background-color: #f9f9f9;
+                background-color: #ffffff;
+                border-radius: 8px;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             }}
             .header {{
                 text-align: center;
-                margin-bottom: 20px;
+                padding: 20px 0;
+                border-bottom: 1px solid #eaeaea;
+            }}
+            .logo {{
+                font-size: 26px;
+                font-weight: bold;
+                color: #4CAF50;
+                text-decoration: none;
             }}
             .content {{
+                padding: 30px 20px;
                 text-align: left;
             }}
             .content p {{
-                margin-bottom: 20px;
+                margin-bottom: 15px;
+                font-size: 16px;
+            }}
+            .credentials {{
+                background-color: #f8f8f8;
+                padding: 15px;
+                border-radius: 4px;
+                margin: 20px 0;
+                border-left: 4px solid #4CAF50;
+            }}
+            .credentials p {{
+                margin: 10px 0;
             }}
             .footer {{
                 text-align: center;
-                margin-top: 20px;
-                font-size: 0.9em;
+                margin-top: 30px;
+                padding-top: 20px;
                 color: #777;
+                font-size: 14px;
+                border-top: 1px solid #eaeaea;
+            }}
+            .button {{
+                display: inline-block;
+                padding: 12px 24px;
+                background-color: #4CAF50;
+                color: white !important;
+                text-decoration: none;
+                border-radius: 4px;
+                font-weight: bold;
+                margin: 15px 0;
+                text-align: center;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            }}
+            .button:hover {{
+                background-color: #45a049;
             }}
         </style>
     </head>
     <body>
         <div class='container'>
             <div class='header'>
-                <h1>ReciclamJA</h1>
+                <div class='logo'>ReciclamJA</div>
+                <p style="margin-top: 5px; color: #666;">Plataforma de gestió de reciclatge</p>
             </div>
             <div class='content'>
+                <h2 style="color: #333; margin-bottom: 20px;">Benvingut/da a ReciclamJA!</h2>
                 <p>Hola <strong>{nombre} {apellidos or ''}</strong>,</p>
-                <p>S'ha creat el teu usuari a ReciclamJA.</p>
-                <p>Les teves dades d'accés són:</p>
-                <p>Usuari: {email}</p>
-                <p>Contrasenya: {password}</p>
+                <p>El teu compte ha estat creat amb èxit. Ara pots accedir a la plataforma utilitzant les següents credencials:</p>
                 
-                <p>Gràcies</p>
+                <div class="credentials">
+                    <p><strong>Usuari:</strong> {username}</p>
+                    <p><strong>Contrasenya:</strong> {password}</p>
+                    <p><strong>Correu:</strong> {email}</p>
+                </div>
+                
+                <div style="text-align: center;">
+                    <a href="{settings.FRONTEND_URL}/login" class='button'>Accedir a ReciclamJA</a>
+                </div>
+                
+                <p>Si tens alguna pregunta, no dubtis en contactar amb nosaltres.</p>
             </div>
             <div class='footer'>
-                <p>ReciclamJA - Tots els drets reservats</p>
+                <p>ReciclamJA © {time.strftime('%Y')} - Tots els drets reservats</p>
+                <p style="margin-top: 5px; font-size: 12px;">Aquest és un correu automàtic, si us plau no responguis.</p>
             </div>
         </div>
     </body>

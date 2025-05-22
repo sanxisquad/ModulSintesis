@@ -24,6 +24,7 @@ class RegisterView(generics.CreateAPIView):
         
         # Enviar correo con credenciales (si tienes el password en texto plano)
         enviar_correo_credenciales(
+            username=user.username,
             nombre=user.first_name,
             email=user.email,
             password=serializer.validated_data['password'],  # Asegúrate de tener esto disponible

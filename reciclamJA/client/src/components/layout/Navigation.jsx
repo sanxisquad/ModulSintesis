@@ -377,10 +377,8 @@ export function Navigation() {
                                                 {getNotificationIcon(notif)}
                                             </div>
                                             <div className="ml-3 flex-1">
-                                                {/* Titulo de la notificación - siempre negro */}
                                                 <p className="text-sm font-medium text-gray-900">{notif.titulo}</p>
                                                 
-                                                {/* Añadir aquí información del tiquet si existe */}
                                                 {notif.relacion_reporte && (
                                                     <p className="text-xs font-medium text-gray-700 mt-1">
                                                         Tiquet #{notif.relacion_reporte}
@@ -389,7 +387,6 @@ export function Navigation() {
                                                 
                                                 
                                                 
-                                                {/* Mensaje de la notificación - siempre negro */}
                                                 <p className="text-xs text-gray-700 mt-1 line-clamp-2">{notif.mensaje}</p>
                                                 <p className="text-xs text-gray-500 mt-1">{formatearFechaRelativa(notif.fecha)}</p>
                                             </div>
@@ -407,15 +404,11 @@ export function Navigation() {
             </div>
         );
     };
-
-    // Helper function to get the appropriate icon based on notification type
     const getNotificationIcon = (notif) => {
         if (notif.tipo === 'reporte') {
-            // Check if it's a new ticket notification for admins/managers
             if (notif.titulo.includes('Nuevo reporte') || notif.titulo.includes('Nou reporte')) {
                 return <FaTicketAlt className="h-4 w-4" />;
             }
-            // Check if it's a status change
             if (notif.titulo.includes('Canvi d\'estat') || notif.titulo.includes('estat')) {
                 if (notif.mensaje.includes('resolt')) {
                     return <FaCheck className="h-4 w-4" />;
@@ -499,10 +492,8 @@ export function Navigation() {
                     </div>
                 )}
 
-                {/* Menú de usuario - Adjusted for spacing */}
                 <nav className="flex items-center">
                     <ul className="flex items-center space-x-2">
-                        {/* ONLY Install App Button */}
                         <li className="hidden sm:block">
                             <button
                                 onClick={handleInstallClick}
@@ -513,7 +504,6 @@ export function Navigation() {
                             </button>
                         </li>
                         
-                        {/* Notificaciones - Solo para gestores y admins */}
                         {isAuthenticated && renderNotificationBell()}
                         
                         {loading ? (
@@ -522,54 +512,20 @@ export function Navigation() {
                             </li>
                         ) : isAuthenticated ? (
                             <li className="relative" ref={userMenuRef}>
-                                {/* No dropdown menu on mobile - show simple user badge */}
                                 <div className="flex items-center">
                                     {isUser && (
                                         <span className="hidden md:inline-block mr-4 text-sm md:text-base">
                                             Punts: <span className="font-bold">{user?.score || 0}</span>
                                         </span>
                                     )}
-                                    {/* On mobile just show the user icon, on desktop make it clickable for dropdown */}
-                                    <div 
-                                        className={`text-white flex items-center ${!isUser && 'md:cursor-pointer'} bg-gray-800 hover:bg-gray-700 px-3 py-2 rounded-md`}
-                                        onClick={() => window.innerWidth >= 768 ? setUserMenuOpen(!userMenuOpen) : null}
+                                    <Link 
+                                        to={isAuthenticated ? "/profile" : "/login"}
+                                        className="text-white flex items-center bg-gray-800 hover:bg-gray-700 px-3 py-2 rounded-md"
                                     >
                                         <span className="hidden md:inline mr-2">{user?.username}</span>
                                         <FaUser className="text-lg" />
-                                        <FaChevronDown className="hidden md:inline-block ml-1 w-3 h-3" />
-                                    </div>
+                                    </Link>
                                 </div>
-                                
-                                {/* User Dropdown Menu - Only on desktop */}
-                                {userMenuOpen && (
-                                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
-                                        <Link 
-                                            to="/profile" 
-                                            className="block px-4 py-2 text-gray-800 hover:bg-gray-100" 
-                                            onClick={() => setUserMenuOpen(false)}
-                                        >
-                                            El meu perfil
-                                        </Link>
-                                        {isUser && (
-                                            <Link 
-                                                to="/escaneig" 
-                                                className="block px-4 py-2 text-gray-800 hover:bg-gray-100" 
-                                                onClick={() => setUserMenuOpen(false)}
-                                            >
-                                                Escaneja i Recicla
-                                            </Link>
-                                        )}
-                                        <button
-                                            onClick={() => {
-                                                logout();
-                                                setUserMenuOpen(false);
-                                            }}
-                                            className="w-full text-left block px-4 py-2 text-gray-800 hover:bg-gray-100"
-                                        >
-                                            Tancar sessió
-                                        </button>
-                                    </div>
-                                )}
                             </li>
                         ) : (
                             <li className="inline-block">
@@ -643,7 +599,7 @@ export function Navigation() {
                                             onClick={() => setMobileMenuOpen(false)}
                                         >
                                             <FaQrcode className="mr-3" />
-                                            Reciclar i Guanyar Punts
+                                            Escanejar productes
                                         </Link>
                                     </li>
                                 )}
@@ -896,12 +852,12 @@ export function Navigation() {
                                     <li>Enganxa aquest codi:
                                         <pre className="bg-gray-100 p-2 rounded mt-2 overflow-x-auto text-sm">
                                             {`<html>
-<head>
-<meta http-equiv="refresh" content="0; url=${window.location.href}">
-<title>ReciclamJA</title>
-</head>
-<body></body>
-</html>`}
+                                            <head>
+                                            <meta http-equiv="refresh" content="0; url=${window.location.href}">
+                                            <title>ReciclamJA</title>
+                                            </head>
+                                            <body></body>
+                                            </html>`}
                                         </pre>
                                     </li>
                                     <li>Guarda-ho com "ReciclamJA.html"</li>
