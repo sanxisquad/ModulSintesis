@@ -1,17 +1,19 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { 
-  BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer,
-  PieChart, Pie, Cell, LineChart, Line, CartesianGrid
-} from 'recharts';
+import React, { useState, useEffect } from 'react';
+import { useMenu } from '../../context/MenuContext';
+import { Link } from 'react-router-dom'; // Add this import for Link component
+import axios from 'axios';
+import apiConfig from '../../api/apiClient';
+import { getAllContenedors, getAllZones, getReportes, getHistorialStats } from '../../api/zr.api';
 import { 
   CircleAlert, Trash2, Database, MapPin, 
   RefreshCw, Filter, DownloadCloud, Settings,
   MessageSquare, CheckCircle2, XCircle, Clock,
-  RecycleIcon, FileText, Flag // Added Flag icon
+  RecycleIcon, FileText, Flag 
 } from 'lucide-react';
-import { getAllContenedors, getAllZones, getReportes } from '../../api/zr.api';
-import { useMenu } from '../../context/MenuContext';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  PieChart, Pie, Cell, AreaChart, Area, LineChart, Line
+} from 'recharts';
 
 export function DashBoard() {
   const { menuOpen } = useMenu();
@@ -29,7 +31,7 @@ export function DashBoard() {
   const [reportStatusFilter, setReportStatusFilter] = useState(null);
   const [reportPriorityFilter, setReportPriorityFilter] = useState(null); 
   const [reportFilterMode, setReportFilterMode] = useState('estat'); 
-
+  const [historicData, setHistoricData] = useState([]);
   
   const COLORS = ['#00C49F', '#FFBB28', '#FF8042'];
   
@@ -68,25 +70,49 @@ export function DashBoard() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [contenidorsResponse, zonesResponse, reportesResponse] = await Promise.all([
+        
+        // Cargar contenedores y zonas
+        const [contenedorsResponse, zonesResponse, reportsResponse] = await Promise.all([
           getAllContenedors(),
           getAllZones(),
           getReportes()
         ]);
         
-        setContenidors(contenidorsResponse.data);
+        setContenidors(contenedorsResponse.data);
         setZones(zonesResponse.data);
-        setReports(reportesResponse.data);
-        setLoading(false);
-      } catch (err) {
-        console.error("Error carregant dades:", err);
+        setReports(reportsResponse.data);
+        setError(null);
+      } catch (error) {
+        console.error("Error carregant dades:", error);
         setError("Hi ha hagut un problema carregant les dades");
+      } finally {
         setLoading(false);
       }
     };
-
+    
     fetchData();
   }, []);
+
+  // Añadir un useEffect separat per carregar dades històriques
+  useEffect(() => {
+    const fetchHistoricData = async () => {
+      try {
+        console.log("Fetching historic data with timeRange:", timeRange);
+        const response = await axios.get(`${apiConfig.getBaseUrl()}/zr/historial-stats/?period=${timeRange}`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')}`
+          }
+        });
+        
+        console.log("Historic data response:", response.data);
+        setHistoricData(response.data);
+      } catch (error) {
+        console.error("Error fetching historic data:", error);
+      }
+    };
+    
+    fetchHistoricData();
+  }, [timeRange]);
 
   // Filtra contenidors per zona seleccionada, estat seleccionat i alertes
   const filteredContenidors = contenidors.filter(c => {
@@ -145,24 +171,6 @@ export function DashBoard() {
     mig_plens: contenidors.filter(c => c.zona === zone.id && c.estat === 'mig').length,
     buits: contenidors.filter(c => c.zona === zone.id && c.estat === 'buit').length
   }));
-
-  // Dades de tendència (històric de contenidors)
-  const getHistoricData = () => {
-    const months = ['Gen', 'Feb', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Oct', 'Nov', 'Des'];
-    const currentMonth = new Date().getMonth();
-    
-    return Array(6).fill().map((_, i) => {
-      const monthIndex = (currentMonth - 5 + i) % 12;
-      return {
-        name: months[monthIndex >= 0 ? monthIndex : monthIndex + 12],
-        plens: Math.floor(Math.random() * 40) + 20,
-        mig_plens: Math.floor(Math.random() * 30) + 15,
-        buits: Math.floor(Math.random() * 30) + 10,
-      };
-    });
-  };
-
-  const historicData = getHistoricData();
 
   // Traductor de tipus de queixa (basats en el model de ReporteContenedor)
   const reportTypesLabels = {
@@ -260,9 +268,15 @@ export function DashBoard() {
     setReportFilterMode(prevMode => prevMode === 'estat' ? 'prioritat' : 'estat');
   };
 
+  // Método para manejar cambios en el rango de tiempo
+  const handleTimeRangeChange = (e) => {
+    setTimeRange(e.target.value);
+  };
+
+  // Renderizar el componente
   return (
-    <div className="bg-gray-50 min-h-screen px-4 sm:px-6 md:px-8 py-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="p-4">
+      <div className={`transition-all duration-300 ${menuOpen ? 'ml-64' : 'ml-0'}`}>
         {/* Header */}
         <div className="pb-5 border-b border-gray-200 mb-6">
           <div className="flex items-center">
@@ -729,7 +743,7 @@ export function DashBoard() {
                   id="time-range" 
                   className="border rounded px-3 py-1 text-gray-800"
                   value={timeRange}
-                  onChange={(e) => setTimeRange(e.target.value)}
+                  onChange={handleTimeRangeChange}
                 >
                   <option value="week">Setmana</option>
                   <option value="month">Mes</option>

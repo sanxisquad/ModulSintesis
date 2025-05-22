@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getReportes, getReporte, getComentarios, addComentario, deleteComentario, getNotificaciones, marcarNotificacionLeida } from '../../api/zr.api';
-import { FaTicketAlt, FaCheck, FaTimes, FaClock, FaSpinner, FaExclamationTriangle, FaImage, FaUser, FaPaperPlane } from 'react-icons/fa';
+import { FaTicketAlt, FaCheck, FaTimes, FaClock, FaSpinner, FaExclamationTriangle, FaImage, FaUser, FaPaperPlane, FaCalendarAlt } from 'react-icons/fa';
 import { useAuth } from '../../../hooks/useAuth';
 import { useNotification } from '../../context/NotificationContext';
 
@@ -120,6 +120,7 @@ export const UserTickets = () => {
     const openTicketModal = async (ticketId) => {
         try {
             const response = await getReporte(ticketId);
+            console.log("Datos del ticket:", response.data); // Añadir log para depuración
             setSelectedTicket(response.data);
             setShowModal(true);
             fetchComments(ticketId);
@@ -251,7 +252,7 @@ export const UserTickets = () => {
                     {ticket.descripcion}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {formatDate(ticket.fecha_creacion)}
+                    {formatDate(ticket.fecha_creacion || ticket.fecha)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusBadge.bg} ${statusBadge.text}`}>
@@ -447,11 +448,51 @@ export const UserTickets = () => {
                                     {selectedTicket.descripcion}
                                 </p>
                                 
-                                <div className="grid grid-cols-2 gap-4 mt-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                    {/* Date information - Enhanced with more detailed dates */}
                                     <div>
-                                        <span className="text-sm text-gray-500">Data:</span>
-                                        <p>{formatDate(selectedTicket.fecha)}</p>
+                                        <span className="text-sm text-gray-500 font-medium">Dates:</span>
+                                        <div className="mt-1 space-y-1 text-sm">
+                                            <div className="flex items-center">
+                                                <FaCalendarAlt className="mr-2 text-gray-400" />
+                                                <div>
+                                                    <p className="text-xs text-gray-500">Data de creació:</p>
+                                                    <p>{formatDate(selectedTicket.fecha_creacion || selectedTicket.fecha)}</p>
+                                                </div>
+                                            </div>
+                                            
+                                            {selectedTicket.estado === 'en_proceso' && selectedTicket.ultima_actualizacion && (
+                                                <div className="flex items-center">
+                                                    <FaSpinner className="mr-2 text-blue-400" />
+                                                    <div>
+                                                        <p className="text-xs text-gray-500">En procés des de:</p>
+                                                        <p>{formatDate(selectedTicket.ultima_actualizacion)}</p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            
+                                            {selectedTicket.estado === 'resuelto' && (
+                                                <div className="flex items-center">
+                                                    <FaCheck className="mr-2 text-green-400" />
+                                                    <div>
+                                                        <p className="text-xs text-gray-500">Resolt el:</p>
+                                                        <p>{formatDate(selectedTicket.fecha_resolucion) || 'Data no disponible'}</p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            
+                                            {selectedTicket.estado === 'rechazado' && (
+                                                <div className="flex items-center">
+                                                    <FaTimes className="mr-2 text-red-400" />
+                                                    <div>
+                                                        <p className="text-xs text-gray-500">Rebutjat el:</p>
+                                                        <p>{formatDate(selectedTicket.fecha_resolucion) || 'Data no disponible'}</p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
+                                    
                                     <div>
                                         <span className="text-sm text-gray-500">Ubicació:</span>
                                         <p>
@@ -477,7 +518,7 @@ export const UserTickets = () => {
                                 
                                 {/* Closing comment if ticket is resolved or rejected */}
                                 {(selectedTicket.estado === 'resuelto' || selectedTicket.estado === 'rechazado') && 
-                                 selectedTicket.comentario_cierre && (
+                                    selectedTicket.comentario_cierre && (
                                     <div className="mt-6 p-3 border-l-4 border-blue-500 bg-blue-50 rounded-r-md">
                                         <h4 className="font-medium text-gray-700 mb-1">Comentari de tancament:</h4>
                                         <p className="text-gray-600">{selectedTicket.comentario_cierre}</p>

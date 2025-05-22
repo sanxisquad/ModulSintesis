@@ -7,3 +7,4 @@ zonesreciclatge/__pycache__/migrations/__pycache__/
 *.pyc
 *.pyo
 .env
+scripts/

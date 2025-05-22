@@ -71,7 +71,7 @@ class ReporteContenedorSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'tipo', 'prioridad', 'descripcion', 'imagen', 
             'estado', 'fecha', 'usuario', 'usuario_data','tipo_objeto', 'objeto_id',
-            'contenedor', 'zona'
+            'contenedor', 'zona','fecha_resolucion'
         ]
         read_only_fields = ['id', 'fecha', 'estado', 'contenedor', 'zona']
 

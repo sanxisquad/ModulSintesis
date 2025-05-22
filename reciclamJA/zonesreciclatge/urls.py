@@ -27,4 +27,5 @@ urlpatterns = [
     path('reportes/<int:pk>/procesar/', views.ReporteContenedorViewSet.as_view({'post': 'procesar'}), name='reporte-procesar'),
     path('reportes/<int:reporte_pk>/comentarios/', ComentarioReporteViewSet.as_view({'get': 'list', 'post': 'create'}), name='reporte-comentarios'),
     path('reportes/<int:reporte_pk>/comentarios/<int:pk>/', ComentarioReporteViewSet.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'}), name='reporte-comentario-detail'),
+    path('historial-stats/', views.get_historial_stats, name='historial_stats'),
 ]

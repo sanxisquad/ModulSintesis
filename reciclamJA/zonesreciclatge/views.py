@@ -1,12 +1,14 @@
 from rest_framework.exceptions import PermissionDenied, NotFound as Http404
 from rest_framework import viewsets, permissions, status
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
-from .models import Contenedor, ZonesReciclatge,ReporteContenedor, Notificacion, ComentarioReporte
+from .models import Contenedor, ZonesReciclatge,ReporteContenedor, Notificacion, ComentarioReporte, HistorialContenedor
 from .serializer import ContenedorSerializer, ZonesReciclatgeSerializer, ReporteContenedorSerializer, NotificacionSerializer, ComentarioReporteSerializer
 from accounts.permissions import IsSuperAdmin, IsAdminEmpresa, IsGestor, CombinedPermission
 from accounts.models import CustomUser
-from django.db.models import Q
+from django.db.models import Q, Count
+from django.db.models.functions import TruncDate
+from datetime import datetime, timedelta
 from django.utils import timezone
 from django.db import models
 
@@ -439,3 +441,102 @@ class ComentarioReporteViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(f"Unexpected error creating comment: {str(e)}")
             raise
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def get_historial_stats(request):
+    """
+    Retorna estadísticas históricas para gráficos de tendencias
+    """
+    user = request.user
+    
+    # Verificar permisos - solo gestores/admin/superadmin
+    if not (user.is_gestor() or user.is_admin() or user.is_superadmin()):
+        return Response({"error": "No tens permisos per accedir a aquestes dades"}, status=403)
+    
+    # Obtener parámetros de periodo
+    period = request.query_params.get('period', 'month')
+    
+    # Definir el período de tiempo a consultar
+    now = timezone.now()
+    if period == 'week':
+        start_date = now - timedelta(days=7)
+        # Días de la semana en catalán (abreviados)
+        dias_semana_cat = ['Dl', 'Dt', 'Dc', 'Dj', 'Dv', 'Ds', 'Dg']
+        date_format = lambda d: dias_semana_cat[d.weekday()]
+    elif period == 'month':
+        start_date = now - timedelta(days=30)
+        date_format = lambda d: f"{d.day:02d}/{d.month:02d}"
+    elif period == 'quarter':
+        start_date = now - timedelta(days=90)
+        date_format = lambda d: f"{d.day:02d}/{d.month:02d}"
+    elif period == 'year':
+        start_date = now - timedelta(days=365)
+        date_format = lambda d: f"{d.month:02d}/{d.year}"
+    else:
+        start_date = now - timedelta(days=30)
+        date_format = lambda d: f"{d.day:02d}/{d.month:02d}"
+    
+    # Filtrar historial por empresa si es necesario
+    contenedores_query = Contenedor.objects.all()
+    if not user.is_superadmin() and user.empresa:
+        contenedores_query = contenedores_query.filter(empresa=user.empresa)
+    
+    # Generar puntos de datos para el período seleccionado
+    result = []
+    
+    # Generar datos diarios en el rango especificado
+    current_date = start_date.date()
+    end_date = now.date() + timedelta(days=1)  # Incluir el día actual
+    
+    while current_date < end_date:
+        next_date = current_date + timedelta(days=1)
+        
+        # Calcular el estado de los contenedores para este día
+        # Primero, buscar registros de HistorialContenedor de ese día
+        historial_dia = HistorialContenedor.objects.filter(
+            fecha__date=current_date,
+            contenedor__in=contenedores_query
+        ).order_by('contenedor_id', '-fecha')  # Ordenar para tener el último estado de cada contenedor
+        
+        # Identificar los contenedores únicos que tienen historial este día
+        contenedores_con_historial = set()
+        estados_por_contenedor = {}
+        
+        for registro in historial_dia:
+            if registro.contenedor_id not in contenedores_con_historial:
+                contenedores_con_historial.add(registro.contenedor_id)
+                estados_por_contenedor[registro.contenedor_id] = registro.estado_actual
+        
+        # Para contenedores sin historial en este día, buscar su estado más reciente anterior a este día
+        for contenedor in contenedores_query:
+            if contenedor.id not in contenedores_con_historial:
+                historial_anterior = HistorialContenedor.objects.filter(
+                    contenedor=contenedor,
+                    fecha__date__lt=current_date
+                ).order_by('-fecha').first()
+                
+                if historial_anterior:
+                    estados_por_contenedor[contenedor.id] = historial_anterior.estado_actual
+                else:
+                    # Si no hay historial, usar el estado actual del contenedor
+                    estados_por_contenedor[contenedor.id] = contenedor.estat
+        
+        # Contar contenedores por estado
+        vacios = sum(1 for estado in estados_por_contenedor.values() if estado == 'buit')
+        medio_llenos = sum(1 for estado in estados_por_contenedor.values() if estado == 'mig')
+        llenos = sum(1 for estado in estados_por_contenedor.values() if estado == 'ple')
+        
+        # Agregar punto de datos para este día
+        result.append({
+            'name': date_format(current_date),
+            'fecha': current_date.strftime('%Y-%m-%d'),
+            'buits': vacios,
+            'mig_plens': medio_llenos,
+            'plens': llenos,
+            'total': vacios + medio_llenos + llenos
+        })
+        
+        current_date = next_date
+    
+    return Response(result)
