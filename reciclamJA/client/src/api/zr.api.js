@@ -130,6 +130,14 @@ export const deleteComentario = (reporteId, comentarioId) =>
     zrApi.delete(`/reportes/${reporteId}/comentarios/${comentarioId}/`);
 
 // Nuevo método para obtener estadísticas históricas
-export const getHistorialStats = (period = 'month') => {
-    return zrApi.get(`/historial-stats/?period=${period}`);
+export const getHistorialStats = (period = 'month', zonaId = 'all') => {
+    const params = new URLSearchParams({
+        period: period
+    });
+    
+    if (zonaId !== 'all') {
+        params.append('zona_id', zonaId);
+    }
+    
+    return zrApi.get(`/historial-stats/?${params.toString()}`);
 };

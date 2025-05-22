@@ -97,22 +97,23 @@ export function DashBoard() {
   useEffect(() => {
     const fetchHistoricData = async () => {
       try {
-        console.log("Fetching historic data with timeRange:", timeRange);
-        const response = await axios.get(`${apiConfig.getBaseUrl()}/zr/historial-stats/?period=${timeRange}`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')}`
-          }
-        });
+        console.log("Fetching historic data with timeRange:", timeRange, "and zone:", selectedZone);
+        setLoading(true);
+        
+        // Usar la funció actualizada amb el parámetro de zona
+        const response = await getHistorialStats(timeRange, selectedZone);
         
         console.log("Historic data response:", response.data);
         setHistoricData(response.data);
       } catch (error) {
         console.error("Error fetching historic data:", error);
+      } finally {
+        setLoading(false);
       }
     };
     
     fetchHistoricData();
-  }, [timeRange]);
+  }, [timeRange, selectedZone]); // Añadir selectedZone como dependencia
 
   // Filtra contenidors per zona seleccionada, estat seleccionat i alertes
   const filteredContenidors = contenidors.filter(c => {
@@ -127,6 +128,11 @@ export function DashBoard() {
     
     return true;
   });
+
+  // Filtrar solo por zona para los gráficos (sin filtrar por estado o alertas)
+  const zoneFilteredContenidors = contenidors.filter(c => 
+    selectedZone === 'all' || c.zona === parseInt(selectedZone)
+  );
 
   // Filtra reports segons el filtre seleccionat i l'estat/prioritat
   const filteredReports = reports.filter(r => {
@@ -156,21 +162,31 @@ export function DashBoard() {
     queixes_pendents: reports.filter(r => r.estado === 'abierto').length
   };
 
-  // Dades per al gràfic d'estat
+  // Dades per al gràfic d'estat - ara usando contenedores filtrados por zona
   const estatData = [
-    { name: 'Ple', value: stats.ple },
-    { name: 'Mig Ple', value: stats.mig_ple },
-    { name: 'Buit', value: stats.buit }
+    { name: 'Ple', value: zoneFilteredContenidors.filter(c => c.estat === 'ple').length },
+    { name: 'Mig Ple', value: zoneFilteredContenidors.filter(c => c.estat === 'mig').length },
+    { name: 'Buit', value: zoneFilteredContenidors.filter(c => c.estat === 'buit').length }
   ];
 
-  // Dades per al gràfic de zones
-  const zonesData = zones.map(zone => ({
-    name: zone.nom,
-    total: contenidors.filter(c => c.zona === zone.id).length,
-    plens: contenidors.filter(c => c.zona === zone.id && c.estat === 'ple').length,
-    mig_plens: contenidors.filter(c => c.zona === zone.id && c.estat === 'mig').length,
-    buits: contenidors.filter(c => c.zona === zone.id && c.estat === 'buit').length
-  }));
+  // Dades per al gràfic de zones - filtrar solo la zona seleccionada si hay alguna
+  const zonesData = selectedZone === 'all' 
+    ? zones.map(zone => ({
+        name: zone.nom,
+        total: contenidors.filter(c => c.zona === zone.id).length,
+        plens: contenidors.filter(c => c.zona === zone.id && c.estat === 'ple').length,
+        mig_plens: contenidors.filter(c => c.zona === zone.id && c.estat === 'mig').length,
+        buits: contenidors.filter(c => c.zona === zone.id && c.estat === 'buit').length
+      }))
+    : zones
+        .filter(zone => zone.id === parseInt(selectedZone))
+        .map(zone => ({
+          name: zone.nom,
+          total: contenidors.filter(c => c.zona === zone.id).length,
+          plens: contenidors.filter(c => c.zona === zone.id && c.estat === 'ple').length,
+          mig_plens: contenidors.filter(c => c.zona === zone.id && c.estat === 'mig').length,
+          buits: contenidors.filter(c => c.zona === zone.id && c.estat === 'buit').length
+        }));
 
   // Traductor de tipus de queixa (basats en el model de ReporteContenedor)
   const reportTypesLabels = {
@@ -810,7 +826,19 @@ export function DashBoard() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                 {/* Gràfic d'estat dels contenidors */}
                 <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                  <h2 className="text-lg font-medium mb-4 text-gray-800">Distribució d'Estat</h2>
+                  <h2 className="text-lg font-medium mb-4 text-gray-800">
+                    Distribució d'Estat
+                    {selectedZone !== 'all' && (
+                      <span className="text-sm font-normal text-gray-500 ml-2">
+                        ({zones.find(z => z.id === parseInt(selectedZone))?.nom || 'Zona seleccionada'})
+                      </span>
+                    )}
+                    {(selectedEstat || alertaFilter) && (
+                      <span className="text-sm font-normal text-gray-500 ml-2">
+                        (filtrat per zona)
+                      </span>
+                    )}
+                  </h2>
                   <div className="h-64">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
@@ -828,7 +856,7 @@ export function DashBoard() {
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
                         </Pie>
-                        <Tooltip />
+                        <Tooltip formatter={(value) => [`${value} contenidors`, '']} />
                         <Legend />
                       </PieChart>
                     </ResponsiveContainer>
@@ -837,14 +865,25 @@ export function DashBoard() {
 
                 {/* Gràfic de tendències */}
                 <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                  <h2 className="text-lg font-medium mb-4 text-gray-800">Evolució d'estat dels contenidors</h2>
+                  <h2 className="text-lg font-medium mb-4 text-gray-800">
+                    Evolució d'estat dels contenidors
+                    {selectedZone !== 'all' && (
+                      <span className="text-sm font-normal text-gray-500 ml-2">
+                        ({zones.find(z => z.id === parseInt(selectedZone))?.nom || 'Zona seleccionada'})
+                      </span>
+                    )}
+                  </h2>
                   {renderHistoricChartSection(historicData, loading, timeRange, handleTimeRangeChange, COLORS)}
                 </div>
               </div>
 
-              {/* Gràfic per zones */}
+              {/* Gràfic per zones - actualizar también el título segons la zona */}
               <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6">
-                <h2 className="text-lg font-medium mb-4 text-gray-800">Estat per Zones</h2>
+                <h2 className="text-lg font-medium mb-4 text-gray-800">
+                  {selectedZone === 'all' 
+                    ? "Estat per Zones" 
+                    : `Estat de la Zona: ${zones.find(z => z.id === parseInt(selectedZone))?.nom || 'Seleccionada'}`}
+                </h2>
                 <div className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart

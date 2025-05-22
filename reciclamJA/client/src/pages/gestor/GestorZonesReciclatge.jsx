@@ -277,9 +277,9 @@ export function GestorZona() {
         ) : (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 h-[600px]">
             <MapView 
-              filters={{...filters, showZones: true, showContenedores: false}} 
+              filters={{...filters, showZones: true, showContenedores: true}} 
               zonas={filteredZonas}
-              contenedores={[]}
+              contenedores={contenedores}
             />
           </div>
         )}

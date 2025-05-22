@@ -82,8 +82,30 @@ export const getUserProfile = () => {
     return authApi.get('/profile/');
 };
 
-export const updateUserProfile = (profile) => {
-    return authApi.put('/profile/', profile);
+export const updateUserProfile = async (userData) => {
+  try {
+    // Usar POST en lugar de PUT/PATCH y asegurarnos que usamos la URL correcta
+    // Comprobamos la URL base de authApi para hacer la petición correctamente
+    console.log("URL base para autenticación:", apiConfig.getBaseUrls().authService);
+    
+    // Usar la URL absoluta para asegurar que coincide con el backend
+    const response = await axios.post(
+      `${apiConfig.getBaseUrls().authService}profile/update/`, 
+      userData,
+      {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    console.log("Respuesta actualización perfil:", response);
+    return response;
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    console.error("URL usada:", `${apiConfig.getBaseUrls().authService}profile/update/`);
+    throw error;
+  }
 };
 
 export const logoutUser = async (refreshToken) => {

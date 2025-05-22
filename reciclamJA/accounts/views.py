@@ -160,3 +160,43 @@ class CheckEmailView(APIView):
         if CustomUser.objects.filter(email=email).exists():
             return Response({'exists': True}, status=status.HTTP_200_OK)
         return Response({'exists': False}, status=status.HTTP_200_OK)
+
+class UpdateUserProfileView(APIView):
+    """
+    Vista para actualizar el perfil del usuario.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        
+        # Campos permitidos para actualizar
+        allowed_fields = ['first_name', 'last_name', 'email', 'CP', 'password']
+        
+        # Filtrar campos no permitidos
+        update_data = {k: v for k, v in request.data.items() if k in allowed_fields}
+        
+        # Si se envió una contraseña, manejarla especialmente
+        if 'password' in update_data and update_data['password']:
+            password = update_data.pop('password')
+            user.set_password(password)
+        
+        # Actualizar los demás campos
+        for field, value in update_data.items():
+            setattr(user, field, value)
+        
+        try:
+            user.save()
+            
+            # Devolver los datos actualizados (excepto password)
+            return Response({
+                'username': user.username,
+                'email': user.email,
+                'CP': user.CP,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'score': user.score,
+                'total_score': user.total_score
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)

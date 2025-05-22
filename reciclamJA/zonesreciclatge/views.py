@@ -454,8 +454,9 @@ def get_historial_stats(request):
     if not (user.is_gestor() or user.is_admin() or user.is_superadmin()):
         return Response({"error": "No tens permisos per accedir a aquestes dades"}, status=403)
     
-    # Obtener parámetros de periodo
+    # Obtener parámetros de periodo y zona
     period = request.query_params.get('period', 'month')
+    zona_id = request.query_params.get('zona_id', None)
     
     # Definir el período de tiempo a consultar
     now = timezone.now()
@@ -477,10 +478,18 @@ def get_historial_stats(request):
         start_date = now - timedelta(days=30)
         date_format = lambda d: f"{d.day:02d}/{d.month:02d}"
     
-    # Filtrar historial por empresa si es necesario
+    # Filtrar historial por empresa y/o zona si es necesario
     contenedores_query = Contenedor.objects.all()
     if not user.is_superadmin() and user.empresa:
         contenedores_query = contenedores_query.filter(empresa=user.empresa)
+    
+    # Filtrar por zona si se proporciona el parámetro
+    if zona_id and zona_id != 'all':
+        try:
+            zona_id = int(zona_id)
+            contenedores_query = contenedores_query.filter(zona_id=zona_id)
+        except (ValueError, TypeError):
+            pass  # Si el ID de zona no es válido, ignoramos el filtro
     
     # Generar puntos de datos para el período seleccionado
     result = []

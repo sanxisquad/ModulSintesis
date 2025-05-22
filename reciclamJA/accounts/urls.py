@@ -38,4 +38,7 @@ urlpatterns = [
     path('reset-password/request/', RequestPasswordResetView.as_view(), name='request-password-reset-old'),
     path('reset-password/verify/<str:uidb64>/<str:token>/', VerifyTokenView.as_view(), name='verify-token-old'),
     path('reset-password/reset/', ResetPasswordView.as_view(), name='reset-password-old'),
+
+    # Añadir nueva ruta para actualización de perfil
+    path('api/v1/auth/profile/update/', views.UpdateUserProfileView.as_view(), name='auth_profile_update'),
 ]

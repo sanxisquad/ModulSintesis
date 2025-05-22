@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
-import { getZona, getAllContenedors, assignContenedoresToZona } from '../../api/zr.api';
+import { getZona, getAllContenedors, assignContenedoresToZona, createContenedor } from '../../api/zr.api';
 import { useConfirm } from "../common/ConfirmDialog";
-import { ArrowLeft, Save, Loader2, MapPin, Trash2, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Save, Loader2, MapPin, Trash2, AlertTriangle, Plus, X } from "lucide-react";
 
 export function ZonaContenedoresView() {
   const confirm = useConfirm();
@@ -17,6 +17,13 @@ export function ZonaContenedoresView() {
   const [loading, setLoading] = useState(true);
   const [todasZonas, setTodasZonas] = useState({});  // Para guardar los nombres de las zonas
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showQuickAddModal, setShowQuickAddModal] = useState(false);
+  const [newContenedor, setNewContenedor] = useState({
+    cod: '',
+    tipus: 'paper', // Valor por defecto
+    estat: 'buit'   // Valor por defecto
+  });
+  const [creatingContenedor, setCreatingContenedor] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -205,6 +212,57 @@ export function ZonaContenedoresView() {
     }
   };
 
+  // Función para crear contenedor rápido
+  const handleQuickAddContenedor = async (e) => {
+    e.preventDefault();
+    
+    if (!newContenedor.cod.trim()) {
+      toast.error("El codi del contenidor és obligatori");
+      return;
+    }
+    
+    try {
+      setCreatingContenedor(true);
+      
+      // Crear un nuevo objeto contenedor con datos de la zona
+      const contenedorData = {
+        ...newContenedor,
+        zona: parseInt(id), // Asignar directamente a la zona actual
+        latitud: zona.latitud,
+        longitud: zona.longitud,
+        ciutat: zona.ciutat
+      };
+      
+      // Llamar a la API para crear el contenedor
+      const response = await createContenedor(contenedorData);
+      
+      // Actualizar la lista de contenedores
+      const updatedContenedorResponse = await getAllContenedors();
+      setContenedores(updatedContenedorResponse.data);
+      
+      // Añadir el nuevo contenedor a la selección
+      const nuevoContenedor = updatedContenedorResponse.data.find(c => c.cod === newContenedor.cod);
+      if (nuevoContenedor) {
+        setSelectedContenedores(prev => [...prev, nuevoContenedor]);
+      }
+      
+      // Limpiar el formulario y cerrar el modal
+      setNewContenedor({
+        cod: '',
+        tipus: 'paper',
+        estat: 'buit'
+      });
+      setShowQuickAddModal(false);
+      
+      toast.success("Contenidor creat correctament i assignat a la zona");
+    } catch (error) {
+      console.error("Error creando contenedor:", error);
+      toast.error(error.response?.data?.message || "Error al crear el contenidor");
+    } finally {
+      setCreatingContenedor(false);
+    }
+  };
+
   if (loading) return (
     <div className="flex items-center justify-center h-screen bg-white">
       <div className="text-center">
@@ -232,13 +290,22 @@ export function ZonaContenedoresView() {
               </p>
             </div>
           </div>
-          <button 
-            onClick={() => navigate('/gestor-zones')}
-            className="flex items-center text-gray-600 hover:text-gray-800 px-3 py-2 rounded-md hover:bg-gray-100"
-          >
-            <ArrowLeft className="w-4 h-4 mr-1" />
-            <span>Tornar</span>
-          </button>
+          <div className="flex gap-2">
+            <button 
+              onClick={() => setShowQuickAddModal(true)}
+              className="flex items-center text-blue-600 hover:text-blue-800 px-3 py-2 rounded-md hover:bg-blue-50"
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              <span>Afegir ràpid</span>
+            </button>
+            <button 
+              onClick={() => navigate('/gestor-zones')}
+              className="flex items-center text-gray-600 hover:text-gray-800 px-3 py-2 rounded-md hover:bg-gray-100"
+            >
+              <ArrowLeft className="w-4 h-4 mr-1" />
+              <span>Tornar</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -351,7 +418,7 @@ export function ZonaContenedoresView() {
               </div>
             )}
 
-            {/* Nueva sección: Contenedores asignats a altres zones */}
+            {/* Nueva sección: Contenedores assignats a altres zones */}
             <div className="border-t border-gray-200 pt-4 mt-4">
               <h3 className="text-sm font-medium mb-3 text-gray-700">
                 Contenidors assignats a altres zones
@@ -444,6 +511,107 @@ export function ZonaContenedoresView() {
           )}
         </button>
       </div>
+
+      {/* Modal para añadir contenedor rápido */}
+      {showQuickAddModal && (
+        <div className="fixed inset-0 z-50 overflow-auto bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg shadow-lg max-w-md w-full mx-4">
+            <div className="flex justify-between items-center border-b border-gray-200 px-6 py-4">
+              <h3 className="text-lg font-medium text-gray-900">Afegir nou contenidor</h3>
+              <button 
+                onClick={() => setShowQuickAddModal(false)}
+                className="text-gray-400 hover:text-gray-500"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleQuickAddContenedor} className="p-6">
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="cod" className="block text-sm font-medium text-gray-700 mb-1">
+                    Codi del contenidor *
+                  </label>
+                  <input
+                    type="text"
+                    id="cod"
+                    value={newContenedor.cod}
+                    onChange={(e) => setNewContenedor({...newContenedor, cod: e.target.value})}
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label htmlFor="tipus" className="block text-sm font-medium text-gray-700 mb-1">
+                    Tipus de contenidor
+                  </label>
+                  <select
+                    id="tipus"
+                    value={newContenedor.tipus}
+                    onChange={(e) => setNewContenedor({...newContenedor, tipus: e.target.value})}
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  >
+                    <option value="paper">Paper</option>
+                    <option value="plàstic">Plàstic</option>
+                    <option value="vidre">Vidre</option>
+                    <option value="orgànic">Orgànic</option>
+                    <option value="rebuig">Rebuig</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label htmlFor="estat" className="block text-sm font-medium text-gray-700 mb-1">
+                    Estat inicial
+                  </label>
+                  <select
+                    id="estat"
+                    value={newContenedor.estat}
+                    onChange={(e) => setNewContenedor({...newContenedor, estat: e.target.value})}
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  >
+                    <option value="buit">Buit</option>
+                    <option value="mig">Mig ple</option>
+                    <option value="ple">Ple</option>
+                  </select>
+                </div>
+                
+                <div className="bg-blue-50 p-3 rounded-md text-sm text-blue-700">
+                  <p>Les següents dades s'agafaran de la zona actual:</p>
+                  <ul className="mt-1 ml-4 list-disc">
+                    <li>Ubicació: {zona?.ciutat}</li>
+                    <li>Coordenades: {zona?.latitud.toFixed(6)}, {zona?.longitud.toFixed(6)}</li>
+                  </ul>
+                </div>
+              </div>
+              
+              <div className="mt-6 flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setShowQuickAddModal(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  Cancel·lar
+                </button>
+                <button
+                  type="submit"
+                  disabled={creatingContenedor}
+                  className={`px-4 py-2 rounded-md text-white ${
+                    creatingContenedor ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+                  }`}
+                >
+                  {creatingContenedor ? (
+                    <div className="flex items-center">
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Creant...
+                    </div>
+                  ) : 'Crear i assignar'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
