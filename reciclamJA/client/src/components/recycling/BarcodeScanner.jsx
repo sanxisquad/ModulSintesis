@@ -33,9 +33,6 @@ const BarcodeScanner = ({ onScanComplete }) => {
   const [debugInfo, setDebugInfo] = useState('');
   const [permissionGranted, setPermissionGranted] = useState(false);
   const { user } = useAuth();
-  const [cameraOnCooldown, setCameraOnCooldown] = useState(false);
-  const [cooldownTimeLeft, setCooldownTimeLeft] = useState(0);
-  const cooldownIntervalRef = useRef(null);
   
   const scannerContainerRef = useRef(null);
   
@@ -221,56 +218,27 @@ const BarcodeScanner = ({ onScanComplete }) => {
       });
     });
   };
-  const startCameraCooldown = (durationSeconds = 3) => {
-  setCameraOnCooldown(true);
-  setCooldownTimeLeft(durationSeconds);
-  
-  // Limpiar cualquier intervalo existente
-  if (cooldownIntervalRef.current) {
-    clearInterval(cooldownIntervalRef.current);
-  }
-  
-  // Iniciar un intervalo para actualizar el temporizador
-  cooldownIntervalRef.current = setInterval(() => {
-    setCooldownTimeLeft(prev => {
-      const newValue = prev - 1;
-      if (newValue <= 0) {
-        clearInterval(cooldownIntervalRef.current);
-        setCameraOnCooldown(false);
-        return 0;
-      }
-      return newValue;
-    });
-  }, 1000);
-};
   
   // Limpiar al desmontar
-useEffect(() => {
-  return () => {
-    if (cooldownIntervalRef.current) {
-      clearInterval(cooldownIntervalRef.current);
-    }
-  };
-}, []);
+  useEffect(() => {
+    return () => {
+      if (html5QrCode && html5QrCode.isScanning) {
+        html5QrCode.stop()
+          .then(() => console.log('Scanner stopped'))
+          .catch(err => console.error('Error stopping scanner:', err));
+      }
+    };
+  }, [html5QrCode]);
   
   // Función para iniciar el escaneo
-// Modificar la función startScanning
-
-const startScanning = () => {
-  if (!html5QrCode || !cameraId || cameraOnCooldown) {
-    if (cameraOnCooldown) {
-      toast.error(`Has d'esperar ${cooldownTimeLeft} segons abans de tornar a escanejar`);
-    } else {
+  const startScanning = () => {
+    if (!html5QrCode || !cameraId) {
       logError('Escàner no inicialitzat o càmera no seleccionada');
+      return;
     }
-    return;
-  }
-  
-  // Iniciar un pequeño cooldown para evitar múltiples clics rápidos
-  startCameraCooldown(2);
-  
-  startScanningWithCamera(html5QrCode, cameraId);
-};
+    
+    startScanningWithCamera(html5QrCode, cameraId);
+  };
   
   // Función para detener el escaneo
   const stopScanning = () => {
@@ -306,8 +274,6 @@ const startScanning = () => {
  const onScanSuccess = (decodedText) => {
   // Detenemos el escaneo después de un resultado exitoso
   stopScanning();
-  
-  startCameraCooldown(5);
   
   setLoading(true);
   
@@ -1128,22 +1094,14 @@ ${debugInfo}
           {!scanning ? (
             <button
               onClick={startScanning}
-              disabled={!cameraId || loading || !permissionGranted || cameraOnCooldown}
+              disabled={!cameraId || loading || !permissionGranted}
               className={`py-2 px-6 rounded-lg flex items-center ${
-                !cameraId || loading || !permissionGranted || cameraOnCooldown
+                !cameraId || loading || !permissionGranted
                   ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
                   : 'bg-green-600 text-white hover:bg-green-700'
               }`}
             >
-              {cameraOnCooldown ? (
-                <>
-                  <FaClock className="mr-2" /> Espera {cooldownTimeLeft}s
-                </>
-              ) : (
-                <>
-                  <FaCamera className="mr-2" /> Iniciar escaneig
-                </>
-              )}
+              <FaCamera className="mr-2" /> Iniciar escaneig
             </button>
           ) : (
             <>
