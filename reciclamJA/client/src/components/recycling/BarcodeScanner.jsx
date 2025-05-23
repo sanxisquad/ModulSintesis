@@ -1,346 +1,1119 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { 
   FaCamera, 
-  FaSpinner, 
-  FaTimes, 
   FaQrcode, 
-  FaBarcode, 
-  FaKeyboard, 
-  FaSearch, 
+  FaSync, 
+  FaPowerOff, 
+  FaStar, 
+  FaBug, 
+  FaBarcode,
   FaCheck,
+  FaExclamationTriangle,
+  FaBox,
+  FaEye,
+  FaTrash,
   FaRecycle,
   FaPlus,
-  FaTrash,
-  FaExclamationTriangle,
-  FaBox
+  FaSpinner,
+  FaTimes,
+  FaKeyboard,
+  FaSearch,
+  FaExchangeAlt
 } from 'react-icons/fa';
-import PropTypes from 'prop-types';
-import { Link } from 'react-router-dom';
+import { useAuth } from '../../../hooks/useAuth';
 import { escanearCodigo, agregarProductoABolsa, crearBolsa } from '../../api/reciclajeApi';
+import { Link } from 'react-router-dom';
+import { Spinner } from '../common/Spinner';
 import { toast } from 'react-hot-toast';
 
-export const BarcodeScanner = ({ onCodeScanned, className = '', showManualInput = true }) => {
-  const [isScanning, setIsScanning] = useState(false);
+const BarcodeScanner = ({ onScanComplete }) => {
+  const [scanning, setScanning] = useState(false);
+  const [html5QrCode, setHtml5QrCode] = useState(null);
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [cameraId, setCameraId] = useState(null);
+  const [availableCameras, setAvailableCameras] = useState([]);
   const [error, setError] = useState('');
-  const [manualCode, setManualCode] = useState('');
-  const [isManualMode, setIsManualMode] = useState(false);
+  const [debugInfo, setDebugInfo] = useState('');
+  const [permissionGranted, setPermissionGranted] = useState(false);
+  const { user } = useAuth();
+  
+  const scannerContainerRef = useRef(null);
+  
+  // Cooldown states
   const [isCoolingDown, setIsCoolingDown] = useState(false);
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
   const [lastScannedCode, setLastScannedCode] = useState('');
-  const [scanSuccess, setScanSuccess] = useState(false);
   
-  // Add state for bag functionality
-  const [scanResult, setScanResult] = useState(null);
-  const [selectedBag, setSelectedBag] = useState(null);
-  const [addingToBag, setAddingToBag] = useState(false);
-  const [creatingBag, setCreatingBag] = useState(false);
-  const [success, setSuccess] = useState(null);
-  
-  const scannerRef = useRef(null);
-  const html5QrCodeRef = useRef(null);
+  // Ref for cooldown timer
   const cooldownTimerRef = useRef(null);
   
-  // Cooldown configuration
+  // Const for cooldown duration
   const COOLDOWN_DURATION = 3; // seconds
   
-  // Reset scanner when unmounting component
+  // Modo manual
+  const [isManualMode, setIsManualMode] = useState(false);
+  
+  // Función para mostrar errores y registrarlos
+  const logError = (message, error) => {
+    const errorDetails = error ? `${message}: ${error.message || error}` : message;
+    console.error(errorDetails, error);
+    setError(errorDetails);
+    setDebugInfo(prev => prev + '\n' + new Date().toISOString() + ': ' + errorDetails);
+  };
+
+  // Solicitar permisos de cámara explícitamente
+  useEffect(() => {
+    // Utilizar facingMode: 'environment' para intentar obtener la cámara trasera directamente
+    navigator.mediaDevices.getUserMedia({ 
+      video: { 
+        facingMode: { ideal: 'environment' } 
+      } 
+    })
+      .then(stream => {
+        // Éxito - el usuario ha concedido permisos
+        setPermissionGranted(true);
+        
+        // Liberar la cámara inmediatamente
+        stream.getTracks().forEach(track => track.stop());
+        
+        // Ahora es seguro inicializar el escáner
+        initializeScanner();
+      })
+      .catch(err => {
+        logError('No s\'ha pogut accedir a la càmera. Si us plau, permet l\'accés a la càmera del navegador.', err);
+      });
+  }, []);
+
+  // Inicializar el escáner solo después de obtener permisos
+  const initializeScanner = () => {
+    try {
+      if (!scannerContainerRef.current) return;
+
+      // Verificar que el div de escáner existe
+      const scannerElement = document.getElementById('scanner');
+      if (!scannerElement) {
+        logError('No es troba l\'element del escàner al DOM');
+        return;
+      }
+
+      // Crear una nueva instancia del escáner
+      const newHtml5QrCode = new Html5Qrcode('scanner');
+      setHtml5QrCode(newHtml5QrCode);
+      
+      // Obtener cámaras disponibles
+      Html5Qrcode.getCameras()
+        .then(devices => {
+          if (devices && devices.length) {
+            setAvailableCameras(devices);
+            
+            // Log todas las cámaras para diagnóstico
+            console.log("Cámaras detectadas:", devices.map(d => ({ id: d.id, label: d.label })));
+            
+            // Estrategia mejorada para encontrar la cámara trasera:
+            // 1. Buscar palabras clave específicas
+            const rearCamera = devices.find(camera => 
+              /back|rear|trasera|environment|posterior|dorsal|externa|back camera|cámara trasera|0,facing back/i.test(camera.label));
+            
+            // 2. Si no encontramos por etiqueta, probar con la última cámara (suele ser la trasera)
+            if (rearCamera) {
+              setCameraId(rearCamera.id);
+              console.log("Cámara trasera detectada por etiqueta:", rearCamera.label);
+              
+              // Iniciar escáner con un retraso para dar tiempo a que se configure la cámara
+              setTimeout(() => {
+                startScanningWithCamera(newHtml5QrCode, rearCamera.id);
+              }, 1000);
+            } else if (devices.length > 1) {
+              // En dispositivos con múltiples cámaras, la última suele ser la trasera
+              const defaultCamera = devices[devices.length - 1];
+              setCameraId(defaultCamera.id);
+              console.log("Usando última cámara como trasera:", defaultCamera.label);
+              
+              setTimeout(() => {
+                startScanningWithCamera(newHtml5QrCode, defaultCamera.id);
+              }, 1000);
+            } else {
+              // Solo hay una cámara, usarla
+              const onlyCamera = devices[0];
+              setCameraId(onlyCamera.id);
+              console.log("Solo hay una cámara disponible:", onlyCamera.label);
+              
+              setTimeout(() => {
+                startScanningWithCamera(newHtml5QrCode, onlyCamera.id);
+              }, 1000);
+            }
+            
+            // Mostrar información de las cámaras disponibles
+            const cameraInfo = devices.map(d => `${d.id}: ${d.label}`).join('\n');
+            setDebugInfo('Càmeres disponibles:\n' + cameraInfo);
+          } else {
+            logError('No s\'han detectat càmeres en aquest dispositiu');
+          }
+        })
+        .catch(err => {
+          logError('Error al enumerar les càmeres', err);
+        });
+    } catch (err) {
+      logError('Error al inicialitzar l\'escàner', err);
+    }
+  };
+
+  // Añadir contador de errores y referencia para throttling
+  const [errorCount, setErrorCount] = useState(0);
+  const errorThrottleRef = useRef(false);
+  const lastErrorTimeRef = useRef(Date.now());
+
+  // Función para iniciar el escaneo con una cámara específica
+  const startScanningWithCamera = (scanner, camId) => {
+    if (!scanner || !camId) {
+      logError('Escàner no inicialitzat o càmera no seleccionada');
+      return;
+    }
+    
+    setScanning(true);
+    setResult(null);
+    setError('');
+    setErrorCount(0);  // Resetear contador de errores
+    errorThrottleRef.current = false;  // Resetear throttle
+    
+    // Configuración optimizada para códigos de barras
+    const config = {
+      fps: 10,
+      qrbox: 250,
+      formatsToSupport: [
+        // Códigos de barras de productos
+        0x1, // CODE_128
+        0x2, // CODE_39
+        0x4, // EAN_13
+        0x8, // EAN_8
+        0x10, // UPC_A
+        0x20, // UPC_E
+        0x40, // UPC_EAN_EXTENSION
+        0x80, // QR Code
+        0x100, // Data Matrix
+        0x200, // Aztec
+        0x400, // Codabar
+        0x800, // ITF
+        0x1000, // RSS14
+        0x2000  // PDF417
+      ]
+    };
+    
+    console.log("Iniciando cámara con ID:", camId);
+    
+    scanner.start(
+      camId,
+      config,
+      onScanSuccess,
+      onScanFailure
+    )
+    .then(() => {
+      console.log('Scanner started');
+    })
+    .catch(err => {
+      logError('Error al iniciar l\'escàner', err);
+      setScanning(false);
+      
+      // Si falla, intentar sin formatsToSupport
+      const simpleConfig = {
+        fps: 5,
+        qrbox: 250
+      };
+      
+      scanner.start(
+        camId,
+        simpleConfig,
+        onScanSuccess,
+        onScanFailure
+      )
+      .then(() => {
+        console.log('Scanner started with basic config');
+        setScanning(true);
+      })
+      .catch(secondErr => {
+        logError('Error també amb la configuració bàsica', secondErr);
+      });
+    });
+  };
+  
+  // Limpiar al desmontar
   useEffect(() => {
     return () => {
-      if (html5QrCodeRef.current) {
-        html5QrCodeRef.current.stop().catch(err => console.error(err));
+      if (html5QrCode && html5QrCode.isScanning) {
+        html5QrCode.stop()
+          .then(() => console.log('Scanner stopped'))
+          .catch(err => console.error('Error stopping scanner:', err));
       }
       
+      // Limpiar timer de cooldown si existe
       if (cooldownTimerRef.current) {
         clearInterval(cooldownTimerRef.current);
       }
     };
-  }, []);
+  }, [html5QrCode]);
   
-  const startScanner = async () => {
-    if (!scannerRef.current) return;
-    
-    setError('');
-    setIsScanning(true);
-    
-    try {
-      const html5QrCode = new Html5Qrcode('barcode-scanner');
-      html5QrCodeRef.current = html5QrCode;
-      
-      const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-      
-      // Select back camera when possible
-      const cameras = await Html5Qrcode.getCameras();
-      let selectedCamera;
-      
-      if (cameras.length > 1) {
-        // Try to find back camera by label
-        const backCamera = cameras.find(camera => 
-          camera.label.toLowerCase().includes('back') || 
-          camera.label.toLowerCase().includes('trasera') ||
-          camera.label.toLowerCase().includes('posterior')
-        );
-        
-        // Use back camera if found, otherwise use the last camera (which is often the back camera)
-        selectedCamera = backCamera || cameras[cameras.length - 1];
-      } else {
-        selectedCamera = cameras[0]; // Just use the only camera
-      }
-      
-      if (!selectedCamera) {
-        throw new Error("No es troba cap càmera");
-      }
-      
-      console.log("Using camera:", selectedCamera.label);
-      
-      await html5QrCode.start(
-        selectedCamera.id,
-        config,
-        handleScanSuccess,
-        handleScanError
-      );
-    } catch (err) {
-      console.error("Error starting scanner:", err);
-      setError(err.message || "Error a l'iniciar l'escàner");
-      setIsScanning(false);
+  // Función para iniciar el escaneo
+  const startScanning = () => {
+    if (!html5QrCode || !cameraId) {
+      logError('Escàner no inicialitzat o càmera no seleccionada');
+      return;
     }
+    
+    startScanningWithCamera(html5QrCode, cameraId);
   };
   
-  const stopScanner = () => {
-    if (html5QrCodeRef.current) {
-      html5QrCodeRef.current.stop()
+  // Función para detener el escaneo
+  const stopScanning = () => {
+    if (html5QrCode && html5QrCode.isScanning) {
+      html5QrCode.stop()
         .then(() => {
-          html5QrCodeRef.current = null;
-          setIsScanning(false);
+          console.log('Scanner stopped');
+          setScanning(false);
         })
-        .catch(err => console.error("Error stopping scanner:", err));
+        .catch(err => {
+          logError('Error al detenir l\'escàner', err);
+        });
     }
   };
   
-  const handleScanSuccess = (code) => {
-    // Check if code is different from last scanned code or cooldown is over
-    if (code !== lastScannedCode || !isCoolingDown) {
-      console.log("Successfully scanned code:", code);
-      setLastScannedCode(code);
+  // Función para cambiar de cámara
+  const switchCamera = () => {
+    if (html5QrCode && html5QrCode.isScanning) {
+      stopScanning();
+      // Cambiar a la siguiente cámara disponible
+      const currentIndex = availableCameras.findIndex(camera => camera.id === cameraId);
+      const nextIndex = (currentIndex + 1) % availableCameras.length;
+      setCameraId(availableCameras[nextIndex].id);
       
-      // Visual feedback for success
-      setScanSuccess(true);
-      setTimeout(() => setScanSuccess(false), 1500);
-      
-      // Stop scanner and start cooldown
-      stopScanner();
-      startCooldown();
-      
-      // Process the scanned code
-      processScannedCode(code);
+      // Reiniciar el escaneo después de un breve retraso
+      setTimeout(() => {
+        startScanningWithCamera(html5QrCode, availableCameras[nextIndex].id);
+      }, 500);
     }
   };
   
-  const handleScanError = (err) => {
-    // We don't need to show these errors to the user, as they're normal during scanning
-  };
-  
-  const startCooldown = () => {
-    setIsCoolingDown(true);
-    setCooldownSeconds(COOLDOWN_DURATION);
+  // Manejar el éxito del escaneo
+ const onScanSuccess = (decodedText) => {
+  // Comprobar si el código es diferente del último escaneado o si el cooldown ha terminado
+  if (decodedText !== lastScannedCode || !isCoolingDown) {
+    console.log("Código escaneado con éxito:", decodedText);
+    setLastScannedCode(decodedText);
     
-    if (cooldownTimerRef.current) {
-      clearInterval(cooldownTimerRef.current);
-    }
-    
-    cooldownTimerRef.current = setInterval(() => {
-      setCooldownSeconds(prev => {
-        if (prev <= 1) {
-          clearInterval(cooldownTimerRef.current);
-          setIsCoolingDown(false);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  };
-  
-  const handleManualSubmit = (e) => {
-    e.preventDefault();
-    if (manualCode.trim()) {
-      processScannedCode(manualCode.trim());
-      setManualCode('');
-    }
-  };
-  
-  // Process a scanned or manually entered code
-  const processScannedCode = (code) => {
+    // Feedback visual por el éxito
+    setScanning(false);
+    setResult(null);
     setError('');
+    setLoading(true);
     
-    // Call API to process the code
-    escanearCodigo(code)
+    // Usar el servicio API con manejo de errores mejorado
+    escanearCodigo(decodedText)
       .then(response => {
-        console.log("API response:", response);
+        console.log("Respuesta de escaneo:", response);
         
-        // If there's an error message in the response
-        if (response.error) {
-          if (response.tipo === 'cooldown') {
-            toast.error(`Has d'esperar abans de tornar a escanejar aquest producte`, {
-              duration: 4000,
-              icon: '⏱️',
-            });
-            return;
+        // Si la respuesta contiene un error controlado
+        if (response && response.error) {
+          // Verificar específicamente si es un error de cooldown
+          if (response.tipo === "cooldown" && response.tiempo_restante) {
+            // Mostrar toast para errores de cooldown
+            toast.error(
+              `Has d'esperar ${response.tiempo_restante.minuts} minut${response.tiempo_restante.minuts !== 1 ? 's' : ''} i ${response.tiempo_restante.segons} segon${response.tiempo_restante.segons !== 1 ? 's' : ''} abans de tornar a escanejar aquest producte`, 
+              {
+                duration: 5000,
+                icon: '⏱️',
+              }
+            );
+            // No almacenar el resultado para cooldown
+            setResult(null);
+          } else if (response.tipo === "url_error") {
+            // Para errores de URL, mantener el comportamiento actual
+            setResult(response);
+            toast.error('No s\'ha pogut connectar amb el servidor. URL incorrecta.');
+            console.error("Detalle de error de URL:", response.detalle);
+            
+            // Añadir información de depuración
+            setDebugInfo(prev => prev + '\n' + new Date().toISOString() + ': Error de URL: ' + response.detalle);
+          } else {
+            // Otros errores
+            setResult(response);
+            toast.error(response.mensaje || 'Error al processar el codi');
           }
-          
-          setError(response.mensaje || "Error al processar el codi");
           return;
         }
         
-        // Success - store the scan result and set up bag selection
-        setScanResult(response);
+        // Respuesta exitosa - mostrar modal de selección de bolsa automáticamente
+        setResult(response);
         
-        // Set up the success state with all the relevant information
+        // Verificar si hay bolsas disponibles del mismo material
+        const bolsasCompatibles = response.bolsas_disponibles || [];
+        
+        // Establecer el estado para mostrar el modal de selección
         setSuccess({
           product: response.producto,
           points: response.puntos_nuevos,
           totalPoints: response.puntos_totales,
           material: response.material,
-          availableBags: response.bolsas_disponibles || [],
+          availableBags: bolsasCompatibles,
           addedToBag: response.agregado_a_bolsa,
           bagInfo: response.bolsa
         });
         
-        // If this was already added to a bag in the API response
-        if (response.agregado_a_bolsa && response.bolsa) {
-          toast.success(`Producte afegit a la bossa: ${response.bolsa.nombre || 'Bossa #' + response.bolsa.id}`);
-        }
-        
-        // Pass scan result to parent component
-        if (onCodeScanned) {
-          onCodeScanned(response);
+        // Llamar al callback para informar al componente padre
+        if (onScanComplete) {
+          onScanComplete(response);
         }
       })
-      .catch(err => {
-        console.error("Error scanning code:", err);
+      .catch(error => {
+        console.error("Error completo:", error);
         
-        // Handle specific API error responses
-        if (err.response?.data) {
-          const errorData = err.response.data;
-          setError(errorData.mensaje || errorData.error || "Error en escanejar el producte");
+        // Verificar si la respuesta incluye datos sobre cooldown
+        if (error.response && error.response.data && error.response.data.tipo === 'cooldown') {
+          const cooldownData = error.response.data;
           
-          // Show specific toast for cooldown errors
-          if (errorData.tipo === 'cooldown') {
-            const timeData = errorData.tiempo_restante || {};
-            toast.error(
-              `Has d'esperar ${timeData.minutos || 0}m ${timeData.segundos || 0}s abans de tornar a escanejar aquest producte`,
-              { duration: 5000, icon: '⏱️' }
-            );
+          // Mostrar toast para cooldown con la información de tiempo restante
+          toast.error(
+            `Has d'esperar ${cooldownData.tiempo_restante.minuts} minut${cooldownData.tiempo_restante.minuts !== 1 ? 's' : ''} i ${cooldownData.tiempo_restante.segons} segon${cooldownData.tiempo_restant.segons !== 1 ? 's' : ''} abans de tornar a escanejar aquest producte`, 
+            {
+              duration: 5000,
+              icon: '⏱️',
+            }
+          );
+          
+          // Añadir detalles al log de depuración
+          setDebugInfo(prev => prev + '\nCooldown detectado para código: ' + decodedText);
+        } else if (error.response) {
+          // El servidor respondió con un código de estado diferente de 2xx
+          const errorData = error.response.data;
+          const errorMessage = errorData.error || errorData.message || 'Error al processar el codi';
+          const errorDetail = errorData.detail || '';
+          
+          logError(`${errorMessage}${errorDetail ? ': ' + errorDetail : ''}`);
+          
+          // Si es un error específico (producto ya reciclado, no encontrado, etc.) mostrarlo de forma amigable
+          if (errorData.error === 'Ja has reciclat aquest producte en les últimes 24 hores') {
+            toast.error('Aquest producte ja ha estat reciclat avui. Prova demà o amb un altre producte.');
+          } else if (errorData.error === 'Producte no trobat') {
+            toast.error('No hem pogut identificar aquest producte. Prova amb un altre.');
+          } else if (errorData.error === 'No s\'ha pogut determinar el material') {
+            toast.error('No hem pogut identificar el material d\'aquest producte.');
           }
+          
+          // Añadir detalles adicionales al registro de depuración
+          if (errorData.producto) {
+            setDebugInfo(prev => prev + '\nDetalle del producto: ' + JSON.stringify(errorData.producto));
+          }
+        } else if (error.request) {
+          // La petición fue hecha pero no se recibió respuesta
+          logError('No s\'ha rebut resposta del servidor. Comprova la connexió a Internet.');
         } else {
-          setError("Error connectant amb el servidor. Comprova la teva connexió a Internet.");
+          // Error desconocido
+          logError('Error al processar el codi: ' + error.message);
         }
+        
+        // Añadir código de barras al log para depuración
+        setDebugInfo(prev => prev + '\nCódigo escaneado: ' + decodedText);
+        
+        // Añadir botón para volver a intentar con el mismo código
+        setResult({
+          error: true,
+          tipo: "error_generico",
+          titulo: "Error de processament",
+          mensaje: 'Error al processar el codi. Pots provar de nou o escanejar un altre producte.',
+          barcode: decodedText
+        });
+      })
+      .finally(() => {
+        setLoading(false);
       });
-  };
-  
-  const toggleMode = () => {
-    if (isScanning) {
-      stopScanner();
     }
-    setIsManualMode(!isManualMode);
-    
-    // Reset states when switching modes
-    setSuccess(null);
-    setSelectedBag(null);
-    setError('');
   };
   
-  // Bag functionality
+  // Manejar el fracaso del escaneo con throttling para evitar spam de errores
+  const onScanFailure = (error) => {
+    // Incrementar contador de errores
+    setErrorCount(prev => prev + 1);
+    
+    // Solo registrar errores ocasionalmente para evitar spam en la consola
+    const now = Date.now();
+    if (!errorThrottleRef.current && now - lastErrorTimeRef.current > 3000) {
+      console.log('Code scan error:', error);
+      lastErrorTimeRef.current = now;
+      
+      // Si hay muchos errores continuos, activar throttling
+      if (errorCount > 50) {
+        errorThrottleRef.current = true;
+        console.log("Demasiados errores de escaneo, limitando los mensajes de error...");
+        
+        // Si hay excesivos errores, intentar reiniciar el escáner automáticamente
+        if (errorCount > 200 && html5QrCode && html5QrCode.isScanning) {
+          console.log("Reiniciando el escáner debido a exceso de errores...");
+          stopScanning();
+          setTimeout(() => {
+            if (cameraId) startScanning();
+          }, 1000);
+          setErrorCount(0);
+        }
+      }
+    }
+  };
+  
+  // Enviar información de depuración por correo
+  const sendDebugInfo = () => {
+    const emailSubject = encodeURIComponent('ReciclamJA Scanner Debug Info');
+    const emailBody = encodeURIComponent(`
+Debug Information:
+User: ${user?.username || 'Not logged in'}
+Device: ${navigator.userAgent}
+Cameras: ${availableCameras.map(c => c.label).join(', ')}
+Selected Camera: ${availableCameras.find(c => c.id === cameraId)?.label || 'None'}
+Permission Granted: ${permissionGranted ? 'Yes' : 'No'}
+Errors: ${error}
+Debug Log:
+${debugInfo}
+`);
+    
+    window.open(`mailto:msancheztasies@gmail.com?subject=${emailSubject}&body=${emailBody}`);
+    toast.success('S\'obrirà el client de correu per enviar la informació de depuració');
+  };
+  
+  // Función para manejar simulación de escaneo (para pruebas en PC)
+  const handleTestBarcode = (code) => {
+    onScanSuccess(code);
+  };
+
+  // Añadir un array de productos verificados que funcionan
+  const PRODUCTOS_VERIFICADOS = [
+    { codigo: '8410188012096', nombre: 'Llauna Coca-Cola', material: 'Metal' },
+    { codigo: '8410057320202', nombre: 'Cervesa Estrella Damm', material: 'Vidre' },
+    { codigo: '8480000160164', nombre: 'Aigua Font Vella', material: 'Plàstic' },
+    { codigo: '8414533043847', nombre: 'Diari El País', material: 'Paper' },
+    // Añadir más productos verificados si es necesario
+  ];
+
+  const [codigoBarras, setCodigoBarras] = useState('');
+  const [errorForm, setErrorForm] = useState(null);
+  const [success, setSuccess] = useState(null);
+  const [selectedBag, setSelectedBag] = useState(null);
+  const [addingToBag, setAddingToBag] = useState(false);
+  const [creatingBag, setCreatingBag] = useState(false);
+  
+  // ref para el input de código de barras
+  const inputRef = useRef(null);
+
+  // Limpiar todo cuando se desmonta
+  useEffect(() => {
+    return () => {
+      setError(null);
+      setSuccess(null);
+    };
+  }, []);
+
+  // Función para crear datos de producto de demostración según los productos de ejemplo
+  const getDemoProductData = (codigoBarras) => {
+    // Productos de demostración para visualización
+    const demoProducts = {
+      '8480000160164': {
+        nombre_producto: 'Aigua Font Vella 1,5L',
+        marca: 'Font Vella',
+        material: { id: 1, nombre: 'plàstic' },
+        imagen_url: 'https://prod-mercadona.imgix.net/images/6420bdab35c34e82c0bd76a1.jpg',
+        puntos_obtenidos: 15,
+        codigo_barras: '8480000160164',
+      },
+      '8414533043847': {
+        nombre_producto: 'Diari El País',
+        marca: 'El País',
+        material: { id: 2, nombre: 'paper' },
+        imagen_url: 'https://estaticos-cdn.prensaiberica.es/clip/9b41cf53-a9e8-450e-8d3e-5a5f8a5bf801_16-9-aspect-ratio_default_0.jpg',
+        puntos_obtenidos: 20,
+        codigo_barras: '8414533043847',
+      },
+      '8410057320202': {
+        nombre_producto: 'Cervesa Estrella Damm 33cl',
+        marca: 'Estrella Damm',
+        material: { id: 3, nombre: 'vidre' },
+        imagen_url: 'https://sgfm.elcorteingles.es/SGFM/dctm/MEDIA03/202204/04/00118602800916____3__600x600.jpg',
+        puntos_obtenidos: 25,
+        codigo_barras: '8410057320202',
+      },
+      '8410188012096': {
+        nombre_producto: 'Llauna Coca-Cola 33cl',
+        marca: 'Coca-Cola',
+        material: { id: 4, nombre: 'metall' },
+        imagen_url: 'https://sgfm.elcorteingles.es/SGFM/dctm/MEDIA03/202204/04/00120646800966____1__600x600.jpg',
+        puntos_obtenidos: 18,
+        codigo_barras: '8410188012096',
+      }
+    };
+    
+    return demoProducts[codigoBarras];
+  };
+
+  // Añadir esta función para crear bolsas virtuales de demostración
+  const getDemoBolsas = (materialId) => {
+    // Mapear IDs de material a sus nombres en catalán
+    const materialNames = {
+      1: 'plàstic',
+      2: 'paper',
+      3: 'vidre',
+      4: 'metall',
+      5: 'orgànic',
+      6: 'resta'
+    };
+    
+    // Crear bolsas dummy del tipo de material solicitado
+    return [
+      {
+        id: 101,
+        nombre: `Bossa de ${materialNames[materialId]} #1`,
+        tipo_material: { id: materialId, nombre: materialNames[materialId] },
+        fecha_creacion: new Date().toISOString(),
+        puntos_totales: 45
+      },
+      {
+        id: 102,
+        nombre: `Bossa de ${materialNames[materialId]} #2`,
+        tipo_material: { id: materialId, nombre: materialNames[materialId] },
+        fecha_creacion: new Date(Date.now() - 86400000).toISOString(), // Ayer
+        puntos_totales: 30
+      }
+    ];
+  };
+
+  // Modificar la función handleSubmit para simular un escaneo exitoso de productos de demostración
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+    
+    // Modo demo para los 4 productos de ejemplo
+    const demoProduct = getDemoProductData(codigoBarras);
+    
+    if (demoProduct) {
+      // Simular respuesta exitosa de API con datos de demo
+      setTimeout(() => {
+        setSuccess({
+          product: demoProduct,
+          points: demoProduct.puntos_obtenidos,
+          totalPoints: 250 + demoProduct.puntos_obtenidos, // Puntos totales simulados
+          material: demoProduct.material,
+          availableBags: getDemoBolsas(demoProduct.material.id)
+        });
+        setLoading(false);
+      }, 1000); // Simular retraso de red
+      return;
+    }
+    
+    try {
+      // Llamada a la API regular para productos no demo
+      const result = await escanearCodigo(codigoBarras);
+      
+      if (result.error) {
+        setError({
+          title: result.titulo || "Error",
+          message: result.mensaje || "No se ha podido escanear el código",
+          type: result.tipo || "error_general"
+        });
+      } else {
+        setSuccess({
+          product: result.producto,
+          points: result.puntos_nuevos,
+          totalPoints: result.puntos_totales,
+          material: result.material,
+          availableBags: result.bolsas_disponibles || []
+        });
+      }
+    } catch (error) {
+      setError({
+        title: "Error al escanear",
+        message: error.message || "Ha ocurrido un error al escanear el código",
+        type: "error_general"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleAddToBag = async () => {
-    if (!selectedBag || !success || !success.product) return;
+    if (!selectedBag) return;
     
     setAddingToBag(true);
     try {
       await agregarProductoABolsa(success.product.id, selectedBag);
-      toast.success("Producte afegit a la bossa amb èxit!");
-      
-      // Reset states to allow new scans
+      // Después de agregar, limpiar el estado para seguir escaneando
       setSuccess(null);
+      setCodigoBarras("");
       setSelectedBag(null);
-      setScanResult(null);
-      setManualCode('');
     } catch (error) {
-      console.error("Error adding to bag:", error);
-      toast.error("Error en afegir el producte a la bossa");
+      console.error("Error al añadir a la bolsa:", error);
     } finally {
       setAddingToBag(false);
     }
   };
 
-  // Create a new bag of the right material type
+  // Función para crear una nueva bolsa del tipo de material escaneado
   const handleCreateBag = async () => {
-    if (!success || !success.material || !success.product) return;
+    if (!success || !success.material || !success.material.id) {
+      return;
+    }
     
-    setCreatingBag(true);
     try {
-      // Create a new bag with the scanned product's material
-      const newBag = await crearBolsa(success.material.id);
+      setCreatingBag(true);
+      // Crear nueva bolsa del mismo tipo que el material escaneado
+      const response = await crearBolsa(success.material.id);
+      const newBagId = response.id;
       
-      // Add the product to the newly created bag
-      await agregarProductoABolsa(success.product.id, newBag.id);
+      // Añadir el producto a la bolsa recién creada
+      await agregarProductoABolsa(success.product.id, newBagId);
       
-      toast.success("S'ha creat una nova bossa i s'hi ha afegit el producte!");
-      
-      // Reset states to allow new scans
+      // Actualizar state y cerrar el modal
       setSuccess(null);
+      setCodigoBarras("");
       setSelectedBag(null);
-      setScanResult(null);
-      setManualCode('');
     } catch (error) {
-      console.error("Error creating bag:", error);
-      toast.error("Error en crear la bossa");
+      console.error("Error al crear la bossa:", error);
     } finally {
       setCreatingBag(false);
     }
   };
   
-  // Helper function for material badge display
-  const getMaterialBadge = (materialName) => {
-    if (!materialName) return null;
+  // Renderizar mensaje de error
+  const renderError = () => {
+    if (!error) return null;
     
-    // Normalize material name to lowercase
-    const material = materialName.toLowerCase();
-    
-    // Define styles for different materials
-    const styles = {
-      'plàstic': { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: <FaRecycle className="mr-2 text-yellow-600" /> },
-      'plastic': { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: <FaRecycle className="mr-2 text-yellow-600" /> },
-      'paper': { bg: 'bg-blue-100', text: 'text-blue-800', icon: <FaRecycle className="mr-2 text-blue-600" /> },
-      'vidre': { bg: 'bg-green-100', text: 'text-green-800', icon: <FaRecycle className="mr-2 text-green-600" /> },
-      'orgànic': { bg: 'bg-amber-100', text: 'text-amber-800', icon: <FaRecycle className="mr-2 text-amber-600" /> },
-      'rebuig': { bg: 'bg-gray-100', text: 'text-gray-800', icon: <FaTrash className="mr-2 text-gray-600" /> },
-      'metall': { bg: 'bg-gray-100', text: 'text-gray-800', icon: <FaRecycle className="mr-2 text-gray-600" /> }
-    };
-    
-    // Find matching style or use default
-    let style = null;
-    for (const key in styles) {
-      if (material.includes(key)) {
-        style = styles[key];
-        break;
-      }
+    // Special handling for cooldown errors
+    if (error.type === 'cooldown' && error.tiempo_restante) {
+      return (
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <FaEye className="h-5 w-5 text-yellow-400" />
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-yellow-800">{error.title}</h3>
+              <div className="mt-2 text-sm text-yellow-700">
+                <p>{error.message}</p>
+                <p className="mt-2 font-medium">
+                  Temps restant: {error.tiempo_restant.minuts}m {error.tiempo_restant.segons}s
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
     }
     
-    // Default style if no match
-    if (!style) {
-      style = { bg: 'bg-purple-100', text: 'text-purple-800', icon: <FaRecycle className="mr-2 text-purple-600" /> };
+    // Mensajes para material no determinado (con códigos de ejemplo)
+    if (error.type === 'material_no_determinado') {
+      return (
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <FaExclamationTriangle className="h-5 w-5 text-yellow-400" />
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-yellow-800">{error.title}</h3>
+              <div className="mt-2 text-sm text-yellow-700">
+                <p>{error.message}</p>
+                
+                {error.codigos_ejemplo && error.codigos_ejemplo.length > 0 && (
+                  <div className="mt-4">
+                    <p className="font-medium mb-2">Prova amb algun d'aquests codis:</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {error.codigos_ejemplo.map((codigo, index) => (
+                        <button
+                          key={index}
+                          className="flex justify-between items-center bg-white border border-yellow-200 rounded p-2 hover:bg-yellow-100 transition-colors"
+                          onClick={() => {
+                            setCodigoBarras(codigo.codigo);
+                            setError(null);
+                            if (inputRef.current) inputRef.current.focus();
+                          }}
+                        >
+                          <span className="font-mono">{codigo.codigo}</span>
+                          <span className="text-xs text-gray-600">{codigo.descripcion}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
     }
     
+    // Error genérico (sin el fondo rojo)
     return (
-      <div className={`${style.bg} ${style.text} inline-flex items-center px-3 py-1 rounded-full text-sm font-medium`}>
-        {style.icon}
-        {materialName}
+      <div className="bg-red-50 border-l-4 border-red-400 p-4">
+        <div className="flex">
+          <div className="flex-shrink-0">
+            <FaExclamationTriangle className="h-5 w-5 text-red-400" />
+          </div>
+          <div className="ml-3">
+            <h3 className="text-sm font-medium text-red-800">{error.title || "Error"}</h3>
+            <div className="mt-2 text-sm text-red-700">
+              <p>{error.message || "Ha ocurrido un error."}</p>
+            </div>
+          </div>
+        </div>
       </div>
     );
   };
 
+  // Render success message with bag selection UI
+  const renderSuccess = () => {
+    if (!success) return null;
+    
+    // Si el producto ya se agregó a una bolsa, mostrar mensaje específico
+    if (success.addedToBag && success.bagInfo) {
+      return (
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-green-600 flex items-center">
+              <FaCheck className="mr-2" /> Producte reciclat amb èxit
+            </h3>
+            <span className="text-green-600 font-bold">+{success.points} pts</span>
+          </div>
+          
+          {/* Product details with improved material display */}
+          <div className="mt-4 flex flex-col md:flex-row">
+            {success.product.imagen_url ? (
+              <img 
+                src={success.product.imagen_url} 
+                alt={success.product.nombre_producto} 
+                className="w-24 h-24 object-contain rounded mr-4 mb-4 md:mb-0"
+              />
+            ) : (
+              <div className="w-24 h-24 bg-gray-100 rounded flex items-center justify-center mr-4 mb-4 md:mb-0">
+                <FaBox className="text-gray-400 text-4xl" />
+              </div>
+            )}
+            
+            <div className="flex-1">
+              {/* Larger product name */}
+              <h4 className="font-bold text-xl text-gray-800">{success.product.nombre_producto}</h4>
+              <p className="text-gray-600 text-sm">{success.product.marca}</p>
+              
+              {/* Material badge with more prominence */}
+              <div className="mt-3">
+                {getMaterialBadge(success.material.nombre)}
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-6 border-t pt-4">
+            <div className="bg-green-50 p-4 rounded-lg mb-4">
+              <p className="flex items-center text-green-700">
+                <FaCheck className="mr-2" /> 
+                Producte afegit a la bossa: <span className="font-bold ml-1">{success.bagInfo.nombre || 'Bossa #' + success.bagInfo.id}</span>
+              </p>
+            </div>
+            
+            <div className="flex justify-between mt-4">
+              <button
+                onClick={() => {
+                  setSuccess(null);
+                  setCodigoBarras("");
+                }}
+                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+              >
+                Continuar reciclant
+              </button>
+              
+              <Link 
+                to="/virtualbags" 
+                className="px-4 py-2 border border-green-500 text-green-500 rounded-lg hover:bg-green-50"
+              >
+                Veure les meves bosses
+              </Link>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    // Modal de selección de bolsa
+    return (
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-green-600 flex items-center">
+            <FaCheck className="mr-2" /> Producte reciclat amb èxit
+          </h3>
+          <span className="text-green-600 font-bold">+{success.points} pts</span>
+        </div>
+        
+        {/* Product details with improved material display */}
+        <div className="mt-4 flex flex-col md:flex-row">
+          {success.product.imagen_url ? (
+            <img 
+              src={success.product.imagen_url} 
+              alt={success.product.nombre_producto} 
+              className="w-24 h-24 object-contain rounded mr-4 mb-4 md:mb-0"
+            />
+          ) : (
+            <div className="w-24 h-24 bg-gray-100 rounded flex items-center justify-center mr-4 mb-4 md:mb-0">
+              <FaBox className="text-gray-400 text-4xl" />
+            </div>
+          )}
+          
+          <div className="flex-1">
+            {/* Larger product name */}
+            <h4 className="font-bold text-xl text-gray-800">{success.product.nombre_producto}</h4>
+            <p className="text-gray-600 text-sm">{success.product.marca}</p>
+            
+            {/* Material badge with more prominence */}
+            <div className="mt-3">
+              {getMaterialBadge(success.material.nombre)}
+            </div>
+          </div>
+        </div>
+        
+        {/* Available bags selection - Este es el bloque principal del modal */}
+        <div className="mt-6 border-t pt-4">
+          <h4 className="font-medium mb-3 text-gray-800">Vols afegir aquest producte a una bossa?</h4>
+          
+          {success.availableBags && success.availableBags.length > 0 ? (
+            <>
+              <p className="text-sm text-gray-600 mb-3">
+                Tens {success.availableBags.length} {success.availableBags.length === 1 ? 'bossa disponible' : 'bosses disponibles'} per aquest material ({success.material.nombre}):
+              </p>
+              
+              <div className="space-y-2 max-h-48 overflow-y-auto mb-4">
+                {success.availableBags.map(bag => (
+                  <button
+                    key={bag.id}
+                    onClick={() => setSelectedBag(bag.id)}
+                    className={`w-full p-3 border rounded-lg flex justify-between items-center ${
+                      selectedBag === bag.id 
+                        ? 'bg-green-50 border-green-500' 
+                        : 'hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-center">
+                      <FaTrash className="text-gray-500 mr-2" />
+                      <span>{bag.nombre || `Bossa #${bag.id}`}</span>
+                    </div>
+                    <span className="text-sm text-green-600 font-medium">{bag.puntos_totales} pts</span>
+                  </button>
+                ))}
+              </div>
+              
+              <div className="flex justify-between mt-4">
+                <button
+                  onClick={() => {
+                    setSuccess(null);
+                    setCodigoBarras("");
+                  }}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  No afegir a cap bossa
+                </button>
+                
+                <button
+                  onClick={handleAddToBag}
+                  disabled={!selectedBag || addingToBag}
+                  className={`px-4 py-2 rounded-lg text-white ${
+                    selectedBag && !addingToBag
+                      ? 'bg-green-500 hover:bg-green-600' 
+                      : 'bg-gray-300 cursor-not-allowed'
+                  }`}
+                >
+                  {addingToBag ? (
+                    <>
+                      <Spinner size="sm" className="inline mr-2" />
+                      Afegint...
+                    </>
+                  ) : (
+                    'Afegir a la bossa'
+                  )}
+                </button>
+              </div>
+            </>
+          ) : (
+            // No bags available of this material type
+            <div>
+              <div className="bg-yellow-50 p-4 rounded-lg mb-4">
+                <p className="text-gray-700 flex items-center">
+                  <FaExclamationTriangle className="text-yellow-500 mr-2" />
+                  No tens cap bossa per materials de tipus <strong className="ml-1 mr-1">{success.material.nombre}</strong>
+                </p>
+              </div>
+              
+              <div className="flex flex-col md:flex-row justify-between gap-3">
+                <button
+                  onClick={() => {
+                    setSuccess(null);
+                    setCodigoBarras("");
+                  }}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Continuar sense afegir
+                </button>
+                
+                <button 
+                  onClick={handleCreateBag}
+                  disabled={creatingBag}
+                  className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center justify-center"
+                >
+                  {creatingBag ? (
+                    <>
+                      <Spinner size="sm" className="mr-2" />
+                      Creant bossa...
+                    </>
+                  ) : (
+                    <>
+                      <FaPlus className="mr-2" /> Crear bossa de {success.material.nombre}
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Función para generar un badge de material visualmente distintivo según el tipo
+  const getMaterialBadge = (materialName) => {
+    // Normalizar el nombre del material (a minúsculas y sin acentos)
+    const normalizedName = materialName.toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    
+    // Configuración de colores por tipo de material
+    const materialStyles = {
+      'plastic': { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-300', icon: <FaRecycle className="mr-2 text-yellow-600" /> },
+      'plastico': { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-300', icon: <FaRecycle className="mr-2 text-yellow-600" /> },
+      'paper': { bg: 'bg-blue-100', text: 'text-blue-800', border: 'border-blue-300', icon: <FaRecycle className="mr-2 text-blue-600" /> },
+      'papel': { bg: 'bg-blue-100', text: 'text-blue-800', border: 'border-blue-300', icon: <FaRecycle className="mr-2 text-blue-600" /> },
+      'glass': { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-300', icon: <FaRecycle className="mr-2 text-green-600" /> },
+      'vidre': { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-300', icon: <FaRecycle className="mr-2 text-green-600" /> },
+      'vidrio': { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-300', icon: <FaRecycle className="mr-2 text-green-600" /> },
+      'metal': { bg: 'bg-gray-100', text: 'text-gray-800', border: 'border-gray-300', icon: <FaRecycle className="mr-2 text-gray-600" /> },
+      'metall': { bg: 'bg-gray-100', text: 'text-gray-800', border: 'border-gray-300', icon: <FaRecycle className="mr-2 text-gray-600" /> },
+      'organic': { bg: 'bg-amber-100', text: 'text-amber-800', border: 'border-amber-300', icon: <FaRecycle className="mr-2 text-amber-600" /> },
+      'resta': { bg: 'bg-gray-100', text: 'text-gray-800', border: 'border-gray-300', icon: <FaTrash className="mr-2 text-gray-600" /> },
+    };
+    
+    // Buscar coincidencia en las claves
+    let style = null;
+    for (const key in materialStyles) {
+      if (normalizedName.includes(key)) {
+        style = materialStyles[key];
+        break;
+      }
+    }
+    
+    // Si no hay coincidencia, usar un estilo por defecto
+    if (!style) {
+      style = { bg: 'bg-purple-100', text: 'text-purple-800', border: 'border-purple-300', icon: <FaRecycle className="mr-2 text-purple-600" /> };
+    }
+    
+    // Devolver el badge con el estilo correspondiente
+    return (
+      <div className={`${style.bg} ${style.text} ${style.border} border px-4 py-2 rounded-lg inline-flex items-center font-medium text-sm md:text-base`}>
+        {style.icon}
+        <span className="capitalize">{materialName}</span>
+      </div>
+    );
+  };
+
+  // Function to handle code scanning
+  const handleScan = async (code) => {
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+    
+    try {
+      const response = await escanearCodigo(code, selectedBolsa);
+      
+      // On success
+      setSuccess({
+        title: 'Codi escanejat correctament',
+        message: `S'ha identificat el producte "${response.data.nombre || code}"`,
+        producto: response.data
+      });
+      
+      // Call the callback if provided
+      if (onScanComplete) {
+        onScanComplete(response.data);
+      }
+      
+    } catch (error) {
+      console.error('Error escaneando código:', error);
+      
+      const errorData = error.response?.data;
+      
+      // Check for cooldown error and show toast instead of UI error
+      if (errorData?.tipo === 'cooldown' && errorData?.tiempo_restante) {
+        // Display cooldown error as toast in Catalan
+        toast.error(
+          `Has d'esperar ${errorData.tiempo_restante.minuts} minut${errorData.tiempo_restante.minuts !== 1 ? 's' : ''} i ${errorData.tiempo_restante.segons} segon${errorData.tiempo_restante.segons !== 1 ? 's' : ''} abans de tornar a escanejar aquest producte`, 
+          {
+            duration: 5000,
+            icon: '⏱️',
+          }
+        );
+      } else {
+        // Set normal UI error for other errors
+        setError({
+          title: errorData?.titulo || 'Error en escanejar el codi',
+          message: errorData?.mensaje || 'No s\'ha pogut processar el codi. Si us plau, prova-ho de nou o amb un altre producte.',
+          type: errorData?.tipo || 'generic',
+          codigos_ejemplo: errorData?.codigos_ejemplo
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Función para cambiar entre modo escáner y modo manual
+  const toggleMode = () => {
+    setIsManualMode(prev => !prev);
+    
+    // Reiniciar estado al cambiar de modo
+    setError(null);
+    setSuccess(null);
+    setCodigoBarras("");
+    setResult(null);
+    
+    if (html5QrCode && html5QrCode.isScanning) {
+      // Si está escaneando, detener el escáner al cambiar a modo manual
+      html5QrCode.stop()
+        .then(() => {
+          console.log('Scanner stopped');
+          setScanning(false);
+        })
+        .catch(err => {
+          logError('Error al detenir l\'escàner', err);
+        });
+    } else {
+      // Si se vuelve a modo de escáner, iniciar el escáner automáticamente
+      setTimeout(() => {
+        startScanning();
+      }, 500);
+    }
+  };
+  
   return (
-    <div className={`bg-white rounded-lg shadow ${className}`}>
-      <div className="p-4 border-b flex justify-between items-center">
+    <div className="bg-white p-6 rounded-lg shadow-lg max-w-2xl mx-auto">
+      <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center border-b pb-2">
+        <FaBarcode className="mr-2 text-green-500" />
+        Escaneja i recicla
+      </h2>
+      
+      <p className="text-gray-600 mb-6">
+        Escaneja el codi de barres d'un producte per reciclar-lo i guanyar punts.
+      </p>
+      
+      {/* Botón para cambiar entre modo escáner y modo manual */}
+      <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-semibold">
           {isManualMode ? 'Introducció manual' : 'Escàner de codis'}
         </h3>
@@ -352,297 +1125,131 @@ export const BarcodeScanner = ({ onCodeScanned, className = '', showManualInput 
         </button>
       </div>
       
+      {/* Botones prominentes para seleccionar modo */}
+      <div className="flex justify-center mt-4 mb-2">
+        <div className="bg-gray-200 p-1 rounded-lg inline-flex items-center">
+          <button
+            onClick={() => isManualMode && toggleMode()}
+            className={`px-4 py-2 rounded-lg flex items-center ${
+              !isManualMode 
+                ? 'bg-blue-500 text-white' 
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            <FaCamera className="mr-2" /> Escanejar
+          </button>
+          <button
+            onClick={() => !isManualMode && toggleMode()}
+            className={`px-4 py-2 rounded-lg flex items-center ${
+              isManualMode 
+                ? 'bg-blue-500 text-white' 
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            <FaKeyboard className="mr-2" /> Manual
+          </button>
+        </div>
+      </div>
+      
       {/* Scanner view or manual input */}
       <div className="p-4">
         {isManualMode ? (
-          <form onSubmit={handleManualSubmit} className="flex flex-col space-y-3">
+          <form onSubmit={handleSubmit} className="mb-6">
             <div className="flex">
-              <input
-                type="text"
-                value={manualCode}
-                onChange={(e) => setManualCode(e.target.value)}
-                placeholder="Introdueix el codi de barres"
-                className="flex-1 p-2 border rounded-l-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                disabled={isCoolingDown}
+              <input 
+                type="text" 
+                value={codigoBarras}
+                onChange={(e) => setCodigoBarras(e.target.value)}
+                className="flex-1 px-4 py-2 text-lg border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                placeholder="Introdueix un codi de barres..."
+                ref={inputRef}
               />
               <button
                 type="submit"
-                className={`px-3 py-2 ${isCoolingDown ? 'bg-gray-400' : 'bg-blue-500 hover:bg-blue-600'} text-white rounded-r-lg flex items-center justify-center`}
-                disabled={isCoolingDown || !manualCode.trim()}
+                className="px-4 py-2 bg-green-600 text-white rounded-r-md hover:bg-green-700 transition-colors flex items-center"
               >
-                {isCoolingDown ? <FaSpinner className="animate-spin" /> : <FaSearch />}
+                <FaCamera className="mr-2" /> Escanejar
               </button>
             </div>
             
             <div className="text-sm text-gray-500">
-              Exemples: 8480000160164 (aigua), 8414533043847 (diari), 8410188012096 (llauna)
+              Exemples: 8480000160164 (aigua), 8414533043847 (diari)
             </div>
           </form>
         ) : (
-          <div className="relative">
-            {/* Scanner container */}
-            <div 
-              id="barcode-scanner" 
-              ref={scannerRef}
-              className={`w-full h-64 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center
-                ${scanSuccess ? 'border-4 border-green-500' : ''}`}
-            >
-              {!isScanning && !scanSuccess && (
-                <div className="text-center p-4">
-                  {error ? (
-                    <div className="text-red-500">
-                      <FaTimes className="mx-auto h-8 w-8 mb-2" />
-                      <p>{error}</p>
-                    </div>
-                  ) : (
-                    <div>
-                      <FaBarcode className="mx-auto h-12 w-12 text-gray-400 mb-2" />
-                      <p className="text-gray-500">
-                        {isCoolingDown 
-                          ? `Esperant ${cooldownSeconds}s...` 
-                          : "Pressiona 'Escanejar' per començar"}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-              
-              {scanSuccess && !isScanning && (
-                <div className="absolute inset-0 bg-green-100 bg-opacity-80 flex items-center justify-center z-10">
-                  <div className="text-center">
-                    <FaCheck className="mx-auto h-16 w-16 text-green-500 mb-2" />
-                    <p className="text-green-700 font-bold text-lg">Codi escanejat!</p>
-                  </div>
-                </div>
-              )}
-            </div>
-            
-            {/* Scanner controls */}
-            <div className="mt-4 flex justify-center">
-              {isScanning ? (
-                <button
-                  onClick={stopScanner}
-                  className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center"
-                >
-                  <FaTimes className="mr-2" /> Aturar escàner
-                </button>
-              ) : (
-                <button
-                  onClick={startScanner}
-                  className={`px-4 py-2 rounded-lg flex items-center ${
-                    isCoolingDown 
-                      ? 'bg-gray-400 cursor-not-allowed' 
-                      : 'bg-blue-500 hover:bg-blue-600 text-white'
-                  }`}
-                  disabled={isCoolingDown}
-                >
-                  {isCoolingDown ? (
-                    <>
-                      <FaSpinner className="animate-spin mr-2" /> 
-                      Disponible en {cooldownSeconds}s...
-                    </>
-                  ) : (
-                    <>
-                      <FaQrcode className="mr-2" /> Escanejar
-                    </>
-                  )}
-                </button>
-              )}
-            </div>
-          </div>
+          <div 
+            id="scanner" 
+            ref={scannerContainerRef} 
+            className="bg-gray-100 rounded-lg overflow-hidden relative"
+            style={{ minHeight: '300px', width: '100%' }}
+          ></div>
         )}
       </div>
       
-      {/* Success result with bag selection */}
-      {success && (
-        <div className="p-4 border-t border-gray-200">
-          <div className="bg-green-50 p-4 rounded-lg mb-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold text-green-600 flex items-center">
-                <FaCheck className="mr-2" /> Producte escanejat!
-              </h3>
-              <span className="text-green-600 font-bold">+{success.points} pts</span>
-            </div>
-            
-            <div className="mt-3 flex items-center">
-              {success.product.imagen_url ? (
-                <img 
-                  src={success.product.imagen_url} 
-                  alt={success.product.nombre_producto}
-                  className="w-16 h-16 object-contain bg-white rounded mr-3"
-                />
-              ) : (
-                <div className="w-16 h-16 bg-gray-100 rounded flex items-center justify-center mr-3">
-                  <FaBox className="text-gray-400 text-2xl" />
-                </div>
-              )}
-              
-              <div>
-                <p className="font-medium">{success.product.nombre_producto}</p>
-                <p className="text-sm text-gray-600">{success.product.marca}</p>
-                {success.material && (
-                  <div className="mt-1">
-                    {getMaterialBadge(success.material.nombre)}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-          
-          {/* If already added to a bag */}
-          {success.addedToBag && success.bagInfo ? (
-            <div className="mt-3">
-              <div className="bg-blue-50 p-3 rounded-lg mb-3">
-                <p className="text-blue-700 flex items-center">
-                  <FaCheck className="mr-2" /> 
-                  Producte afegit a la bossa: <strong className="ml-2">{success.bagInfo.nombre || `Bossa #${success.bagInfo.id}`}</strong>
-                </p>
-              </div>
-              
-              <button
-                onClick={() => {
-                  setSuccess(null);
-                  setSelectedBag(null);
-                }}
-                className="w-full mt-3 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
-              >
-                Continuar
-              </button>
-            </div>
+      {/* Mensaje de error */}
+      {error && renderError()}
+      
+      {/* Resultado del escaneo */}
+      {success && renderSuccess()}
+      
+      {/* Controles de cámara - Ocultar en modo manual */}
+      {!isManualMode && (
+        <div className="mt-4 flex justify-center space-x-3">
+          {!scanning ? (
+            <button
+              onClick={startScanning}
+              disabled={!cameraId || loading || !permissionGranted}
+              className={`py-2 px-6 rounded-lg flex items-center ${
+                !cameraId || loading || !permissionGranted
+                  ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                  : 'bg-green-600 text-white hover:bg-green-700'
+              }`}
+            >
+              <FaCamera className="mr-2" /> Iniciar escaneig
+            </button>
           ) : (
-            /* Bag selection for new scan */
-            <div className="mt-3">
-              <h4 className="font-medium mb-2">
-                Vols afegir aquest producte a una bossa virtual?
-              </h4>
+            <>
+              <button
+                onClick={stopScanning}
+                className="bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors flex items-center"
+              >
+                <FaPowerOff className="mr-2" /> Aturar
+              </button>
               
-              {success.availableBags && success.availableBags.length > 0 ? (
-                <>
-                  <p className="text-sm text-gray-600 mb-2">
-                    Selecciona una bossa compatible amb material {success.material?.nombre}:
-                  </p>
-                  
-                  <div className="space-y-2 max-h-48 overflow-y-auto mb-3">
-                    {success.availableBags.map(bag => (
-                      <button
-                        key={bag.id}
-                        onClick={() => setSelectedBag(bag.id)}
-                        className={`w-full p-2 border rounded-lg flex justify-between items-center ${
-                          selectedBag === bag.id 
-                            ? 'bg-green-50 border-green-500' 
-                            : 'hover:bg-gray-50'
-                        }`}
-                      >
-                        <div className="flex items-center">
-                          <FaTrash className="text-gray-500 mr-2" />
-                          <span>{bag.nombre || `Bossa #${bag.id}`}</span>
-                        </div>
-                        <span className="text-sm text-green-600 font-medium">{bag.puntos_totales || 0} pts</span>
-                      </button>
-                    ))}
-                  </div>
-                  
-                  <div className="flex justify-between mt-3">
-                    <button
-                      onClick={() => {
-                        setSuccess(null);
-                        setSelectedBag(null);
-                      }}
-                      className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                    >
-                      No afegir
-                    </button>
-                    
-                    <button
-                      onClick={handleAddToBag}
-                      disabled={!selectedBag || addingToBag}
-                      className={`px-4 py-2 rounded-lg text-white ${
-                        selectedBag && !addingToBag
-                          ? 'bg-green-500 hover:bg-green-600' 
-                          : 'bg-gray-300 cursor-not-allowed'
-                      } flex items-center`}
-                    >
-                      {addingToBag ? (
-                        <>
-                          <FaSpinner className="animate-spin mr-2" />
-                          Afegint...
-                        </>
-                      ) : (
-                        'Afegir a la bossa'
-                      )}
-                    </button>
-                  </div>
-                </>
-              ) : (
-                // No compatible bags available
-                <div>
-                  <div className="bg-yellow-50 p-3 rounded-lg mb-3">
-                    <p className="text-yellow-700 flex items-center">
-                      <FaExclamationTriangle className="text-yellow-500 mr-2" />
-                      No tens cap bossa per materials de tipus <strong className="ml-1 mr-1">{success.material?.nombre}</strong>
-                    </p>
-                  </div>
-                  
-                  <div className="flex justify-between mt-3">
-                    <button
-                      onClick={() => {
-                        setSuccess(null);
-                        setSelectedBag(null);
-                      }}
-                      className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                    >
-                      No crear bossa
-                    </button>
-                    
-                    <button 
-                      onClick={handleCreateBag}
-                      disabled={creatingBag}
-                      className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center"
-                    >
-                      {creatingBag ? (
-                        <>
-                          <FaSpinner className="animate-spin mr-2" />
-                          Creant bossa...
-                        </>
-                      ) : (
-                        <>
-                          <FaPlus className="mr-2" /> Crear bossa
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              )}
-              
-              <div className="mt-3 text-center">
-                <Link 
-                  to="/virtualbags" 
-                  className="text-sm text-blue-600 hover:underline"
+              {availableCameras.length > 1 && (
+                <button
+                  onClick={switchCamera}
+                  className="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
                 >
-                  Gestionar totes les bosses
-                </Link>
-              </div>
-            </div>
+                  <FaSync className="mr-2" /> Canviar càmera
+                </button>
+              )}
+            </>
           )}
         </div>
       )}
       
-      {/* Cooldown indicator */}
+      {/* Show cooldown indicator */}
       {isCoolingDown && (
-        <div className="p-3 bg-blue-50 text-center text-sm">
+        <div className="p-3 bg-blue-50 text-center text-sm mt-3">
           <p className="text-blue-600">
             Temps de repòs: {cooldownSeconds} {cooldownSeconds === 1 ? 'segon' : 'segons'}
           </p>
         </div>
       )}
+      
+      {/* Additional Mobile Mode Switcher (fixed to bottom on small screens) */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-2 flex justify-center">
+        <button
+          onClick={toggleMode}
+          className="flex items-center justify-center bg-blue-500 text-white px-4 py-2 rounded-lg w-full max-w-xs"
+        >
+          <FaExchangeAlt className="mr-2" />
+          Canviar a {isManualMode ? 'Escàner' : 'Entrada Manual'}
+        </button>
+      </div>
     </div>
   );
-};
-
-BarcodeScanner.propTypes = {
-  onCodeScanned: PropTypes.func.isRequired,
-  className: PropTypes.string,
-  showManualInput: PropTypes.bool
 };
 
 export default BarcodeScanner;
