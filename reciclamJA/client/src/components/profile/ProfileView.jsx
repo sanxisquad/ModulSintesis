@@ -3,7 +3,7 @@ import { useAuth } from '../../../hooks/useAuth';
 import { getUserProfile, updateUserProfile } from '../../api/auth.api';
 import { useNavigate } from 'react-router-dom';
 import { FaUser, FaEnvelope, FaMapMarkerAlt, FaBuilding, FaTrophy, FaMedal, FaEdit, 
-         FaSave, FaTimes, FaEye, FaEyeSlash, FaLock, FaIdCard } from 'react-icons/fa';
+         FaSave, FaTimes, FaEye, FaEyeSlash, FaLock, FaIdCard, FaSignOutAlt } from 'react-icons/fa';
 import { UserTickets } from './UserTickets';
 import { VirtualBags } from '../recycling/VirtualBags';
 import { UserRedemptions } from './UserRedemptions';
@@ -11,7 +11,7 @@ import { usePermissions } from '../../../hooks/usePermissions';
 import { toast } from 'react-hot-toast';
 
 export const ProfileView = () => {
-    const { isAuthenticated, user } = useAuth();
+    const { isAuthenticated, user, logout } = useAuth();
     const { isUser, isGestor, isAdmin, isSuperAdmin } = usePermissions();
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -425,6 +425,12 @@ export const ProfileView = () => {
                                 <FaEdit className="mr-2" /> Editar Perfil
                             </button>
                         )}
+                        <button 
+                            onClick={() => logout()}
+                            className="bg-red-500/20 hover:bg-red-500/30 py-2 px-4 rounded-lg flex items-center text-white"
+                        >
+                            <FaSignOutAlt className="mr-2" /> Tancar Sessió
+                        </button>
                     </div>
                 </div>
 

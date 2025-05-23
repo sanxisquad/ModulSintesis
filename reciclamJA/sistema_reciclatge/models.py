@@ -123,9 +123,10 @@ class BolsaVirtual(models.Model):
         self.fecha_reciclaje = timezone.now()
         self.save()
         
-        # Añadir puntos al usuario
+        # Añadir puntos al usuario (a score y total_score)
         self.usuario.score += self.puntos_totales
-        self.usuario.save(update_fields=['score'])
+        self.usuario.total_score += self.puntos_totales
+        self.usuario.save(update_fields=['score', 'total_score'])
         
         return True
     
