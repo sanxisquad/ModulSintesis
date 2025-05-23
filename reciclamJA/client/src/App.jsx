@@ -25,6 +25,7 @@ import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
 import RecyclePage from "./pages/RecyclePage";
 import { GestorPremios } from './pages/gestor/GestorPremios';
 import { PrizesPage } from './pages/main/PrizesPage';
+import { MediaTestPage } from './pages/MediaTestPage';
 
 import { ConfirmDialogProvider } from './components/common/ConfirmDialog';
 
@@ -72,6 +73,7 @@ function App() {
               {/* Rutas protegidas de usuario */}
               <Route path="/escaneig" element={<RecyclePage />} />
               <Route path="/premis" element={<PrizesPage />} />
+              <Route path="/media-test" element={<MediaTestPage />} />
             </Routes>
           </div>
           <Toaster />

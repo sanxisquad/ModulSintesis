@@ -12,6 +12,38 @@ export const PrizeCarousel = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const { isAuthenticated, user } = useAuth();
   
+  // Enhanced debug function for image URLs
+  const debugImageUrl = (prize) => {
+    if (!prize || !prize.imagen) return;
+    
+    console.group(`🖼️ Image Debug for Prize: ${prize.nombre} (ID: ${prize.id})`);
+    console.log(`Raw image path: "${prize.imagen}"`);
+    
+    // Create various possible URLs to test
+    const baseUrl = apiConfig.getBaseUrl();
+    const possibleUrls = [
+      `${baseUrl}/media/${prize.imagen}`,
+      `${baseUrl}/${prize.imagen}`,
+      `/media/${prize.imagen}`,
+      `/${prize.imagen}`,
+    ];
+    
+    console.log('Testing URLs:', possibleUrls);
+    
+    // Create an image loader to test URLs
+    possibleUrls.forEach(url => {
+      const img = new Image();
+      img.onload = () => console.log(`✅ URL loaded successfully: ${url}`);
+      img.onerror = () => console.log(`❌ URL failed to load: ${url}`);
+      img.src = url;
+    });
+    
+    console.groupEnd();
+    
+    // Return the standard URL
+    return possibleUrls[0];
+  };
+  
   useEffect(() => {
     const fetchPrizes = async () => {
       try {
@@ -22,9 +54,13 @@ export const PrizeCarousel = () => {
         
         // Debug: Log the image paths we're receiving
         console.log("Prize images received:", availablePrizes.map(p => ({ 
+          id: p.id,
           name: p.nombre, 
           imagePath: p.imagen 
         })));
+        
+        // Test each prize image URL
+        availablePrizes.forEach(debugImageUrl);
         
         setPrizes(availablePrizes);
       } catch (error) {
@@ -36,28 +72,6 @@ export const PrizeCarousel = () => {
     
     fetchPrizes();
   }, []);
-  
-  // Helper function to handle image URLs with multiple fallbacks
-  const getImageUrl = (imagePath) => {
-    if (!imagePath) return null;
-    
-    // If it's already a full URL
-    if (imagePath.startsWith('http')) return imagePath;
-    
-    // Try multiple possible configurations - this helps debug issues
-    const possibleUrls = [
-      `${apiConfig.getBaseUrl()}/media/${imagePath}`,  // Standard: /media/prizes/image.jpg
-      `${apiConfig.getBaseUrl()}/${imagePath}`,        // No media prefix: /prizes/image.jpg
-      `/media/${imagePath}`,                          // Relative with media prefix
-      `/${imagePath}`                                 // Purely relative path
-    ];
-    
-    // Console log for debugging
-    console.log(`Image URLs being tried for ${imagePath}:`, possibleUrls);
-    
-    // Return the standard URL construction (first option)
-    return possibleUrls[0];
-  };
   
   const nextSlide = () => {
     setCurrentIndex((prevIndex) => 
@@ -114,25 +128,40 @@ export const PrizeCarousel = () => {
                       <div className="md:w-1/3 h-64 overflow-hidden">
                         {prize.imagen ? (
                           <img 
-                            src={getImageUrl(prize.imagen)}
+                            src={apiConfig.getMediaUrl(prize.imagen)}
                             alt={prize.nombre} 
                             className="w-full h-full object-cover"
                             onError={(e) => {
-                              console.error(`Error loading image: ${e.target.src}`);
-                              // Try next fallback
-                              if (e.target.src.includes('/media/')) {
-                                console.log("Trying without /media/ prefix");
-                                e.target.src = `${apiConfig.getBaseUrl()}/${prize.imagen}`;
-                              } else if (!e.target.src.startsWith(apiConfig.getBaseUrl())) {
-                                // If we're using a relative URL, try with base URL
-                                console.log("Trying with base URL");
-                                e.target.src = `${apiConfig.getBaseUrl()}/${prize.imagen}`;
+                              console.error(`❌ Error loading image: ${e.target.src}`);
+                              
+                              // Add comprehensive debugging info
+                              const img = e.target;
+                              console.group('Image Error Details');
+                              console.log('Prize:', prize);
+                              console.log('Original src:', img.src);
+                              console.log('Natural dimensions:', img.naturalWidth, 'x', img.naturalHeight);
+                              console.log('Complete URL:', img.src);
+                              console.groupEnd();
+                              
+                              // Try next fallback with delay to avoid race conditions
+                              if (img.src.includes('/media/')) {
+                                console.log("🔄 Trying without /media/ prefix");
+                                setTimeout(() => {
+                                  img.src = `${apiConfig.getBaseUrl()}/${prize.imagen}`;
+                                }, 500);
+                              } else if (!img.src.startsWith(apiConfig.getBaseUrl())) {
+                                console.log("🔄 Trying with base URL");
+                                setTimeout(() => {
+                                  img.src = `${apiConfig.getBaseUrl()}/${prize.imagen}`;
+                                }, 500);
                               } else {
                                 // If all fails, show placeholder
-                                e.target.onerror = null; // Prevent infinite loop
-                                e.target.src = "https://via.placeholder.com/300x200?text=No+Image";
+                                console.log("🔄 Using placeholder image");
+                                img.onerror = null; // Prevent infinite loop
+                                img.src = "https://via.placeholder.com/300x200?text=No+Image";
                               }
                             }}
+                            onLoad={(e) => console.log(`✅ Image loaded successfully: ${prize.nombre}`)}
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center bg-gray-200">

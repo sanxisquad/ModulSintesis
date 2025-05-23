@@ -649,7 +649,7 @@ export function VirtualBags() {
                 <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg mb-4">
                   <p className="text-yellow-700">
                     No s'han trobat contenidors de {selectedBag.tipo_material.nombre} a prop de la teva ubicació. 
-                    Si us plau, cerca un contenidor manualment.
+                    
                   </p>
                 </div>
               )}

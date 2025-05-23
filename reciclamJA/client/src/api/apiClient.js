@@ -39,26 +39,51 @@ const getBaseUrls = () => {
  * Get the complete media URL for a relative path
  */
 const getMediaUrl = (relativePath) => {
-  if (!relativePath) return null;
+  if (!relativePath) {
+    console.warn("🚫 getMediaUrl called with null/empty path");
+    return null;
+  }
   
   // If it's already a full URL
-  if (relativePath.startsWith('http')) return relativePath;
-  
-  // If we're in development environment
-  const isLocalhost = window.location.hostname === 'localhost' || 
-                     window.location.hostname === '127.0.0.1';
+  if (relativePath.startsWith('http')) {
+    console.log(`✓ Path is already a complete URL: ${relativePath}`);
+    return relativePath;
+  }
   
   // Log what we're trying to do for debugging
-  console.log(`Converting relative path: ${relativePath} to absolute URL`);
+  console.log(`🔍 Converting relative path: "${relativePath}" to absolute URL`);
   
-  // Handle both possible directory structures
+  // Generate URL based on path format
+  let finalUrl;
+  
+  // Handle different formats of image paths
   if (relativePath.startsWith('prizes/') && !relativePath.startsWith('media/prizes/')) {
-    // If the image is directly in the 'prizes' directory at root
-    return `${getBaseUrl()}/media/${relativePath}`;
+    finalUrl = `${getBaseUrl()}/media/${relativePath}`;
+    console.log(`📋 Generated media URL (prizes): ${finalUrl}`);
+  } else if (relativePath.startsWith('media/')) {
+    // If it already has media/ prefix, just add base URL
+    finalUrl = `${getBaseUrl()}/${relativePath}`;
+    console.log(`📋 Generated media URL (with media): ${finalUrl}`);
   } else {
     // Standard path with media prefix
-    return `${getBaseUrl()}/media/${relativePath}`;
+    finalUrl = `${getBaseUrl()}/media/${relativePath}`;
+    console.log(`📋 Generated standard media URL: ${finalUrl}`);
   }
+  
+  // Verify URL via fetch (for debugging purposes only)
+  fetch(finalUrl, { method: 'HEAD' })
+    .then(response => {
+      if (response.ok) {
+        console.log(`✅ Verified URL exists: ${finalUrl}`);
+      } else {
+        console.warn(`⚠️ URL returned ${response.status}: ${finalUrl}`);
+      }
+    })
+    .catch(error => {
+      console.error(`❌ Error verifying URL: ${finalUrl}`, error);
+    });
+  
+  return finalUrl;
 };
 
 const logUrlStructure = () => {
