@@ -958,10 +958,8 @@ ${debugInfo}
     const materialStyles = {
       'plastic': { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-300', icon: <FaRecycle className="mr-2 text-yellow-600" /> },
       'plastico': { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-300', icon: <FaRecycle className="mr-2 text-yellow-600" /> },
-      'plastic': { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-300', icon: <FaRecycle className="mr-2 text-yellow-600" /> },
       'paper': { bg: 'bg-blue-100', text: 'text-blue-800', border: 'border-blue-300', icon: <FaRecycle className="mr-2 text-blue-600" /> },
       'papel': { bg: 'bg-blue-100', text: 'text-blue-800', border: 'border-blue-300', icon: <FaRecycle className="mr-2 text-blue-600" /> },
-      'paper': { bg: 'bg-blue-100', text: 'text-blue-800', border: 'border-blue-300', icon: <FaRecycle className="mr-2 text-blue-600" /> },
       'glass': { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-300', icon: <FaRecycle className="mr-2 text-green-600" /> },
       'vidre': { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-300', icon: <FaRecycle className="mr-2 text-green-600" /> },
       'vidrio': { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-300', icon: <FaRecycle className="mr-2 text-green-600" /> },

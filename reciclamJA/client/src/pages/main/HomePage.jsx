@@ -11,6 +11,7 @@ import {
 } from '../../api/zr.api.js';
 import { Link } from 'react-router-dom';
 import { PrizeCarousel } from '../../components/home/PrizeCarousel';
+import { RecyclingGuideModal } from '../../components/home/RecyclingGuideModal';
 
 export const HomePage = () => {
   const { isAuthenticated } = useAuth();
@@ -20,6 +21,7 @@ export const HomePage = () => {
   const [zonas, setZonas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [recyclingGuideOpen, setRecyclingGuideOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -86,112 +88,67 @@ export const HomePage = () => {
         </section>
         
         {/* How to Recycle Section */}
-        <section id="reciclar" className="w-full py-16 bg-white">
-          <div className="max-w-6xl mx-auto px-4">
-            <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-gray-800">Com reciclar correctament</h2>
+        <section id="reciclar" className="py-16 bg-green-50">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold text-gray-800 mb-4">Com Reciclar Correctament</h2>
+              <p className="text-gray-600 max-w-3xl mx-auto">
+                Reciclar correctament és essencial per reduir l'impacte ambiental. 
+                Cada material té el seu contenidor específic.
+              </p>
+            </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {/* Contenidor Blau - Paper */}
-              <div className="bg-blue-50 p-6 rounded-lg shadow-md">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-500 flex items-center justify-center">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
+              {/* Blue Container */}
+              <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                <div className="h-24 bg-blue-500 flex items-center justify-center">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1M19 20a2 2 0 002-2V8a2 2 0 00-2-2h-1" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold text-center mb-3 text-blue-700">Contenidor Blau - Paper i Cartró</h3>
-                <ul className="space-y-2 text-gray-700">
-                  <li>• Diaris i revistes</li>
-                  <li>• Caixes de cartró (plegades)</li>
-                  <li>• Sobres i fulls de paper</li>
-                  <li>• Bosses de paper</li>
-                  <li>• Oueres de cartró</li>
-                </ul>
+                <div className="p-6">
+                  <h3 className="font-bold text-xl mb-3 text-blue-600">Contenidor Blau</h3>
+                  <p className="text-gray-600 mb-4">Paper i cartró: diaris, revistes, caixes plegades, sobres...</p>
+                </div>
               </div>
               
-              {/* Contenidor Groc - Envasos */}
-              <div className="bg-yellow-50 p-6 rounded-lg shadow-md">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-yellow-500 flex items-center justify-center">
+              {/* Yellow Container */}
+              <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                <div className="h-24 bg-yellow-500 flex items-center justify-center">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold text-center mb-3 text-yellow-700">Contenidor Groc - Plàstic i Envasos</h3>
-                <ul className="space-y-2 text-gray-700">
-                  <li>• Ampolles de plàstic</li>
-                  <li>• Envasos metàl·lics (llaunes)</li>
-                  <li>• Brics</li>
-                  <li>• Safates i film de plàstic</li>
-                  <li>• Tapes i taps de plàstic</li>
-                </ul>
+                <div className="p-6">
+                  <h3 className="font-bold text-xl mb-3 text-yellow-600">Contenidor Groc</h3>
+                  <p className="text-gray-600 mb-4">Envasos de plàstic, llaunes, brics, paper d'alumini...</p>
+                </div>
               </div>
               
-              {/* Contenidor Verd - Vidre */}
-              <div className="bg-green-50 p-6 rounded-lg shadow-md">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-500 flex items-center justify-center">
+              {/* Green Container */}
+              <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                <div className="h-24 bg-green-500 flex items-center justify-center">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold text-center mb-3 text-green-700">Contenidor Verd - Vidre</h3>
-                <ul className="space-y-2 text-gray-700">
-                  <li>• Ampolles de vidre</li>
-                  <li>• Pots de vidre</li>
-                  <li>• Flascons de vidre</li>
-                  <li>• Tarros de vidre</li>
-                  <li>• Vidre trencat</li>
-                </ul>
-              </div>
-              
-              {/* Contenidor Marró - Orgànic */}
-              <div className="bg-amber-50 p-6 rounded-lg shadow-md">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-700 flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
+                <div className="p-6">
+                  <h3 className="font-bold text-xl mb-3 text-green-600">Contenidor Verd</h3>
+                  <p className="text-gray-600 mb-4">Vidre: ampolles, pots, flascons sense taps ni tapes...</p>
                 </div>
-                <h3 className="text-xl font-bold text-center mb-3 text-amber-700">Contenidor Marró - Orgànic</h3>
-                <ul className="space-y-2 text-gray-700">
-                  <li>• Restes de menjar</li>
-                  <li>• Restes de cafè i te</li>
-                  <li>• Petites restes de jardineria</li>
-                  <li>• Paper de cuina brut</li>
-                  <li>• Taps de suro</li>
-                </ul>
               </div>
-              
-              {/* Contenidor Gris - Rebuig */}
-              <div className="bg-gray-50 p-6 rounded-lg shadow-md">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-500 flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-bold text-center mb-3 text-gray-700">Contenidor Gris - Rebuig</h3>
-                <ul className="space-y-2 text-gray-700">
-                  <li>• Articles d'higiene personal</li>
-                  <li>• Ceràmica trencada</li>
-                  <li>• Pols d'escombrar</li>
-                  <li>• Bolquers</li>
-                  <li>• Materials que no es poden reciclar</li>
-                </ul>
-              </div>
-              
-              {/* Punt Verd - Especials */}
-              <div className="bg-indigo-50 p-6 rounded-lg shadow-md">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-indigo-500 flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-bold text-center mb-3 text-indigo-700">Punt Verd - Residus Especials</h3>
-                <ul className="space-y-2 text-gray-700">
-                  <li>• Piles i bateries</li>
-                  <li>• Aparells electrònics</li>
-                  <li>• Pintures i dissolvents</li>
-                  <li>• Bombetes i fluorescents</li>
-                  <li>• Medicaments caducats</li>
-                </ul>
-              </div>
+            </div>
+            
+            <div className="text-center">
+              <button 
+                onClick={() => setRecyclingGuideOpen(true)}
+                className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors inline-flex items-center"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                </svg>
+                Veure Guia Completa de Reciclatge
+              </button>
             </div>
           </div>
         </section>
@@ -316,6 +273,12 @@ export const HomePage = () => {
           </div>
         </section>
       </main>
+      
+      {/* Recycling Guide Modal */}
+      <RecyclingGuideModal 
+        isOpen={recyclingGuideOpen} 
+        onClose={() => setRecyclingGuideOpen(false)} 
+      />
       
       {/* Footer */}
       <Footer />
