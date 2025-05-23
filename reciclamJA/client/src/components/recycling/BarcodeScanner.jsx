@@ -36,6 +36,9 @@ export const BarcodeScanner = ({ onCodeScanned, className = '', showManualInput 
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
   const [lastScannedCode, setLastScannedCode] = useState('');
   const [scanSuccess, setScanSuccess] = useState(false);
+  const [cameras, setCameras] = useState([]);
+  const [selectedCamera, setSelectedCamera] = useState(null);
+  const [isChangingCamera, setIsChangingCamera] = useState(false);
   
   // Refs
   const scannerRef = useRef(null);
@@ -44,6 +47,43 @@ export const BarcodeScanner = ({ onCodeScanned, className = '', showManualInput 
   
   // Cooldown configuration
   const COOLDOWN_DURATION = 3; // seconds
+  
+  // Get available cameras on mount
+  useEffect(() => {
+    const getCameras = async () => {
+      try {
+        const devices = await Html5Qrcode.getCameras();
+        if (devices && devices.length) {
+          setCameras(devices);
+          
+          // Try to find the back camera (environment-facing camera)
+          const backCamera = devices.find(camera => 
+            camera.label.toLowerCase().includes('back') || 
+            camera.label.toLowerCase().includes('trasera') ||
+            camera.label.toLowerCase().includes('posterior') ||
+            camera.label.toLowerCase().includes('environment') ||
+            camera.label.toLowerCase().includes('externa') ||
+            camera.label.toLowerCase().includes('principal')
+          );
+          
+          // If back camera found, use it, otherwise use the first camera
+          // For most phones, the back camera is the second one in the list, but not always
+          // If we can't identify it by label, try the second camera if there's more than one
+          const mainCamera = backCamera || 
+                             (devices.length > 1 ? devices[devices.length - 1] : devices[0]);
+          
+          console.log("Available cameras:", devices.map(d => d.label));
+          console.log("Selected camera:", mainCamera?.label);
+          
+          setSelectedCamera(mainCamera);
+        }
+      } catch (err) {
+        console.error("Error getting cameras:", err);
+      }
+    };
+    
+    getCameras();
+  }, []);
   
   // Cleanup on unmount
   useEffect(() => {
@@ -59,34 +99,49 @@ export const BarcodeScanner = ({ onCodeScanned, className = '', showManualInput 
   }, []);
   
   const startScanner = async () => {
-    if (!scannerRef.current) return;
+    if (!scannerRef.current || !selectedCamera) return;
     
     setError('');
     setIsScanning(true);
     
     try {
-      const html5QrCode = new Html5Qrcode('barcode-scanner');
-      html5QrCodeRef.current = html5QrCode;
+      // Create scanner instance
+      const scanner = new Html5Qrcode('barcode-scanner');
+      html5QrCodeRef.current = scanner;
       
-      const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+      // Scanner configuration
+      const config = { 
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: window.innerWidth < 640 ? 1.0 : 1.77, // Adjust based on screen size
+        formatsToSupport: [
+          Html5Qrcode.FORMATS.EAN_13,
+          Html5Qrcode.FORMATS.EAN_8,
+          Html5Qrcode.FORMATS.UPC_A,
+          Html5Qrcode.FORMATS.UPC_E,
+          Html5Qrcode.FORMATS.CODE_39,
+          Html5Qrcode.FORMATS.CODE_128,
+          Html5Qrcode.FORMATS.QR_CODE
+        ]
+      };
       
-      // Select back camera when possible
-      const cameras = await Html5Qrcode.getCameras();
-      const cameraId = cameras.length > 1 ? cameras[1].id : cameras[0]?.id;
-      
-      if (!cameraId) {
-        throw new Error("No es troba cap càmera");
-      }
-      
-      await html5QrCode.start(
-        cameraId,
+      await scanner.start(
+        selectedCamera.id,
         config,
         handleScanSuccess,
         handleScanError
       );
     } catch (err) {
       console.error("Error starting scanner:", err);
-      setError(err.message || "Error a l'iniciar l'escàner");
+      let errorMessage = "Error a l'iniciar l'escàner";
+      
+      if (err.message?.includes('Permission denied') || err.message?.includes('permiso denegado')) {
+        errorMessage = "Permís de càmera denegat. Si us plau, permeti l'accés a la càmera.";
+      } else if (err.message?.includes('device not found') || err.message?.includes('dispositivo no encontrado')) {
+        errorMessage = "No s'ha trobat cap càmera. Comprovi que el dispositiu té càmera.";
+      }
+      
+      setError(errorMessage);
       setIsScanning(false);
     }
   };
@@ -161,6 +216,35 @@ export const BarcodeScanner = ({ onCodeScanned, className = '', showManualInput 
       stopScanner();
     }
     setIsManualMode(!isManualMode);
+  };
+
+  const switchCamera = async () => {
+    if (cameras.length <= 1) return;
+    
+    setIsChangingCamera(true);
+    
+    // Stop current scanner if it's active
+    if (isScanning && html5QrCodeRef.current) {
+      await html5QrCodeRef.current.stop().catch(err => console.error("Error stopping camera:", err));
+      setIsScanning(false);
+    }
+    
+    // Find the next camera in the list
+    const currentIndex = cameras.findIndex(c => c.id === selectedCamera.id);
+    const nextIndex = (currentIndex + 1) % cameras.length;
+    
+    // Log the camera change
+    console.log(`Switching from camera: ${selectedCamera.label} to ${cameras[nextIndex].label}`);
+    
+    setSelectedCamera(cameras[nextIndex]);
+    setIsChangingCamera(false);
+    
+    // Restart scanner if it was active
+    if (isScanning) {
+      setTimeout(() => {
+        startScanner();
+      }, 500);
+    }
   };
 
   return (
