@@ -4,7 +4,7 @@ import {
   FaList, FaTh, FaPlus, FaExclamationTriangle, FaCheckCircle,
   FaSpinner, FaTimesCircle, FaExchangeAlt, FaUser, FaCalendarAlt
 } from 'react-icons/fa';
-import { RefreshCw } from 'lucide-react'; // Add this import
+import { RefreshCw } from 'lucide-react';
 import { 
   getAllPrizes, createPrize, updatePrize, deletePrize,
   getCompanyRedemptions, getAllRedemptions, handleApiError
@@ -429,7 +429,7 @@ export function GestorPremios() {
                     <div className="h-48 bg-gray-200">
                       {premio.imagen ? (
                         <img 
-                          src={premio.imagen} 
+                          src={apiConfig.getMediaUrl(premio.imagen)} 
                           alt={premio.nombre} 
                           className="w-full h-full object-cover"
                         />
@@ -510,7 +510,7 @@ export function GestorPremios() {
                             <div className="h-10 w-10 flex-shrink-0">
                               {premio.imagen ? (
                                 <img 
-                                  src={premio.imagen} 
+                                  src={apiConfig.getMediaUrl(premio.imagen)} 
                                   alt={premio.nombre} 
                                   className="h-10 w-10 rounded-full object-cover"
                                 />

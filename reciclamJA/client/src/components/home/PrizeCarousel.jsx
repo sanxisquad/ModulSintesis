@@ -4,6 +4,7 @@ import { getAllPrizes } from '../../api/premio.api';
 import { useAuth } from '../../../hooks/useAuth';
 import { FaGift, FaArrowLeft, FaArrowRight, FaCoins } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
+import apiConfig from '../../api/apiClient';
 
 export const PrizeCarousel = () => {
   const [prizes, setPrizes] = useState([]);
@@ -18,6 +19,13 @@ export const PrizeCarousel = () => {
         const response = await getAllPrizes();
         // Only show prizes with available quantity
         const availablePrizes = response.data.filter(prize => prize.cantidad > 0);
+        
+        // Debug: Log the image paths we're receiving
+        console.log("Prize images received:", availablePrizes.map(p => ({ 
+          name: p.nombre, 
+          imagePath: p.imagen 
+        })));
+        
         setPrizes(availablePrizes);
       } catch (error) {
         console.error("Error loading prizes:", error);
@@ -28,6 +36,28 @@ export const PrizeCarousel = () => {
     
     fetchPrizes();
   }, []);
+  
+  // Helper function to handle image URLs with multiple fallbacks
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) return null;
+    
+    // If it's already a full URL
+    if (imagePath.startsWith('http')) return imagePath;
+    
+    // Try multiple possible configurations - this helps debug issues
+    const possibleUrls = [
+      `${apiConfig.getBaseUrl()}/media/${imagePath}`,  // Standard: /media/prizes/image.jpg
+      `${apiConfig.getBaseUrl()}/${imagePath}`,        // No media prefix: /prizes/image.jpg
+      `/media/${imagePath}`,                          // Relative with media prefix
+      `/${imagePath}`                                 // Purely relative path
+    ];
+    
+    // Console log for debugging
+    console.log(`Image URLs being tried for ${imagePath}:`, possibleUrls);
+    
+    // Return the standard URL construction (first option)
+    return possibleUrls[0];
+  };
   
   const nextSlide = () => {
     setCurrentIndex((prevIndex) => 
@@ -80,13 +110,29 @@ export const PrizeCarousel = () => {
                 <div key={prize.id} className="w-full flex-shrink-0 px-4">
                   <div className="bg-white rounded-lg shadow-md overflow-hidden">
                     <div className="flex flex-col md:flex-row">
-                      {/* Image */}
+                      {/* Image with onerror fallback */}
                       <div className="md:w-1/3 h-64 overflow-hidden">
                         {prize.imagen ? (
                           <img 
-                            src={prize.imagen} 
+                            src={getImageUrl(prize.imagen)}
                             alt={prize.nombre} 
                             className="w-full h-full object-cover"
+                            onError={(e) => {
+                              console.error(`Error loading image: ${e.target.src}`);
+                              // Try next fallback
+                              if (e.target.src.includes('/media/')) {
+                                console.log("Trying without /media/ prefix");
+                                e.target.src = `${apiConfig.getBaseUrl()}/${prize.imagen}`;
+                              } else if (!e.target.src.startsWith(apiConfig.getBaseUrl())) {
+                                // If we're using a relative URL, try with base URL
+                                console.log("Trying with base URL");
+                                e.target.src = `${apiConfig.getBaseUrl()}/${prize.imagen}`;
+                              } else {
+                                // If all fails, show placeholder
+                                e.target.onerror = null; // Prevent infinite loop
+                                e.target.src = "https://via.placeholder.com/300x200?text=No+Image";
+                              }
+                            }}
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center bg-gray-200">

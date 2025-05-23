@@ -35,6 +35,32 @@ const getBaseUrls = () => {
   };
 };
 
+/**
+ * Get the complete media URL for a relative path
+ */
+const getMediaUrl = (relativePath) => {
+  if (!relativePath) return null;
+  
+  // If it's already a full URL
+  if (relativePath.startsWith('http')) return relativePath;
+  
+  // If we're in development environment
+  const isLocalhost = window.location.hostname === 'localhost' || 
+                     window.location.hostname === '127.0.0.1';
+  
+  // Log what we're trying to do for debugging
+  console.log(`Converting relative path: ${relativePath} to absolute URL`);
+  
+  // Handle both possible directory structures
+  if (relativePath.startsWith('prizes/') && !relativePath.startsWith('media/prizes/')) {
+    // If the image is directly in the 'prizes' directory at root
+    return `${getBaseUrl()}/media/${relativePath}`;
+  } else {
+    // Standard path with media prefix
+    return `${getBaseUrl()}/media/${relativePath}`;
+  }
+};
+
 const logUrlStructure = () => {
   const urls = getBaseUrls();
   console.log('🔍 API URL Structure:', {
@@ -52,6 +78,7 @@ logUrlStructure();
 const apiConfig = {
   getBaseUrl,
   getBaseUrls,
+  getMediaUrl,
   logUrlStructure
 };
 

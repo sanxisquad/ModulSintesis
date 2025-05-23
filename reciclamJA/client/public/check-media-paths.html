@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Media Path Checker</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .success { color: green; }
+        .error { color: red; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        img { max-height: 100px; }
+    </style>
+</head>
+<body>
+    <h1>Media Path Checker</h1>
+    <p>This tool checks if your media files are accessible through different URL patterns.</p>
+    
+    <div id="base-info">
+        <p>Base URL: <span id="base-url"></span></p>
+        <p>Protocol: <span id="protocol"></span></p>
+        <p>Hostname: <span id="hostname"></span></p>
+    </div>
+    
+    <h2>Enter a prize image path:</h2>
+    <input type="text" id="image-path" placeholder="e.g. prizes/1.jpg" style="width: 300px; padding: 5px;">
+    <button onclick="checkPaths()">Check Paths</button>
+    
+    <div id="results">
+        <table id="results-table" style="display: none;">
+            <thead>
+                <tr>
+                    <th>Path Type</th>
+                    <th>Full URL</th>
+                    <th>Status</th>
+                    <th>Preview</th>
+                </tr>
+            </thead>
+            <tbody id="results-body">
+            </tbody>
+        </table>
+    </div>
+    
+    <script>
+        document.getElementById('base-url').textContent = window.location.origin;
+        document.getElementById('protocol').textContent = window.location.protocol;
+        document.getElementById('hostname').textContent = window.location.hostname;
+        
+        async function checkPaths() {
+            const imagePath = document.getElementById('image-path').value.trim();
+            if (!imagePath) {
+                alert('Please enter an image path');
+                return;
+            }
+            
+            const baseUrl = window.location.origin;
+            const paths = [
+                { type: 'Standard media path', url: `${baseUrl}/media/${imagePath}` },
+                { type: 'Direct path (no media)', url: `${baseUrl}/${imagePath}` },
+                { type: 'Just media prefix', url: `/media/${imagePath}` },
+                { type: 'Relative path only', url: `/${imagePath}` }
+            ];
+            
+            const resultsTable = document.getElementById('results-table');
+            const resultsBody = document.getElementById('results-body');
+            resultsBody.innerHTML = '';
+            
+            for (const path of paths) {
+                const row = document.createElement('tr');
+                
+                // Path type
+                const typeCell = document.createElement('td');
+                typeCell.textContent = path.type;
+                row.appendChild(typeCell);
+                
+                // Full URL
+                const urlCell = document.createElement('td');
+                urlCell.textContent = path.url;
+                row.appendChild(urlCell);
+                
+                // Status cell (will be updated)
+                const statusCell = document.createElement('td');
+                statusCell.textContent = 'Checking...';
+                row.appendChild(statusCell);
+                
+                // Preview cell (will be updated)
+                const previewCell = document.createElement('td');
+                previewCell.textContent = 'Loading...';
+                row.appendChild(previewCell);
+                
+                resultsBody.appendChild(row);
+                
+                // Check if the image exists
+                const img = new Image();
+                img.onload = () => {
+                    statusCell.textContent = 'Success ✅';
+                    statusCell.className = 'success';
+                    previewCell.textContent = '';
+                    previewCell.appendChild(img);
+                };
+                img.onerror = () => {
+                    statusCell.textContent = 'Failed ❌';
+                    statusCell.className = 'error';
+                    previewCell.textContent = 'Image not found';
+                };
+                img.src = path.url;
+                img.style.maxHeight = '100px';
+            }
+            
+            resultsTable.style.display = 'table';
+        }
+    </script>
+</body>
+</html>

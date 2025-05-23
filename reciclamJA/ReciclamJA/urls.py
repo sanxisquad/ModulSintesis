@@ -3,6 +3,8 @@ from django.urls import path, include
 from rest_framework.documentation import include_docs_urls
 from rest_framework.routers import DefaultRouter
 from sistema_reciclatge.api import PrizeViewSet, PrizeRedemptionViewSet
+from django.conf import settings
+from django.conf.urls.static import static
 
 router = DefaultRouter()
 router.register(r'premios', PrizeViewSet)
@@ -22,3 +24,7 @@ urlpatterns = [
     # Documentation
     path('docs/', include_docs_urls(title='API Documentation')),
 ]
+
+# Serve media files in development
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
