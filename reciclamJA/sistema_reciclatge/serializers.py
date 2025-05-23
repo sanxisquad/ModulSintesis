@@ -49,19 +49,29 @@ class CodigoBarrasSerializer(serializers.Serializer):
 
 class PrizeSerializer(serializers.ModelSerializer):
     empresa_nombre = serializers.SerializerMethodField()
+    empresa_data = serializers.SerializerMethodField()
     creado_por_nombre = serializers.SerializerMethodField()
     
     class Meta:
         model = Prize
         fields = [
             'id', 'nombre', 'descripcion', 'imagen', 'puntos_costo', 
-            'cantidad', 'empresa', 'empresa_nombre', 'creado_por',
+            'cantidad', 'empresa', 'empresa_data', 'empresa_nombre', 'creado_por',
             'creado_por_nombre', 'fecha_creacion', 'activo'
         ]
         read_only_fields = ['creado_por', 'fecha_creacion']
     
     def get_empresa_nombre(self, obj):
         return obj.empresa.nom if obj.empresa else None
+    
+    def get_empresa_data(self, obj):
+        if obj.empresa:
+            return {
+                'id': obj.empresa.id,
+                'nom': obj.empresa.nom,
+                'email': obj.empresa.email
+            }
+        return None
     
     def get_creado_por_nombre(self, obj):
         return obj.creado_por.username

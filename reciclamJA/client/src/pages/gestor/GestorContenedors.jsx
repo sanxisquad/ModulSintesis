@@ -8,13 +8,19 @@ import { getAllContenedors, getAllZones } from '../../api/zr.api.js';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { 
   RefreshCw, Search, PlusCircle, Edit, Trash2, Trash, MapPin, Filter,
-  Database, CircleAlert, ChevronUp, ChevronDown, List, Map
+  Database, CircleAlert, ChevronUp, ChevronDown, List, Map, Building
 } from 'lucide-react';
+import { useAuth } from '../../../hooks/useAuth';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 export function GestorContenedors() {
   const { menuOpen } = useMenu();
+  const { user } = useAuth();
+  const { isSuperAdmin } = usePermissions();
   const [contenedores, setContenedores] = useState([]);
   const [zonas, setZonas] = useState([]);
+  const [empresas, setEmpresas] = useState([]);
+  const [selectedEmpresa, setSelectedEmpresa] = useState('all');
   const [isLoading, setIsLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState('list'); // 'list' o 'map'
@@ -42,6 +48,19 @@ export function GestorContenedors() {
         ]);
         setContenedores(contenedoresRes.data);
         setZonas(zonasRes.data);
+        
+        // Si es superadmin, obtener empresas únicas de las zonas
+        if (isSuperAdmin) {
+          const uniqueEmpresas = zonasRes.data
+            .filter(zona => zona.empresa)
+            .reduce((acc, zona) => {
+              if (!acc.find(emp => emp.id === zona.empresa.id)) {
+                acc.push(zona.empresa);
+              }
+              return acc;
+            }, []);
+          setEmpresas(uniqueEmpresas);
+        }
       } catch (error) {
         console.error("Error loading data:", error);
       } finally {
@@ -50,7 +69,7 @@ export function GestorContenedors() {
     };
     
     loadData();
-  }, []);
+  }, [isSuperAdmin]);
 
   // Obtener opciones únicas para los filtros
   const ciudadesOptions = [...new Set(contenedores.map(c => c.ciutat).filter(Boolean))];
@@ -78,13 +97,20 @@ export function GestorContenedors() {
   
   const COLORS = ['#FF8042', '#FFBB28', '#00C49F'];
 
-  // Filtrar contenedores basado en los filtros
+  // Filtrar contenedores basado en los filtros y empresa
   const filteredContenedores = contenedores.filter(c => {
     if (filters.ciutat && c.ciutat !== filters.ciutat) return false;
     if (filters.zona && c.zona !== Number(filters.zona)) return false;
-    if (selectedEstat && c.estat !== selectedEstat) return false; // Use the new selectedEstat instead
+    if (selectedEstat && c.estat !== selectedEstat) return false;
     if (filters.tipus && c.tipus !== filters.tipus) return false;
     if (filters.codi && !c.cod?.toLowerCase().includes(filters.codi.toLowerCase())) return false;
+    
+    // Filtro por empresa para superadmin
+    if (isSuperAdmin && selectedEmpresa !== 'all') {
+      const zona = zonas.find(z => z.id === c.zona);
+      if (!zona || zona.empresa?.id !== parseInt(selectedEmpresa)) return false;
+    }
+    
     return true;
   });
 
@@ -108,14 +134,35 @@ export function GestorContenedors() {
       <div className="max-w-7xl mx-auto">
         {/* Encabezado */}
         <div className="pb-5 border-b border-gray-200 mb-6">
-          <div className="flex items-center">
-            <div className="bg-blue-100 p-2 rounded-full mr-3">
-              <Database className="h-5 w-5 text-blue-600" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="bg-blue-100 p-2 rounded-full mr-3">
+                <Database className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-800">Gestió de Contenidors</h1>
+                <p className="text-gray-500 text-sm">Administració i control de contenidors del sistema</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-800">Gestió de Contenidors</h1>
-              <p className="text-gray-500 text-sm">Administració i control de contenidors del sistema</p>
-            </div>
+            
+            {/* Selector de empresas para superadmin */}
+            {isSuperAdmin && empresas.length > 0 && (
+              <div className="flex items-center space-x-2">
+                <Building className="h-4 w-4 text-gray-500" />
+                <select
+                  value={selectedEmpresa}
+                  onChange={(e) => setSelectedEmpresa(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="all">Totes les empreses</option>
+                  {empresas.map(empresa => (
+                    <option key={empresa.id} value={empresa.id}>
+                      {empresa.nom}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
         </div>
         

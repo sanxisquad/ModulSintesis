@@ -1,17 +1,19 @@
 import { 
   Clock, RefreshCw, CheckCircle2, XCircle, 
   User, Calendar, MapPin, MessageSquare,
-  Flag
+  Flag, Building
 } from 'lucide-react';
 import { useState } from 'react';
 import { resolveReporte, rejectReporte, processReporte } from '../../api/zr.api';
 import { useNavigate } from 'react-router-dom';
 import { useConfirm } from '../common/ConfirmDialog';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 export function TiquetCard({ tiquet, onUpdateTiquet }) {
   const [loading, setLoading] = useState(false);
   const confirm = useConfirm();
   const navigate = useNavigate();
+  const { isSuperAdmin } = usePermissions();
   
   const getTraduccionTipo = (tipo) => {
     switch(tipo) {
@@ -204,6 +206,13 @@ export function TiquetCard({ tiquet, onUpdateTiquet }) {
                tiquet.zona ? `Zona #${tiquet.zona}` : 'No especificat'}
             </span>
           </div>
+          {/* Mostrar empresa del usuario si está disponible */}
+          {tiquet.usuario_data?.empresa?.nom && (
+            <div className="flex items-center col-span-2">
+              <Building className="h-4 w-4 mr-1 text-gray-500" />
+              <span className="text-gray-600">{tiquet.usuario_data.empresa.nom}</span>
+            </div>
+          )}
         </div>
       </div>
       

@@ -82,4 +82,3 @@ export function ZonesReciclatgeCard({ zones }) {
     </div>
   );
 }
-

@@ -43,11 +43,21 @@ class ContenedorSerializer(serializers.ModelSerializer):
         required=False  
     )
     zona_nombre = serializers.CharField(source='zona.nom', read_only=True)
+    zona_data = serializers.SerializerMethodField()
     empresa = EmpresaSerializer(read_only=True)  # Solo lectura, la asignamos en `create`
 
     class Meta:
         model = Contenedor
-        fields = ['id', 'zona', 'empresa', 'tipus', 'estat','zona_nombre', 'latitud', 'longitud', 'ciutat', 'cod']
+        fields = ['id', 'zona', 'zona_data', 'empresa', 'tipus', 'estat','zona_nombre', 'latitud', 'longitud', 'ciutat', 'cod']
+
+    def get_zona_data(self, obj):
+        if obj.zona:
+            return {
+                'id': obj.zona.id,
+                'nom': obj.zona.nom,
+                'empresa': EmpresaSerializer(obj.zona.empresa).data if obj.zona.empresa else None
+            }
+        return None
 
     def create(self, validated_data):
         """Asigna automáticamente la empresa del usuario autenticado al crear un contenedor."""
@@ -55,10 +65,9 @@ class ContenedorSerializer(serializers.ModelSerializer):
         validated_data['empresa'] = user.empresa
         return super().create(validated_data)
 
-
 class ReporteContenedorSerializer(serializers.ModelSerializer):
     usuario = serializers.HiddenField(default=serializers.CurrentUserDefault())
-    usuario_data = UserBasicSerializer(source='usuario', read_only=True)
+    usuario_data = serializers.SerializerMethodField()
     tipo_objeto = serializers.ChoiceField(
         choices=[('contenedor', 'Contenedor'), ('zona', 'Zona')],
         write_only=True,
@@ -74,6 +83,15 @@ class ReporteContenedorSerializer(serializers.ModelSerializer):
             'contenedor', 'zona','fecha_resolucion'
         ]
         read_only_fields = ['id', 'fecha', 'estado', 'contenedor', 'zona']
+
+    def get_usuario_data(self, obj):
+        if obj.usuario:
+            user_data = UserBasicSerializer(obj.usuario).data
+            # Añadir información de empresa si existe
+            if obj.usuario.empresa:
+                user_data['empresa'] = EmpresaSerializer(obj.usuario.empresa).data
+            return user_data
+        return None
 
     def validate(self, data):
         tipo_objeto = data.get('tipo_objeto')

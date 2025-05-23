@@ -1,8 +1,10 @@
 import { useNavigate } from "react-router-dom";
-import { Trash2, MapPin, AlertTriangle } from "lucide-react";
+import { Trash2, MapPin, AlertTriangle, Building } from "lucide-react";
+import { usePermissions } from "../../../hooks/usePermissions";
 
 export function ContenedorCard({ contenedor }) {
     const navigate = useNavigate();
+    const { isSuperAdmin } = usePermissions();
   
     const getColor = (estat) => {
       switch (estat) {
@@ -97,7 +99,7 @@ export function ContenedorCard({ contenedor }) {
           </span>
         </div>
         
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-2">
           <div className="flex items-center">
             {/* Colored circle indicator for container type */}
             <div className={`w-3 h-3 rounded-full mr-1.5 ${getTipusBgColor(contenedor.tipus)}`}></div>
@@ -115,6 +117,16 @@ export function ContenedorCard({ contenedor }) {
             </span>
           )}
         </div>
+        
+        {/* Mostrar empresa de la zona si está disponible */}
+        {contenedor.zona_data?.empresa?.nom && (
+          <div className="mt-2 pt-2 border-t border-gray-100">
+            <div className="flex items-center">
+              <Building className="h-3.5 w-3.5 text-gray-500 mr-1.5" />
+              <span className="text-xs text-gray-600">{contenedor.zona_data.empresa.nom}</span>
+            </div>
+          </div>
+        )}
       </div>
     );
 }

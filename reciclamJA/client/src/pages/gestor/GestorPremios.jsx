@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   FaUpload, FaGift, FaCoins, FaTrash, FaEdit, FaSearch, 
   FaList, FaTh, FaPlus, FaExclamationTriangle, FaCheckCircle,
-  FaSpinner, FaTimesCircle, FaExchangeAlt, FaUser, FaCalendarAlt
+  FaSpinner, FaTimesCircle, FaExchangeAlt, FaUser, FaCalendarAlt,
+  FaBuilding
 } from 'react-icons/fa';
 import { RefreshCw } from 'lucide-react';
 import { 
@@ -44,6 +45,8 @@ export function GestorPremios() {
   }
 
   const [premios, setPremios] = useState([]);
+  const [empresas, setEmpresas] = useState([]);
+  const [selectedEmpresa, setSelectedEmpresa] = useState('all');
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState('create'); // 'create' or 'edit'
   const [currentPrize, setCurrentPrize] = useState(null);
@@ -80,6 +83,20 @@ export function GestorPremios() {
       setLoading(true);
       const response = await getAllPrizes();
       setPremios(response.data);
+      
+      // Si es superadmin, obtener empresas únicas
+      if (isSuperAdmin) {
+        const uniqueEmpresas = response.data
+          .filter(premio => premio.empresa)
+          .reduce((acc, premio) => {
+            if (!acc.find(emp => emp.id === premio.empresa.id)) {
+              acc.push(premio.empresa);
+            }
+            return acc;
+          }, []);
+        setEmpresas(uniqueEmpresas);
+      }
+      
       setError(null);
       setLoading(false);
     } catch (error) {
@@ -174,11 +191,14 @@ export function GestorPremios() {
     }
   };
 
-  // Filter prizes based on search input
-  const filteredPremios = premios.filter(premio => 
-    premio.nombre.toLowerCase().includes(filter.toLowerCase()) ||
-    premio.descripcion.toLowerCase().includes(filter.toLowerCase())
-  );
+  // Filter prizes based on search input and empresa
+  const filteredPremios = premios.filter(premio => {
+    const matchesSearch = premio.nombre.toLowerCase().includes(filter.toLowerCase()) ||
+                         premio.descripcion.toLowerCase().includes(filter.toLowerCase());
+    const matchesEmpresa = selectedEmpresa === 'all' || 
+                          premio.empresa?.id === parseInt(selectedEmpresa);
+    return matchesSearch && matchesEmpresa;
+  });
 
   // Filtrar redenciones según búsqueda
   const filteredRedemptions = redemptions.filter(redemption => 
@@ -340,14 +360,35 @@ export function GestorPremios() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="pb-5 border-b border-gray-200 mb-6">
-          <div className="flex items-center">
-            <div className="bg-purple-100 p-2 rounded-full mr-3">
-              <FaGift className="h-5 w-5 text-purple-600" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="bg-purple-100 p-2 rounded-full mr-3">
+                <FaGift className="h-5 w-5 text-purple-600" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-800">Gestió de Premis</h1>
+                <p className="text-gray-500 text-sm">Administració de premis i seguiment de redempcions</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-800">Gestió de Premis</h1>
-              <p className="text-gray-500 text-sm">Administració de premis i seguiment de redempcions</p>
-            </div>
+            
+            {/* Selector de empresas para superadmin */}
+            {isSuperAdmin && empresas.length > 0 && activeTab === 'prizes' && (
+              <div className="flex items-center space-x-2">
+                <FaBuilding className="h-4 w-4 text-gray-500" />
+                <select
+                  value={selectedEmpresa}
+                  onChange={(e) => setSelectedEmpresa(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                >
+                  <option value="all">Totes les empreses</option>
+                  {empresas.map(empresa => (
+                    <option key={empresa.id} value={empresa.id}>
+                      {empresa.nom}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
         </div>
         
