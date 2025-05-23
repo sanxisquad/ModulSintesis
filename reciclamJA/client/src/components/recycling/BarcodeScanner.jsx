@@ -1047,7 +1047,23 @@ ${debugInfo}
 
   return (
 <div className="bg-white rounded-2xl shadow-xl max-w-2xl mx-auto overflow-hidden border border-gray-100">
-
+  {/* Header con gradiente mejorado */}
+  <div className="bg-gradient-to-r from-green-600 via-green-500 to-emerald-500 p-6 text-white relative overflow-hidden">
+    <div className="absolute inset-0 bg-black bg-opacity-10"></div>
+    <div className="relative z-10">
+      <div className="flex items-center">
+        <div className="bg-white bg-opacity-20 p-3 rounded-xl mr-4">
+          <FaBarcode className="text-2xl" />
+        </div>
+        <div>
+          <h2 className="text-2xl font-bold">Escaneja i recicla</h2>
+          <p className="text-green-100 text-sm mt-1">Guanya punts reciclant productes</p>
+        </div>
+      </div>
+    </div>
+    <div className="absolute top-0 right-0 w-32 h-32 bg-white bg-opacity-10 rounded-full -mr-16 -mt-16"></div>
+    <div className="absolute bottom-0 left-0 w-24 h-24 bg-white bg-opacity-10 rounded-full -ml-12 -mb-12"></div>
+  </div>
 
   <div className="p-6">
     {/* Toggle más moderno */}
