@@ -14,12 +14,7 @@ import {
   FaEye,
   FaTrash,
   FaRecycle,
-  FaPlus,
-  FaSpinner,
-  FaTimes,
-  FaKeyboard,
-  FaSearch,
-  FaExchangeAlt
+  FaPlus
 } from 'react-icons/fa';
 import { useAuth } from '../../../hooks/useAuth';
 import { escanearCodigo, agregarProductoABolsa, crearBolsa } from '../../api/reciclajeApi';
@@ -38,22 +33,11 @@ const BarcodeScanner = ({ onScanComplete }) => {
   const [debugInfo, setDebugInfo] = useState('');
   const [permissionGranted, setPermissionGranted] = useState(false);
   const { user } = useAuth();
+  const [cameraOnCooldown, setCameraOnCooldown] = useState(false);
+  const [cooldownTimeLeft, setCooldownTimeLeft] = useState(0);
+  const cooldownIntervalRef = useRef(null);
   
   const scannerContainerRef = useRef(null);
-  
-  // Cooldown states
-  const [isCoolingDown, setIsCoolingDown] = useState(false);
-  const [cooldownSeconds, setCooldownSeconds] = useState(0);
-  const [lastScannedCode, setLastScannedCode] = useState('');
-  
-  // Ref for cooldown timer
-  const cooldownTimerRef = useRef(null);
-  
-  // Const for cooldown duration
-  const COOLDOWN_DURATION = 3; // seconds
-  
-  // Modo manual
-  const [isManualMode, setIsManualMode] = useState(false);
   
   // Función para mostrar errores y registrarlos
   const logError = (message, error) => {
@@ -237,32 +221,56 @@ const BarcodeScanner = ({ onScanComplete }) => {
       });
     });
   };
+  const startCameraCooldown = (durationSeconds = 3) => {
+  setCameraOnCooldown(true);
+  setCooldownTimeLeft(durationSeconds);
+  
+  // Limpiar cualquier intervalo existente
+  if (cooldownIntervalRef.current) {
+    clearInterval(cooldownIntervalRef.current);
+  }
+  
+  // Iniciar un intervalo para actualizar el temporizador
+  cooldownIntervalRef.current = setInterval(() => {
+    setCooldownTimeLeft(prev => {
+      const newValue = prev - 1;
+      if (newValue <= 0) {
+        clearInterval(cooldownIntervalRef.current);
+        setCameraOnCooldown(false);
+        return 0;
+      }
+      return newValue;
+    });
+  }, 1000);
+};
   
   // Limpiar al desmontar
-  useEffect(() => {
-    return () => {
-      if (html5QrCode && html5QrCode.isScanning) {
-        html5QrCode.stop()
-          .then(() => console.log('Scanner stopped'))
-          .catch(err => console.error('Error stopping scanner:', err));
-      }
-      
-      // Limpiar timer de cooldown si existe
-      if (cooldownTimerRef.current) {
-        clearInterval(cooldownTimerRef.current);
-      }
-    };
-  }, [html5QrCode]);
+useEffect(() => {
+  return () => {
+    if (cooldownIntervalRef.current) {
+      clearInterval(cooldownIntervalRef.current);
+    }
+  };
+}, []);
   
   // Función para iniciar el escaneo
-  const startScanning = () => {
-    if (!html5QrCode || !cameraId) {
+// Modificar la función startScanning
+
+const startScanning = () => {
+  if (!html5QrCode || !cameraId || cameraOnCooldown) {
+    if (cameraOnCooldown) {
+      toast.error(`Has d'esperar ${cooldownTimeLeft} segons abans de tornar a escanejar`);
+    } else {
       logError('Escàner no inicialitzat o càmera no seleccionada');
-      return;
     }
-    
-    startScanningWithCamera(html5QrCode, cameraId);
-  };
+    return;
+  }
+  
+  // Iniciar un pequeño cooldown para evitar múltiples clics rápidos
+  startCameraCooldown(2);
+  
+  startScanningWithCamera(html5QrCode, cameraId);
+};
   
   // Función para detener el escaneo
   const stopScanning = () => {
@@ -296,138 +304,133 @@ const BarcodeScanner = ({ onScanComplete }) => {
   
   // Manejar el éxito del escaneo
  const onScanSuccess = (decodedText) => {
-  // Comprobar si el código es diferente del último escaneado o si el cooldown ha terminado
-  if (decodedText !== lastScannedCode || !isCoolingDown) {
-    console.log("Código escaneado con éxito:", decodedText);
-    setLastScannedCode(decodedText);
-    
-    // Feedback visual por el éxito
-    setScanning(false);
-    setResult(null);
-    setError('');
-    setLoading(true);
-    
-    // Usar el servicio API con manejo de errores mejorado
-    escanearCodigo(decodedText)
-      .then(response => {
-        console.log("Respuesta de escaneo:", response);
-        
-        // Si la respuesta contiene un error controlado
-        if (response && response.error) {
-          // Verificar específicamente si es un error de cooldown
-          if (response.tipo === "cooldown" && response.tiempo_restante) {
-            // Mostrar toast para errores de cooldown
-            toast.error(
-              `Has d'esperar ${response.tiempo_restante.minuts} minut${response.tiempo_restante.minuts !== 1 ? 's' : ''} i ${response.tiempo_restante.segons} segon${response.tiempo_restante.segons !== 1 ? 's' : ''} abans de tornar a escanejar aquest producte`, 
-              {
-                duration: 5000,
-                icon: '⏱️',
-              }
-            );
-            // No almacenar el resultado para cooldown
-            setResult(null);
-          } else if (response.tipo === "url_error") {
-            // Para errores de URL, mantener el comportamiento actual
-            setResult(response);
-            toast.error('No s\'ha pogut connectar amb el servidor. URL incorrecta.');
-            console.error("Detalle de error de URL:", response.detalle);
-            
-            // Añadir información de depuración
-            setDebugInfo(prev => prev + '\n' + new Date().toISOString() + ': Error de URL: ' + response.detalle);
-          } else {
-            // Otros errores
-            setResult(response);
-            toast.error(response.mensaje || 'Error al processar el codi');
-          }
-          return;
-        }
-        
-        // Respuesta exitosa - mostrar modal de selección de bolsa automáticamente
-        setResult(response);
-        
-        // Verificar si hay bolsas disponibles del mismo material
-        const bolsasCompatibles = response.bolsas_disponibles || [];
-        
-        // Establecer el estado para mostrar el modal de selección
-        setSuccess({
-          product: response.producto,
-          points: response.puntos_nuevos,
-          totalPoints: response.puntos_totales,
-          material: response.material,
-          availableBags: bolsasCompatibles,
-          addedToBag: response.agregado_a_bolsa,
-          bagInfo: response.bolsa
-        });
-        
-        // Llamar al callback para informar al componente padre
-        if (onScanComplete) {
-          onScanComplete(response);
-        }
-      })
-      .catch(error => {
-        console.error("Error completo:", error);
-        
-        // Verificar si la respuesta incluye datos sobre cooldown
-        if (error.response && error.response.data && error.response.data.tipo === 'cooldown') {
-          const cooldownData = error.response.data;
-          
-          // Mostrar toast para cooldown con la información de tiempo restante
+  // Detenemos el escaneo después de un resultado exitoso
+  stopScanning();
+  
+  startCameraCooldown(5);
+  
+  setLoading(true);
+  
+  // Usar el servicio API con manejo de errores mejorado
+  escanearCodigo(decodedText)
+    .then(response => {
+      console.log("Respuesta de escaneo:", response);
+      
+      // Si la respuesta contiene un error controlado
+      if (response && response.error) {
+        // Verificar específicamente si es un error de cooldown
+        if (response.tipo === "cooldown" && response.tiempo_restante) {
+          // Mostrar toast para errores de cooldown
           toast.error(
-            `Has d'esperar ${cooldownData.tiempo_restante.minuts} minut${cooldownData.tiempo_restante.minuts !== 1 ? 's' : ''} i ${cooldownData.tiempo_restante.segons} segon${cooldownData.tiempo_restant.segons !== 1 ? 's' : ''} abans de tornar a escanejar aquest producte`, 
+            `Has d'esperar ${response.tiempo_restante.minutos} minut${response.tiempo_restante.minutos !== 1 ? 's' : ''} i ${response.tiempo_restante.segundos} segon${response.tiempo_restante.segons !== 1 ? 's' : ''} abans de tornar a escanejar aquest producte`, 
             {
               duration: 5000,
               icon: '⏱️',
             }
           );
+          // No almacenar el resultado para cooldown
+          setResult(null);
+        } else if (response.tipo === "url_error") {
+          // Para errores de URL, mantener el comportamiento actual
+          setResult(response);
+          toast.error('No s\'ha pogut connectar amb el servidor. URL incorrecta.');
+          console.error("Detalle de error de URL:", response.detalle);
           
-          // Añadir detalles al log de depuración
-          setDebugInfo(prev => prev + '\nCooldown detectado para código: ' + decodedText);
-        } else if (error.response) {
-          // El servidor respondió con un código de estado diferente de 2xx
-          const errorData = error.response.data;
-          const errorMessage = errorData.error || errorData.message || 'Error al processar el codi';
-          const errorDetail = errorData.detail || '';
-          
-          logError(`${errorMessage}${errorDetail ? ': ' + errorDetail : ''}`);
-          
-          // Si es un error específico (producto ya reciclado, no encontrado, etc.) mostrarlo de forma amigable
-          if (errorData.error === 'Ja has reciclat aquest producte en les últimes 24 hores') {
-            toast.error('Aquest producte ja ha estat reciclat avui. Prova demà o amb un altre producte.');
-          } else if (errorData.error === 'Producte no trobat') {
-            toast.error('No hem pogut identificar aquest producte. Prova amb un altre.');
-          } else if (errorData.error === 'No s\'ha pogut determinar el material') {
-            toast.error('No hem pogut identificar el material d\'aquest producte.');
-          }
-          
-          // Añadir detalles adicionales al registro de depuración
-          if (errorData.producto) {
-            setDebugInfo(prev => prev + '\nDetalle del producto: ' + JSON.stringify(errorData.producto));
-          }
-        } else if (error.request) {
-          // La petición fue hecha pero no se recibió respuesta
-          logError('No s\'ha rebut resposta del servidor. Comprova la connexió a Internet.');
+          // Añadir información de depuración
+          setDebugInfo(prev => prev + '\n' + new Date().toISOString() + ': Error de URL: ' + response.detalle);
         } else {
-          // Error desconocido
-          logError('Error al processar el codi: ' + error.message);
+          // Otros errores
+          setResult(response);
+          toast.error(response.mensaje || 'Error al processar el codi');
+        }
+        return;
+      }
+      
+      // Respuesta exitosa - mostrar modal de selección de bolsa automáticamente
+      setResult(response);
+      
+      // Verificar si hay bolsas disponibles del mismo material
+      const bolsasCompatibles = response.bolsas_disponibles || [];
+      
+      // Establecer el estado para mostrar el modal de selección
+      setSuccess({
+        product: response.producto,
+        points: response.puntos_nuevos,
+        totalPoints: response.puntos_totales,
+        material: response.material,
+        availableBags: bolsasCompatibles,
+        addedToBag: response.agregado_a_bolsa,
+        bagInfo: response.bolsa
+      });
+      
+      // Llamar al callback para informar al componente padre
+      if (onScanComplete) {
+        onScanComplete(response);
+      }
+    })
+    .catch(error => {
+      console.error("Error completo:", error);
+      
+      // Verificar si la respuesta incluye datos sobre cooldown
+      if (error.response && error.response.data && error.response.data.tipo === 'cooldown') {
+        const cooldownData = error.response.data;
+        
+        // Mostrar toast para cooldown con la información de tiempo restante
+        toast.error(
+          `Has d'esperar ${cooldownData.tiempo_restante.minutos} minut${cooldownData.tiempo_restante.minutos !== 1 ? 's' : ''} i ${cooldownData.tiempo_restante.segundos} segon${cooldownData.tiempo_restante.segons !== 1 ? 's' : ''} abans de tornar a escanejar aquest producte`, 
+          {
+            duration: 5000,
+            icon: '⏱️',
+          }
+        );
+        
+        // Añadir detalles al log de depuración
+        setDebugInfo(prev => prev + '\nCooldown detectado para código: ' + decodedText);
+      } else if (error.response) {
+        // El servidor respondió con un código de estado diferente de 2xx
+        const errorData = error.response.data;
+        const errorMessage = errorData.error || errorData.message || 'Error al processar el codi';
+        const errorDetail = errorData.detail || '';
+        
+        logError(`${errorMessage}${errorDetail ? ': ' + errorDetail : ''}`);
+        
+        // Si es un error específico (producto ya reciclado, no encontrado, etc.) mostrarlo de forma amigable
+        if (errorData.error === 'Ja has reciclat aquest producte en les últimes 24 hores') {
+          toast.error('Aquest producte ja ha estat reciclat avui. Prova demà o amb un altre producte.');
+        } else if (errorData.error === 'Producte no trobat') {
+          toast.error('No hem pogut identificar aquest producte. Prova amb un altre.');
+        } else if (errorData.error === 'No s\'ha pogut determinar el material') {
+          toast.error('No hem pogut identificar el material d\'aquest producte.');
         }
         
-        // Añadir código de barras al log para depuración
-        setDebugInfo(prev => prev + '\nCódigo escaneado: ' + decodedText);
-        
-        // Añadir botón para volver a intentar con el mismo código
-        setResult({
-          error: true,
-          tipo: "error_generico",
-          titulo: "Error de processament",
-          mensaje: 'Error al processar el codi. Pots provar de nou o escanejar un altre producte.',
-          barcode: decodedText
-        });
-      })
-      .finally(() => {
-        setLoading(false);
+        // Añadir detalles adicionales al registro de depuración
+        if (errorData.producto) {
+          setDebugInfo(prev => prev + '\nDetalle del producto: ' + JSON.stringify(errorData.producto));
+        }
+      } else if (error.request) {
+        // La petición fue hecha pero no se recibió respuesta
+        logError('No s\'ha rebut resposta del servidor. Comprova la connexió a Internet.');
+      } else {
+        // Error desconocido
+        logError('Error al processar el codi: ' + error.message);
+      }
+      
+      // Añadir código de barras al log para depuración
+      setDebugInfo(prev => prev + '\nCódigo escaneado: ' + decodedText);
+      
+      // Añadir botón para volver a intentar con el mismo código
+      setResult({
+        error: true,
+        tipo: "error_generico",
+        titulo: "Error de processament",
+        mensaje: 'Error al processar el codi. Pots provar de nou o escanejar un altre producte.',
+        barcode: decodedText
       });
-    }
-  };
+    })
+    .finally(() => {
+      setLoading(false);
+    });
+};
   
   // Manejar el fracaso del escaneo con throttling para evitar spam de errores
   const onScanFailure = (error) => {
@@ -1053,7 +1056,7 @@ ${debugInfo}
       if (errorData?.tipo === 'cooldown' && errorData?.tiempo_restante) {
         // Display cooldown error as toast in Catalan
         toast.error(
-          `Has d'esperar ${errorData.tiempo_restante.minuts} minut${errorData.tiempo_restante.minuts !== 1 ? 's' : ''} i ${errorData.tiempo_restante.segons} segon${errorData.tiempo_restante.segons !== 1 ? 's' : ''} abans de tornar a escanejar aquest producte`, 
+          `Has d'esperar ${errorData.tiempo_restante.minutos} minut${errorData.tiempo_restante.minutos !== 1 ? 's' : ''} i ${errorData.tiempo_restante.segundos} segon${errorData.tiempo_restante.segons !== 1 ? 's' : ''} abans de tornar a escanejar aquest producte`, 
           {
             duration: 5000,
             icon: '⏱️',
@@ -1073,34 +1076,6 @@ ${debugInfo}
     }
   };
 
-  // Función para cambiar entre modo escáner y modo manual
-  const toggleMode = () => {
-    setIsManualMode(prev => !prev);
-    
-    // Reiniciar estado al cambiar de modo
-    setError(null);
-    setSuccess(null);
-    setCodigoBarras("");
-    setResult(null);
-    
-    if (html5QrCode && html5QrCode.isScanning) {
-      // Si está escaneando, detener el escáner al cambiar a modo manual
-      html5QrCode.stop()
-        .then(() => {
-          console.log('Scanner stopped');
-          setScanning(false);
-        })
-        .catch(err => {
-          logError('Error al detenir l\'escàner', err);
-        });
-    } else {
-      // Si se vuelve a modo de escáner, iniciar el escáner automáticamente
-      setTimeout(() => {
-        startScanning();
-      }, 500);
-    }
-  };
-  
   return (
     <div className="bg-white p-6 rounded-lg shadow-lg max-w-2xl mx-auto">
       <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center border-b pb-2">
@@ -1112,79 +1087,27 @@ ${debugInfo}
         Escaneja el codi de barres d'un producte per reciclar-lo i guanyar punts.
       </p>
       
-      {/* Botón para cambiar entre modo escáner y modo manual */}
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold">
-          {isManualMode ? 'Introducció manual' : 'Escàner de codis'}
-        </h3>
-        <button
-          onClick={toggleMode}
-          className="text-gray-500 hover:text-blue-500 p-2 rounded-lg"
-        >
-          {isManualMode ? <FaCamera /> : <FaKeyboard />}
-        </button>
-      </div>
-      
-      {/* Botones prominentes para seleccionar modo */}
-      <div className="flex justify-center mt-4 mb-2">
-        <div className="bg-gray-200 p-1 rounded-lg inline-flex items-center">
-          <button
-            onClick={() => isManualMode && toggleMode()}
-            className={`px-4 py-2 rounded-lg flex items-center ${
-              !isManualMode 
-                ? 'bg-blue-500 text-white' 
-                : 'text-gray-700 hover:bg-gray-100'
-            }`}
-          >
-            <FaCamera className="mr-2" /> Escanejar
-          </button>
-          <button
-            onClick={() => !isManualMode && toggleMode()}
-            className={`px-4 py-2 rounded-lg flex items-center ${
-              isManualMode 
-                ? 'bg-blue-500 text-white' 
-                : 'text-gray-700 hover:bg-gray-100'
-            }`}
-          >
-            <FaKeyboard className="mr-2" /> Manual
-          </button>
-        </div>
-      </div>
-      
-      {/* Scanner view or manual input */}
-      <div className="p-4">
-        {isManualMode ? (
-          <form onSubmit={handleSubmit} className="mb-6">
-            <div className="flex">
-              <input 
-                type="text" 
-                value={codigoBarras}
-                onChange={(e) => setCodigoBarras(e.target.value)}
-                className="flex-1 px-4 py-2 text-lg border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                placeholder="Introdueix un codi de barres..."
-                ref={inputRef}
-              />
-              <button
-                type="submit"
-                className="px-4 py-2 bg-green-600 text-white rounded-r-md hover:bg-green-700 transition-colors flex items-center"
-              >
-                <FaCamera className="mr-2" /> Escanejar
-              </button>
-            </div>
-            
-            <div className="text-sm text-gray-500">
-              Exemples: 8480000160164 (aigua), 8414533043847 (diari)
-            </div>
-          </form>
-        ) : (
-          <div 
-            id="scanner" 
-            ref={scannerContainerRef} 
-            className="bg-gray-100 rounded-lg overflow-hidden relative"
-            style={{ minHeight: '300px', width: '100%' }}
-          ></div>
-        )}
-      </div>
+      {/* Formulario input - only show if not successful yet */}
+      {!success && (
+        <form onSubmit={handleSubmit} className="mb-6">
+          <div className="flex">
+            <input 
+              type="text" 
+              value={codigoBarras}
+              onChange={(e) => setCodigoBarras(e.target.value)}
+              className="flex-1 px-4 py-2 text-lg border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              placeholder="Introdueix un codi de barres..."
+              ref={inputRef}
+            />
+            <button
+              type="submit"
+              className="px-4 py-2 bg-green-600 text-white rounded-r-md hover:bg-green-700 transition-colors flex items-center"
+            >
+              <FaCamera className="mr-2" /> Escanejar
+            </button>
+          </div>
+        </form>
+      )}
       
       {/* Mensaje de error */}
       {error && renderError()}
@@ -1192,20 +1115,35 @@ ${debugInfo}
       {/* Resultado del escaneo */}
       {success && renderSuccess()}
       
-      {/* Controles de cámara - Ocultar en modo manual */}
-      {!isManualMode && (
+      <div className="mt-4">
+        <div 
+          id="scanner" 
+          ref={scannerContainerRef} 
+          className="bg-gray-100 rounded-lg overflow-hidden relative"
+          style={{ minHeight: '300px', width: '100%' }}
+        ></div>
+        
+        {/* Controles de cámara */}
         <div className="mt-4 flex justify-center space-x-3">
           {!scanning ? (
             <button
               onClick={startScanning}
-              disabled={!cameraId || loading || !permissionGranted}
+              disabled={!cameraId || loading || !permissionGranted || cameraOnCooldown}
               className={`py-2 px-6 rounded-lg flex items-center ${
-                !cameraId || loading || !permissionGranted
+                !cameraId || loading || !permissionGranted || cameraOnCooldown
                   ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
                   : 'bg-green-600 text-white hover:bg-green-700'
               }`}
             >
-              <FaCamera className="mr-2" /> Iniciar escaneig
+              {cameraOnCooldown ? (
+                <>
+                  <FaClock className="mr-2" /> Espera {cooldownTimeLeft}s
+                </>
+              ) : (
+                <>
+                  <FaCamera className="mr-2" /> Iniciar escaneig
+                </>
+              )}
             </button>
           ) : (
             <>
@@ -1227,26 +1165,18 @@ ${debugInfo}
             </>
           )}
         </div>
-      )}
+      </div>
       
-      {/* Show cooldown indicator */}
-      {isCoolingDown && (
-        <div className="p-3 bg-blue-50 text-center text-sm mt-3">
-          <p className="text-blue-600">
-            Temps de repòs: {cooldownSeconds} {cooldownSeconds === 1 ? 'segon' : 'segons'}
-          </p>
+      {/* Simplificada la sección para pruebas - removido historial */}
+      <div className="p-4 bg-gray-100 border-t">
+        <p className="text-center text-sm text-gray-600">
+          Escaneja els codis de barres de productes per reciclar i guanyar punts
+        </p>
+        
+        {/* Cámara seleccionada (visible siempre para depuración) */}
+        <div className="mt-3 text-xs text-gray-500 text-center">
+          Càmera: {availableCameras.find(c => c.id === cameraId)?.label || 'Cap càmera seleccionada'}
         </div>
-      )}
-      
-      {/* Additional Mobile Mode Switcher (fixed to bottom on small screens) */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-2 flex justify-center">
-        <button
-          onClick={toggleMode}
-          className="flex items-center justify-center bg-blue-500 text-white px-4 py-2 rounded-lg w-full max-w-xs"
-        >
-          <FaExchangeAlt className="mr-2" />
-          Canviar a {isManualMode ? 'Escàner' : 'Entrada Manual'}
-        </button>
       </div>
     </div>
   );
