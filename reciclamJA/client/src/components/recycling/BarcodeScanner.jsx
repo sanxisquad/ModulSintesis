@@ -14,7 +14,9 @@ import {
   FaEye,
   FaTrash,
   FaRecycle,
-  FaPlus
+  FaPlus,
+  FaEdit,
+  FaSearch
 } from 'react-icons/fa';
 import { useAuth } from '../../../hooks/useAuth';
 import { escanearCodigo, agregarProductoABolsa, crearBolsa } from '../../api/reciclajeApi';
@@ -343,7 +345,7 @@ const BarcodeScanner = ({ onScanComplete }) => {
         
         // Mostrar toast para cooldown con la información de tiempo restante
         toast.error(
-          `Has d'esperar ${cooldownData.tiempo_restante.minutos} minut${cooldownData.tiempo_restante.minutos !== 1 ? 's' : ''} i ${cooldownData.tiempo_restante.segundos} segon${cooldownData.tiempo_restante.segons !== 1 ? 's' : ''} abans de tornar a escanejar aquest producte`, 
+          `Has d'esperar ${cooldownData.tiempo_restante.minuts} minut${cooldownData.tiempo_restante.minuts !== 1 ? 's' : ''} i ${cooldownData.tiempo_restante.segons} segon${cooldownData.tiempo_restant.segons !== 1 ? 's' : ''} abans de tornar a escanejar aquest producte`, 
           {
             duration: 5000,
             icon: '⏱️',
@@ -466,6 +468,7 @@ ${debugInfo}
   const [selectedBag, setSelectedBag] = useState(null);
   const [addingToBag, setAddingToBag] = useState(false);
   const [creatingBag, setCreatingBag] = useState(false);
+  const [manualMode, setManualMode] = useState(false);
   
   // ref para el input de código de barras
   const inputRef = useRef(null);
@@ -1022,7 +1025,7 @@ ${debugInfo}
       if (errorData?.tipo === 'cooldown' && errorData?.tiempo_restante) {
         // Display cooldown error as toast in Catalan
         toast.error(
-          `Has d'esperar ${errorData.tiempo_restante.minutos} minut${errorData.tiempo_restante.minutos !== 1 ? 's' : ''} i ${errorData.tiempo_restante.segundos} segon${errorData.tiempo_restante.segons !== 1 ? 's' : ''} abans de tornar a escanejar aquest producte`, 
+          `Has d'esperar ${errorData.tiempo_restante.minuts} minut${errorData.tiempo_restante.minuts !== 1 ? 's' : ''} i ${errorData.tiempo_restante.segons} segon${errorData.tiempo_restante.segons !== 1 ? 's' : ''} abans de tornar a escanejar aquest producte`, 
           {
             duration: 5000,
             icon: '⏱️',
@@ -1043,100 +1046,134 @@ ${debugInfo}
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-lg max-w-2xl mx-auto">
-      <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center border-b pb-2">
-        <FaBarcode className="mr-2 text-green-500" />
-        Escaneja i recicla
-      </h2>
-      
-      <p className="text-gray-600 mb-6">
-        Escaneja el codi de barres d'un producte per reciclar-lo i guanyar punts.
-      </p>
-      
-      {/* Formulario input - only show if not successful yet */}
-      {!success && (
-        <form onSubmit={handleSubmit} className="mb-6">
-          <div className="flex">
-            <input 
-              type="text" 
-              value={codigoBarras}
-              onChange={(e) => setCodigoBarras(e.target.value)}
-              className="flex-1 px-4 py-2 text-lg border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-green-500"
-              placeholder="Introdueix un codi de barres..."
-              ref={inputRef}
-            />
-            <button
-              type="submit"
-              className="px-4 py-2 bg-green-600 text-white rounded-r-md hover:bg-green-700 transition-colors flex items-center"
-            >
-              <FaCamera className="mr-2" /> Escanejar
-            </button>
-          </div>
-        </form>
-      )}
-      
-      {/* Mensaje de error */}
-      {error && renderError()}
-      
-      {/* Resultado del escaneo */}
-      {success && renderSuccess()}
-      
-      <div className="mt-4">
-        <div 
-          id="scanner" 
-          ref={scannerContainerRef} 
-          className="bg-gray-100 rounded-lg overflow-hidden relative"
-          style={{ minHeight: '300px', width: '100%' }}
-        ></div>
-        
-        {/* Controles de cámara */}
-        <div className="mt-4 flex justify-center space-x-3">
-          {!scanning ? (
-            <button
-              onClick={startScanning}
-              disabled={!cameraId || loading || !permissionGranted}
-              className={`py-2 px-6 rounded-lg flex items-center ${
-                !cameraId || loading || !permissionGranted
-                  ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
-                  : 'bg-green-600 text-white hover:bg-green-700'
-              }`}
-            >
-              <FaCamera className="mr-2" /> Iniciar escaneig
-            </button>
-          ) : (
-            <>
-              <button
-                onClick={stopScanning}
-                className="bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors flex items-center"
-              >
-                <FaPowerOff className="mr-2" /> Aturar
-              </button>
-              
-              {availableCameras.length > 1 && (
-                <button
-                  onClick={switchCamera}
-                  className="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-                >
-                  <FaSync className="mr-2" /> Canviar càmera
-                </button>
-              )}
-            </>
-          )}
-        </div>
+<div className="bg-white p-6 rounded-lg shadow-lg max-w-2xl mx-auto">
+  <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center border-b pb-2">
+    <FaBarcode className="mr-2 text-green-500" />
+    Escaneja i recicla
+  </h2>
+  
+  <p className="text-gray-600 mb-6">
+    Escaneja el codi de barres d'un producte per reciclar-lo i guanyar punts.
+  </p>
+  
+  {/* Botón para cambiar entre modo cámara y manual */}
+  <div className="mb-4 flex justify-center">
+    <div className="flex bg-gray-200 rounded-lg p-1">
+      <button
+        onClick={() => setManualMode(false)}
+        className={`px-4 py-2 rounded-md transition-colors flex items-center ${
+          !manualMode 
+            ? 'bg-green-600 text-white' 
+            : 'text-gray-600 hover:text-gray-800'
+        }`}
+      >
+        <FaCamera className="mr-2" /> Càmera
+      </button>
+      <button
+        onClick={() => setManualMode(true)}
+        className={`px-4 py-2 rounded-md transition-colors flex items-center ${
+          manualMode 
+            ? 'bg-green-600 text-white' 
+            : 'text-gray-600 hover:text-gray-800'
+        }`}
+      >
+        <FaEdit className="mr-2" /> Manual
+      </button>
+    </div>
+  </div>
+
+  {/* Formulario input - solo en modo manual */}
+  {manualMode && (
+    <form onSubmit={handleSubmit} className="mb-6">
+      <div className="flex">
+        <input
+          type="text"
+          value={codigoBarras}
+          onChange={(e) => setCodigoBarras(e.target.value)}
+          className="flex-1 px-4 py-2 text-lg border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-green-500"
+          placeholder="Introdueix un codi de barres..."
+          ref={inputRef}
+        />
+        <button
+          type="submit"
+          className="px-4 py-2 bg-green-600 text-white rounded-r-md hover:bg-green-700 transition-colors flex items-center justify-center"
+        >
+          <FaSearch className="text-lg" />
+        </button>
       </div>
+    </form>
+  )}
+
+  {/* Mensaje de error */}
+  {error && renderError()}
+
+  {/* Resultado del escaneo */}
+  {success && renderSuccess()}
+
+  {/* Mostrar cámara solo si no está en modo manual */}
+  {!manualMode && (
+    <div className="mt-4">
+      <div 
+        id="scanner"
+        ref={scannerContainerRef}
+        className="bg-gray-100 rounded-lg overflow-hidden relative"
+        style={{ minHeight: '300px', width: '100%' }}
+      ></div>
       
-      {/* Simplificada la sección para pruebas - removido historial */}
-      <div className="p-4 bg-gray-100 border-t">
-        <p className="text-center text-sm text-gray-600">
-          Escaneja els codis de barres de productes per reciclar i guanyar punts
-        </p>
-        
-        {/* Cámara seleccionada (visible siempre para depuración) */}
-        <div className="mt-3 text-xs text-gray-500 text-center">
-          Càmera: {availableCameras.find(c => c.id === cameraId)?.label || 'Cap càmera seleccionada'}
-        </div>
+      {/* Controles de cámara */}
+      <div className="mt-4 flex justify-center space-x-3">
+        {!scanning ? (
+          <button
+            onClick={startScanning}
+            disabled={!cameraId || loading || !permissionGranted}
+            className={`py-2 px-6 rounded-lg flex items-center ${
+              !cameraId || loading || !permissionGranted
+                ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                : 'bg-green-600 text-white hover:bg-green-700'
+            }`}
+          >
+            <FaCamera className="mr-2" /> Iniciar escaneig
+          </button>
+        ) : (
+          <>
+            <button
+              onClick={stopScanning}
+              className="bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors flex items-center"
+            >
+              <FaPowerOff className="mr-2" /> Aturar
+            </button>
+            
+            {availableCameras.length > 1 && (
+              <button
+                onClick={switchCamera}
+                className="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+              >
+                <FaSync className="mr-2" /> Canviar càmera
+              </button>
+            )}
+          </>
+        )}
       </div>
     </div>
+  )}
+
+  {/* Información */}
+  <div className="p-4 bg-gray-100 border-t mt-4">
+    <p className="text-center text-sm text-gray-600">
+      {manualMode 
+        ? 'Introdueix manualment el codi de barres del producte'
+        : 'Escaneja els codis de barres de productes per reciclar i guanyar punts'
+      }
+    </p>
+    
+    {/* Cámara seleccionada (visible solo en modo cámara) */}
+    {!manualMode && (
+      <div className="mt-3 text-xs text-gray-500 text-center">
+        Càmera: {availableCameras.find(c => c.id === cameraId)?.label || 'Cap càmera seleccionada'}
+      </div>
+    )}
+  </div>
+</div>
   );
 };
 
