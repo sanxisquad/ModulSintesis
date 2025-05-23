@@ -10,7 +10,7 @@ import { ArrowLeft, User, Mail, MapPin, Shield, Save, Trash2, UserPlus } from 'l
 
 export function UserFormPage() {
     const { register, handleSubmit, formState: { errors }, setValue, getValues, watch } = useForm();
-    const { isAdmin, canDelete } = usePermissions();
+    const { isAdmin, isSuperAdmin, canDelete, canEditUsers } = usePermissions();
     const navigate = useNavigate();
     const params = useParams();
     const [roles, setRoles] = useState([]);
@@ -130,7 +130,7 @@ export function UserFormPage() {
                 </button>
             </div>
 
-            {!canDelete ? (
+            {!canEditUsers ? (
                 // Modo solo lectura - diseño mejorado
                 <div className="space-y-4 bg-gray-50 p-5 rounded-lg border border-gray-100">
                     <DisplayField 
@@ -277,7 +277,7 @@ export function UserFormPage() {
                     </div>
 
                     <div className="flex justify-between mt-8">
-                        {params.id && isAdmin && (
+                        {params.id && (isAdmin || isSuperAdmin) && (
                             <button
                                 type="button"
                                 className="flex items-center px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"

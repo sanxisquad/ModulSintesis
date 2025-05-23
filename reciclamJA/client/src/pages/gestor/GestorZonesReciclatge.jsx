@@ -8,13 +8,19 @@ import { getAllZones, getAllContenedors } from '../../api/zr.api.js';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { 
   RefreshCw, Search, PlusCircle, Edit, Trash2, MapPin, Filter,
-  Database, ChevronUp, ChevronDown, Map, List
+  Database, ChevronUp, ChevronDown, Map, List, Building
 } from 'lucide-react';
+import { useAuth } from '../../../hooks/useAuth';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 export function GestorZona() {
   const { menuOpen } = useMenu();
+  const { user } = useAuth();
+  const { isSuperAdmin } = usePermissions();
   const [zonas, setZonas] = useState([]);
   const [contenedores, setContenedores] = useState([]);
+  const [empresas, setEmpresas] = useState([]);
+  const [selectedEmpresa, setSelectedEmpresa] = useState('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
@@ -36,6 +42,20 @@ export function GestorZona() {
         ]);
         setZonas(zonasRes.data);
         setContenedores(contenedoresRes.data);
+        
+        // Si es superadmin, obtener empresas únicas de las zonas
+        if (isSuperAdmin) {
+          const uniqueEmpresas = zonasRes.data
+            .filter(zona => zona.empresa)
+            .reduce((acc, zona) => {
+              if (!acc.find(emp => emp.id === zona.empresa.id)) {
+                acc.push(zona.empresa);
+              }
+              return acc;
+            }, []);
+          setEmpresas(uniqueEmpresas);
+        }
+        
         setLoading(false);
       } catch (err) {
         console.error("Error cargando datos:", err);
@@ -45,23 +65,49 @@ export function GestorZona() {
     };
 
     loadData();
-  }, []);
+  }, [isSuperAdmin]);
 
   // Obtener opciones únicas para los filtros
   const ciudadesOptions = [...new Set(zonas.map(z => z.ciutat).filter(Boolean))];
 
-  // Estadísticas de zonas
+  // Filtrar zonas basado en los filtros y empresa (UNA SOLA VEZ)
+  const filteredZonas = zonas.filter(z => {
+    if (filters.ciutat && z.ciutat !== filters.ciutat) return false;
+    if (filters.nom && !z.nom?.toLowerCase().includes(filters.nom.toLowerCase())) return false;
+    
+    // Filtro por empresa para superadmin
+    if (isSuperAdmin && selectedEmpresa !== 'all') {
+      if (!z.empresa || z.empresa.id !== parseInt(selectedEmpresa)) return false;
+    }
+    
+    return true;
+  });
+
+  // Estadísticas de zonas (actualizadas para considerar el filtro de empresa)
   const stats = {
-    totalZonas: zonas.length,
-    totalContenedores: contenedores.length,
-    zonasConContenedores: [...new Set(contenedores.filter(c => c.zona).map(c => c.zona))].length,
+    totalZonas: filteredZonas.length,
+    totalContenedores: contenedores.filter(c => {
+      if (isSuperAdmin && selectedEmpresa !== 'all') {
+        const zona = zonas.find(z => z.id === c.zona);
+        return zona && zona.empresa?.id === parseInt(selectedEmpresa);
+      }
+      return true;
+    }).length,
+    zonasConContenedores: [...new Set(contenedores.filter(c => {
+      if (!c.zona) return false;
+      if (isSuperAdmin && selectedEmpresa !== 'all') {
+        const zona = zonas.find(z => z.id === c.zona);
+        return zona && zona.empresa?.id === parseInt(selectedEmpresa);
+      }
+      return true;
+    }).map(c => c.zona))].length,
     contenedoresNoAsignados: contenedores.filter(c => !c.zona).length,
     ciudades: ciudadesOptions.length
   };
 
-  // Datos para el gráfico de contenedores por zona
+  // Datos para el gráfico de contenedores por zona (filtrado por empresa)
   const prepareZoneData = () => {
-    return zonas.slice(0, 5).map(zona => {
+    return filteredZonas.slice(0, 5).map(zona => {
       const zonaContenedores = contenedores.filter(c => c.zona === zona.id);
       return {
         name: zona.nom,
@@ -70,17 +116,10 @@ export function GestorZona() {
         mitjos: zonaContenedores.filter(c => c.estat === 'mig').length,
         buits: zonaContenedores.filter(c => c.estat === 'buit').length
       };
-    }).sort((a, b) => b.total - a.total); // Ordenar por total de contenedores
+    }).sort((a, b) => b.total - a.total);
   };
 
   const zoneData = prepareZoneData();
-
-  // Filtrar zonas basado en los filtros
-  const filteredZonas = zonas.filter(z => {
-    if (filters.ciutat && z.ciutat !== filters.ciutat) return false;
-    if (filters.nom && !z.nom?.toLowerCase().includes(filters.nom.toLowerCase())) return false;
-    return true;
-  });
 
   if (loading) return (
     <div className="flex items-center justify-center h-screen">
@@ -97,14 +136,35 @@ export function GestorZona() {
       <div className="max-w-7xl mx-auto">
         {/* Encabezado */}
         <div className="pb-5 border-b border-gray-200 mb-6">
-          <div className="flex items-center">
-            <div className="bg-blue-100 p-2 rounded-full mr-3">
-              <MapPin className="h-5 w-5 text-blue-600" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="bg-blue-100 p-2 rounded-full mr-3">
+                <MapPin className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-800">Gestió de Zones de Reciclatge</h1>
+                <p className="text-gray-500 text-sm">Administració i control de zones del sistema</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-800">Gestió de Zones de Reciclatge</h1>
-              <p className="text-gray-500 text-sm">Administració i control de zones del sistema</p>
-            </div>
+            
+            {/* Selector de empresas para superadmin */}
+            {isSuperAdmin && empresas.length > 0 && (
+              <div className="flex items-center space-x-2">
+                <Building className="h-4 w-4 text-gray-500" />
+                <select
+                  value={selectedEmpresa}
+                  onChange={(e) => setSelectedEmpresa(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="all">Totes les empreses</option>
+                  {empresas.map(empresa => (
+                    <option key={empresa.id} value={empresa.id}>
+                      {empresa.nom}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
         </div>
         
@@ -130,8 +190,8 @@ export function GestorZona() {
                   <p className="text-sm font-medium text-gray-500">Total Zones</p>
                   <p className="mt-1 text-3xl font-semibold text-gray-900">{stats.totalZonas}</p>
                   <p className="text-sm text-gray-500 mt-1">
-                    {filteredZonas.length !== stats.totalZonas && 
-                      `${filteredZonas.length} filtrades`}
+                    {isSuperAdmin && selectedEmpresa !== 'all' && 
+                      `Empresa seleccionada`}
                   </p>
                 </div>
                 <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center">
@@ -279,7 +339,13 @@ export function GestorZona() {
             <MapView 
               filters={{...filters, showZones: true, showContenedores: true}} 
               zonas={filteredZonas}
-              contenedores={contenedores}
+              contenedores={contenedores.filter(c => {
+                if (isSuperAdmin && selectedEmpresa !== 'all') {
+                  const zona = zonas.find(z => z.id === c.zona);
+                  return zona && zona.empresa?.id === parseInt(selectedEmpresa);
+                }
+                return true;
+              })}
             />
           </div>
         )}

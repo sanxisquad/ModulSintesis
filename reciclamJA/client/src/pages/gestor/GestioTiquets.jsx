@@ -1,20 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { useMenu } from '../../context/MenuContext';
 import { getReportes } from '../../api/zr.api';
+import { getAllZones } from '../../api/zr.api';
 import { TiquetsList } from '../../components/tiquets/TiquetsList';
 import { 
   MessageSquare, CheckCircle2, Clock, 
   AlertCircle, XCircle, RefreshCw,
-  Filter, ArrowUpDown, Flag
+  Filter, ArrowUpDown, Flag, Building
 } from 'lucide-react';
 import { 
   PieChart, Pie, Cell, ResponsiveContainer, 
   Tooltip, Legend 
 } from 'recharts';
+import { useAuth } from '../../../hooks/useAuth';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 export function GestioTiquets() {
   const { menuOpen } = useMenu();
+  const { user } = useAuth();
+  const { isSuperAdmin } = usePermissions();
   const [tiquets, setTiquets] = useState([]);
+  const [zonas, setZonas] = useState([]);
+  const [empresas, setEmpresas] = useState([]);
+  const [selectedEmpresa, setSelectedEmpresa] = useState('all');
   const [loading, setLoading] = useState(true);
   const [filtreEstat, setFiltreEstat] = useState('tots');
   const [filtrePrioritat, setFiltrePrioritat] = useState('totes');
@@ -24,8 +32,26 @@ export function GestioTiquets() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const response = await getReportes();
-        setTiquets(response.data);
+        const [tiquetsRes, zonasRes] = await Promise.all([
+          getReportes(),
+          getAllZones()
+        ]);
+        setTiquets(tiquetsRes.data);
+        setZonas(zonasRes.data);
+        
+        // Si es superadmin, obtener empresas únicas de las zonas
+        if (isSuperAdmin) {
+          const uniqueEmpresas = zonasRes.data
+            .filter(zona => zona.empresa)
+            .reduce((acc, zona) => {
+              if (!acc.find(emp => emp.id === zona.empresa.id)) {
+                acc.push(zona.empresa);
+              }
+              return acc;
+            }, []);
+          setEmpresas(uniqueEmpresas);
+        }
+        
         setLoading(false);
       } catch (error) {
         console.error("Error carregant tiquets:", error);
@@ -34,7 +60,7 @@ export function GestioTiquets() {
     };
     
     fetchData();
-  }, []);
+  }, [isSuperAdmin]);
   
   // Actualitzar dades després de canvis d'estat del tiquet
   const handleTiquetUpdated = async () => {
@@ -49,25 +75,54 @@ export function GestioTiquets() {
     }
   };
   
-  // Estadístiques de tiquets per estat
+  // Filtrar tiquets per empresa (si és superadmin)
+  const tiquetsFiltradosEmpresa = tiquets.filter(tiquet => {
+    if (isSuperAdmin && selectedEmpresa !== 'all') {
+      // Primero intentar por la empresa del contenedor/zona
+      if (tiquet.contenedor) {
+        const zona = zonas.find(z => z.contenedors && z.contenedors.some(c => c.id === tiquet.contenedor));
+        if (zona && zona.empresa?.id === parseInt(selectedEmpresa)) {
+          return true;
+        }
+      }
+      
+      // Si no hay contenedor, intentar por zona directa
+      if (tiquet.zona) {
+        const zona = zonas.find(z => z.id === tiquet.zona);
+        if (zona && zona.empresa?.id === parseInt(selectedEmpresa)) {
+          return true;
+        }
+      }
+      
+      // Si el tiquet tiene empresa directa (añadido en el backend)
+      if (tiquet.empresa?.id === parseInt(selectedEmpresa)) {
+        return true;
+      }
+      
+      return false;
+    }
+    return true;
+  });
+  
+  // Estadístiques de tiquets per estat (filtrados por empresa)
   const statsEstat = {
-    total: tiquets.length,
-    oberts: tiquets.filter(t => t.estado === 'abierto').length,
-    enProces: tiquets.filter(t => t.estado === 'en_proceso').length,
-    resolts: tiquets.filter(t => t.estado === 'resuelto').length,
-    rebutjats: tiquets.filter(t => t.estado === 'rechazado').length
+    total: tiquetsFiltradosEmpresa.length,
+    oberts: tiquetsFiltradosEmpresa.filter(t => t.estado === 'abierto').length,
+    enProces: tiquetsFiltradosEmpresa.filter(t => t.estado === 'en_proceso').length,
+    resolts: tiquetsFiltradosEmpresa.filter(t => t.estado === 'resuelto').length,
+    rebutjats: tiquetsFiltradosEmpresa.filter(t => t.estado === 'rechazado').length
   };
   
-  // Estadístiques de tiquets per prioritat
+  // Estadístiques de tiquets per prioritat (filtrados por empresa)
   const statsPrioritat = {
-    total: tiquets.length,
-    baixa: tiquets.filter(t => t.prioridad === 'baja').length,
-    normal: tiquets.filter(t => t.prioridad === 'normal' || !t.prioridad).length,
-    alta: tiquets.filter(t => t.prioridad === 'alta').length,
-    urgent: tiquets.filter(t => t.prioridad === 'urgente').length
+    total: tiquetsFiltradosEmpresa.length,
+    baixa: tiquetsFiltradosEmpresa.filter(t => t.prioridad === 'baja').length,
+    normal: tiquetsFiltradosEmpresa.filter(t => t.prioridad === 'normal' || !t.prioridad).length,
+    alta: tiquetsFiltradosEmpresa.filter(t => t.prioridad === 'alta').length,
+    urgent: tiquetsFiltradosEmpresa.filter(t => t.prioridad === 'urgente').length
   };
   
-  // Dades per al gràfic d'estat de tiquets
+  // Dades per al gràfic d'estat de tiquets (basado en datos filtrados)
   const tiquetsData = [
     { name: 'Oberts', value: statsEstat.oberts },
     { name: 'En Procés', value: statsEstat.enProces },
@@ -75,7 +130,7 @@ export function GestioTiquets() {
     { name: 'Rebutjats', value: statsEstat.rebutjats }
   ];
   
-  // Dades per al gràfic de prioritat de tiquets
+  // Dades per al gràfic de prioritat de tiquets (basado en datos filtrados)
   const prioritatData = [
     { name: 'Baixa', value: statsPrioritat.baixa },
     { name: 'Normal', value: statsPrioritat.normal },
@@ -86,8 +141,8 @@ export function GestioTiquets() {
   const COLORS_ESTAT = ['#FFBB28', '#0088FE', '#00C49F', '#FF8042'];
   const COLORS_PRIORITAT = ['#82ca9d', '#8884d8', '#ffc658', '#ff7300'];
   
-  // Filtrar tiquets segons l'estat i la prioritat seleccionats
-  const tiquetsFiltrats = tiquets.filter(t => {
+  // Filtrar tiquets segons l'estat i la prioritat seleccionats (sobre los ya filtrados por empresa)
+  const tiquetsFiltrats = tiquetsFiltradosEmpresa.filter(t => {
     const matchEstat = filtreEstat === 'tots' || t.estado === filtreEstat;
     const matchPrioritat = filtrePrioritat === 'totes' || 
                            (filtrePrioritat === 'normal' && (!t.prioridad || t.prioridad === 'normal')) ||
@@ -114,16 +169,46 @@ export function GestioTiquets() {
       <div className="max-w-7xl mx-auto">
         {/* Header - Updated to match other management pages */}
         <div className="pb-5 border-b border-gray-200 mb-6">
-          <div className="flex items-center">
-            <div className="bg-blue-100 p-2 rounded-full mr-3">
-              <MessageSquare className="h-5 w-5 text-blue-600" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="bg-blue-100 p-2 rounded-full mr-3">
+                <MessageSquare className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-800">Gestió de Tiquets</h1>
+                <p className="text-gray-500 text-sm">Administració i control d'incidències del sistema</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-800">Gestió de Tiquets</h1>
-              <p className="text-gray-500 text-sm">Administració i control d'incidències del sistema</p>
-            </div>
+            
+            {/* Selector de empresas para superadmin */}
+            {isSuperAdmin && empresas.length > 0 && (
+              <div className="flex items-center space-x-2">
+                <Building className="h-4 w-4 text-gray-500" />
+                <select
+                  value={selectedEmpresa}
+                  onChange={(e) => setSelectedEmpresa(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="all">Totes les empreses</option>
+                  {empresas.map(empresa => (
+                    <option key={empresa.id} value={empresa.id}>
+                      {empresa.nom}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
         </div>
+        
+        {/* Mostrar información de filtrado */}
+        {isSuperAdmin && selectedEmpresa !== 'all' && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <p className="text-sm text-blue-700">
+              Mostrant {tiquetsFiltradosEmpresa.length} tiquets de l'empresa: {empresas.find(emp => emp.id === parseInt(selectedEmpresa))?.nom}
+            </p>
+          </div>
+        )}
         
         {/* Filtres */}
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6">
@@ -384,7 +469,7 @@ export function GestioTiquets() {
                 </thead>
                 <tbody>
                   {['mal_estado', 'lleno', 'vandalismo', 'ubicacion', 'olores', 'otro'].map(tipo => {
-                    const tipusTiquets = tiquets.filter(t => t.tipo === tipo);
+                    const tipusTiquets = tiquetsFiltradosEmpresa.filter(t => t.tipo === tipo);
                     const pendents = tipusTiquets.filter(t => t.estado !== 'resuelto' && t.estado !== 'rechazado').length;
                     const resolts = tipusTiquets.filter(t => t.estado === 'resuelto').length;
                     

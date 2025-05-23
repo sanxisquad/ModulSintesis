@@ -68,6 +68,9 @@ class ContenedorSerializer(serializers.ModelSerializer):
 class ReporteContenedorSerializer(serializers.ModelSerializer):
     usuario = serializers.HiddenField(default=serializers.CurrentUserDefault())
     usuario_data = serializers.SerializerMethodField()
+    empresa = EmpresaSerializer(read_only=True)  # Añadir empresa al serializer
+    contenedor_data = serializers.SerializerMethodField()  # Añadir datos del contenedor
+    zona_data = serializers.SerializerMethodField()  # Añadir datos de la zona
     tipo_objeto = serializers.ChoiceField(
         choices=[('contenedor', 'Contenedor'), ('zona', 'Zona')],
         write_only=True,
@@ -80,9 +83,10 @@ class ReporteContenedorSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'tipo', 'prioridad', 'descripcion', 'imagen', 
             'estado', 'fecha', 'usuario', 'usuario_data','tipo_objeto', 'objeto_id',
-            'contenedor', 'zona','fecha_resolucion'
+            'contenedor', 'zona', 'empresa', 'contenedor_data', 'zona_data',
+            'fecha_resolucion', 'comentario_cierre', 'resuelto_por'
         ]
-        read_only_fields = ['id', 'fecha', 'estado', 'contenedor', 'zona']
+        read_only_fields = ['id', 'fecha', 'estado', 'contenedor', 'zona', 'empresa']
 
     def get_usuario_data(self, obj):
         if obj.usuario:
@@ -91,6 +95,27 @@ class ReporteContenedorSerializer(serializers.ModelSerializer):
             if obj.usuario.empresa:
                 user_data['empresa'] = EmpresaSerializer(obj.usuario.empresa).data
             return user_data
+        return None
+
+    def get_contenedor_data(self, obj):
+        if obj.contenedor:
+            return {
+                'id': obj.contenedor.id,
+                'cod': obj.contenedor.cod,
+                'tipus': obj.contenedor.tipus,
+                'zona': obj.contenedor.zona.nom if obj.contenedor.zona else None,
+                'empresa': EmpresaSerializer(obj.contenedor.empresa).data if obj.contenedor.empresa else None
+            }
+        return None
+
+    def get_zona_data(self, obj):
+        if obj.zona:
+            return {
+                'id': obj.zona.id,
+                'nom': obj.zona.nom,
+                'ciutat': obj.zona.ciutat,
+                'empresa': EmpresaSerializer(obj.zona.empresa).data if obj.zona.empresa else None
+            }
         return None
 
     def validate(self, data):

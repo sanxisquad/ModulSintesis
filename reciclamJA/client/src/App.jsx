@@ -52,11 +52,9 @@ function App() {
                 
               </Route>
 
-              {/* SUPERADMIN GESTOR ADMIN */}
+              {/* SUPERADMIN GESTOR ADMIN - Pueden ver gestión de usuarios */}
               <Route element={<ProtectedRoute allowedRoles={["isGestor", "isAdmin", "isSuperAdmin"]} />}> 
                 <Route path="/gestor-usuaris" element={<GestorUsuaris />} />
-                <Route path="/users-create" element={<UserFormPage />} />
-                <Route path="/users/:id" element={<UserFormPage />} />
                 <Route path="/contenedors-create" element={<ContenedorFormPage />} />
                 <Route path="/zones-create" element={<ZonaFormPage />} />
                 <Route path="/contenedors" element={<ContenedorPage />} />
@@ -68,6 +66,12 @@ function App() {
                 <Route path="/gestor/tiquets/:id" element={<TiquetView />} />
                 <Route path="/contenedor/:id" element={<ContenedorFormPage />} />
                 <Route path="/gestor-premis" element={<GestorPremios />} />
+              </Route>
+
+              {/* SOLO ADMIN Y SUPERADMIN - Pueden crear y editar usuarios */}
+              <Route element={<ProtectedRoute allowedRoles={["isAdmin", "isSuperAdmin"]} />}> 
+                <Route path="/users-create" element={<UserFormPage />} />
+                <Route path="/users/:id" element={<UserFormPage />} />
               </Route>
 
               {/* Rutas protegidas de usuario */}

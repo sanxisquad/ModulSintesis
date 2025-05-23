@@ -153,6 +153,23 @@ export function TiquetCard({ tiquet, onUpdateTiquet }) {
     navigate(`/gestor/tiquets/${tiquet.id}`);
   };
   
+  // Función para obtener la empresa del tiquet
+  const getEmpresaTiquet = () => {
+    // Prioridad: empresa directa > empresa del contenedor > empresa de la zona
+    if (tiquet.empresa) {
+      return tiquet.empresa;
+    }
+    if (tiquet.contenedor_data?.empresa) {
+      return tiquet.contenedor_data.empresa;
+    }
+    if (tiquet.zona_data?.empresa) {
+      return tiquet.zona_data.empresa;
+    }
+    return null;
+  };
+
+  const empresaTiquet = getEmpresaTiquet();
+
   return (
     <div 
       className="bg-white p-4 rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition-shadow duration-200 cursor-pointer relative"
@@ -193,7 +210,7 @@ export function TiquetCard({ tiquet, onUpdateTiquet }) {
         <div className="grid grid-cols-2 gap-2 text-sm mt-2">
           <div className="flex items-center">
             <User className="h-4 w-4 mr-1 text-gray-500" />
-            <span>{tiquet.usuario_data.first_name +" "+ tiquet.usuario_data.last_name || 'Usuari #' + tiquet.usuario}</span>
+            <span>{tiquet.usuario_data?.first_name + " " + tiquet.usuario_data?.last_name || 'Usuari #' + tiquet.usuario}</span>
           </div>
           <div className="flex items-center">
             <Calendar className="h-4 w-4 mr-1 text-gray-500" />
@@ -202,15 +219,15 @@ export function TiquetCard({ tiquet, onUpdateTiquet }) {
           <div className="flex items-center col-span-2">
             <MapPin className="h-4 w-4 mr-1 text-gray-500" />
             <span>
-              {tiquet.contenedor ? `Contenidor #${tiquet.contenedor}` : 
-               tiquet.zona ? `Zona #${tiquet.zona}` : 'No especificat'}
+              {tiquet.contenedor_data ? `Contenidor ${tiquet.contenedor_data.cod}` : 
+               tiquet.zona_data ? `Zona ${tiquet.zona_data.nom}` : 'No especificat'}
             </span>
           </div>
-          {/* Mostrar empresa del usuario si está disponible */}
-          {tiquet.usuario_data?.empresa?.nom && (
+          {/* Mostrar empresa del tiquet */}
+          {empresaTiquet && (
             <div className="flex items-center col-span-2">
               <Building className="h-4 w-4 mr-1 text-gray-500" />
-              <span className="text-gray-600">{tiquet.usuario_data.empresa.nom}</span>
+              <span className="text-gray-600">{empresaTiquet.nom}</span>
             </div>
           )}
         </div>

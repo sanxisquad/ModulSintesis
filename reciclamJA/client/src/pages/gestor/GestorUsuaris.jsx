@@ -46,9 +46,9 @@ export function GestorUsuaris() {
   }, [isSuperAdmin]);
 
   // Filtrar usuarios por empresa seleccionada
-  const filteredUsers = selectedEmpresa === 'all' 
-    ? users 
-    : users.filter(user => user.empresa?.id === parseInt(selectedEmpresa));
+  const filteredUsers = isSuperAdmin && selectedEmpresa !== 'all' 
+    ? users.filter(user => user.empresa?.id === parseInt(selectedEmpresa))
+    : users;
   
   if (loading) return (
     <div className="flex items-center justify-center h-screen">
@@ -96,7 +96,19 @@ export function GestorUsuaris() {
           </div>
         </div>
         
-        <UsersList initialUsers={filteredUsers} />
+        {/* Mostrar información de filtrado */}
+        {isSuperAdmin && selectedEmpresa !== 'all' && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <p className="text-sm text-blue-700">
+              Mostrant {filteredUsers.length} usuaris de l'empresa: {empresas.find(emp => emp.id === parseInt(selectedEmpresa))?.nom}
+            </p>
+          </div>
+        )}
+        
+        <UsersList 
+          initialUsers={filteredUsers} 
+          key={`${selectedEmpresa}-${filteredUsers.length}`} // Force re-render when filter changes
+        />
       </div>
     </div>
   );

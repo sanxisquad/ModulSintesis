@@ -201,15 +201,25 @@ class ReporteContenedorViewSet(viewsets.ModelViewSet):
             return ReporteContenedor.objects.none()
             
         if user.is_superadmin():
-            return ReporteContenedor.objects.all()
+            # Incluir datos relacionados para mejorar las consultas
+            return ReporteContenedor.objects.select_related(
+                'usuario', 'contenedor', 'zona', 'empresa',
+                'usuario__empresa', 'contenedor__empresa', 'zona__empresa'
+            ).prefetch_related('comentarios').all()
             
         if user.is_user():
-            return ReporteContenedor.objects.filter(usuario=user)
+            return ReporteContenedor.objects.select_related(
+                'usuario', 'contenedor', 'zona', 'empresa'
+            ).filter(usuario=user)
             
         if getattr(user, 'empresa', None):
-            return ReporteContenedor.objects.filter(
+            return ReporteContenedor.objects.select_related(
+                'usuario', 'contenedor', 'zona', 'empresa',
+                'usuario__empresa', 'contenedor__empresa', 'zona__empresa'
+            ).filter(
                 models.Q(contenedor__empresa=user.empresa) | 
-                models.Q(zona__empresa=user.empresa)
+                models.Q(zona__empresa=user.empresa) |
+                models.Q(empresa=user.empresa)  # También filtrar por empresa directa
             )
                 
         return ReporteContenedor.objects.none()

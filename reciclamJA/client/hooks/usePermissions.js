@@ -25,7 +25,8 @@ export const usePermissions = () => {
     canMenu: user?.is_gestor || user?.is_admin || user?.is_superadmin,
     menuUser: !isAuthenticated || user?.is_user,
 
-    canDelete: user?.is_admin,
+    canDelete: user?.is_admin || user?.is_superadmin,
+    canEditUsers: user?.is_admin || user?.is_superadmin, // Nueva propiedad para editar usuarios
     canEditZR: user?.is_admin || user?.is_gestor,
     canViewDashboard: user?.role !== 'USUARIO_NORMAL',
     
