@@ -1,33 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
-import { 
-  FaCamera, 
-  FaQrcode, 
-  FaSync, 
-  FaPowerOff, 
-  FaStar, 
-  FaBug, 
-  FaBarcode,
-  FaCheck,
-  FaExclamationTriangle,
-  FaBox,
-  FaEye,
-  FaTrash,
-  FaRecycle,
-  FaPlus,
-  FaSpinner,
-  FaTimes,
-  FaKeyboard,
-  FaSearch
-} from 'react-icons/fa';
-import { useAuth } from '../../../hooks/useAuth';
-import { escanearCodigo, agregarProductoABolsa, crearBolsa } from '../../api/reciclajeApi';
-import { Link } from 'react-router-dom';
-import { Spinner } from '../common/Spinner';
-import { toast } from 'react-hot-toast';
+import { FaCamera, FaSpinner, FaTimes, FaQrcode, FaBarcode, FaKeyboard, FaSearch, FaCheck } from 'react-icons/fa';
+import PropTypes from 'prop-types';
 
 export const BarcodeScanner = ({ onCodeScanned, className = '', showManualInput = true }) => {
-  // State variables
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState('');
   const [manualCode, setManualCode] = useState('');
@@ -36,56 +12,15 @@ export const BarcodeScanner = ({ onCodeScanned, className = '', showManualInput 
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
   const [lastScannedCode, setLastScannedCode] = useState('');
   const [scanSuccess, setScanSuccess] = useState(false);
-  const [cameras, setCameras] = useState([]);
-  const [selectedCamera, setSelectedCamera] = useState(null);
-  const [isChangingCamera, setIsChangingCamera] = useState(false);
   
-  // Refs
   const scannerRef = useRef(null);
   const html5QrCodeRef = useRef(null);
   const cooldownTimerRef = useRef(null);
   
   // Cooldown configuration
   const COOLDOWN_DURATION = 3; // seconds
-  
-  // Get available cameras on mount
-  useEffect(() => {
-    const getCameras = async () => {
-      try {
-        const devices = await Html5Qrcode.getCameras();
-        if (devices && devices.length) {
-          setCameras(devices);
-          
-          // Try to find the back camera (environment-facing camera)
-          const backCamera = devices.find(camera => 
-            camera.label.toLowerCase().includes('back') || 
-            camera.label.toLowerCase().includes('trasera') ||
-            camera.label.toLowerCase().includes('posterior') ||
-            camera.label.toLowerCase().includes('environment') ||
-            camera.label.toLowerCase().includes('externa') ||
-            camera.label.toLowerCase().includes('principal')
-          );
-          
-          // If back camera found, use it, otherwise use the first camera
-          // For most phones, the back camera is the second one in the list, but not always
-          // If we can't identify it by label, try the second camera if there's more than one
-          const mainCamera = backCamera || 
-                             (devices.length > 1 ? devices[devices.length - 1] : devices[0]);
-          
-          console.log("Available cameras:", devices.map(d => d.label));
-          console.log("Selected camera:", mainCamera?.label);
-          
-          setSelectedCamera(mainCamera);
-        }
-      } catch (err) {
-        console.error("Error getting cameras:", err);
-      }
-    };
-    
-    getCameras();
-  }, []);
-  
-  // Cleanup on unmount
+
+  // Reset scanner when unmounting component
   useEffect(() => {
     return () => {
       if (html5QrCodeRef.current) {
@@ -99,33 +34,42 @@ export const BarcodeScanner = ({ onCodeScanned, className = '', showManualInput 
   }, []);
   
   const startScanner = async () => {
-    if (!scannerRef.current || !selectedCamera) return;
+    if (!scannerRef.current) return;
     
     setError('');
     setIsScanning(true);
     
     try {
-      // Create scanner instance
-      const scanner = new Html5Qrcode('barcode-scanner');
-      html5QrCodeRef.current = scanner;
+      const html5QrCode = new Html5Qrcode('barcode-scanner');
+      html5QrCodeRef.current = html5QrCode;
       
-      // Scanner configuration
-      const config = { 
-        fps: 10,
-        qrbox: { width: 250, height: 250 },
-        aspectRatio: window.innerWidth < 640 ? 1.0 : 1.77, // Adjust based on screen size
-        formatsToSupport: [
-          Html5Qrcode.FORMATS.EAN_13,
-          Html5Qrcode.FORMATS.EAN_8,
-          Html5Qrcode.FORMATS.UPC_A,
-          Html5Qrcode.FORMATS.UPC_E,
-          Html5Qrcode.FORMATS.CODE_39,
-          Html5Qrcode.FORMATS.CODE_128,
-          Html5Qrcode.FORMATS.QR_CODE
-        ]
-      };
+      const config = { fps: 10, qrbox: { width: 250, height: 250 } };
       
-      await scanner.start(
+      // Select camera
+      const cameras = await Html5Qrcode.getCameras();
+      if (!cameras || cameras.length === 0) {
+        throw new Error("No es troba cap càmera");
+      }
+      
+      // Try to get back camera first (usually camera index 1 on mobile devices)
+      // If that fails, fall back to the first available camera
+      let selectedCamera;
+      if (cameras.length > 1) {
+        // Look for back camera by name
+        const backCamera = cameras.find(camera => 
+          camera.label.toLowerCase().includes('back') || 
+          camera.label.toLowerCase().includes('trasera') ||
+          camera.label.toLowerCase().includes('posterior')
+        );
+        
+        selectedCamera = backCamera || cameras[cameras.length - 1];
+      } else {
+        selectedCamera = cameras[0];
+      }
+      
+      console.log("Using camera:", selectedCamera.label);
+      
+      await html5QrCode.start(
         selectedCamera.id,
         config,
         handleScanSuccess,
@@ -133,15 +77,7 @@ export const BarcodeScanner = ({ onCodeScanned, className = '', showManualInput 
       );
     } catch (err) {
       console.error("Error starting scanner:", err);
-      let errorMessage = "Error a l'iniciar l'escàner";
-      
-      if (err.message?.includes('Permission denied') || err.message?.includes('permiso denegado')) {
-        errorMessage = "Permís de càmera denegat. Si us plau, permeti l'accés a la càmera.";
-      } else if (err.message?.includes('device not found') || err.message?.includes('dispositivo no encontrado')) {
-        errorMessage = "No s'ha trobat cap càmera. Comprovi que el dispositiu té càmera.";
-      }
-      
-      setError(errorMessage);
+      setError(err.message || "Error a l'iniciar l'escàner");
       setIsScanning(false);
     }
   };
@@ -154,6 +90,8 @@ export const BarcodeScanner = ({ onCodeScanned, className = '', showManualInput 
           setIsScanning(false);
         })
         .catch(err => console.error("Error stopping scanner:", err));
+    } else {
+      setIsScanning(false);
     }
   };
   
@@ -178,7 +116,6 @@ export const BarcodeScanner = ({ onCodeScanned, className = '', showManualInput 
   
   const handleScanError = (err) => {
     // We don't need to show these errors to the user, as they're normal during scanning
-    // console.log("Scan error:", err);
   };
   
   const startCooldown = () => {
@@ -216,35 +153,6 @@ export const BarcodeScanner = ({ onCodeScanned, className = '', showManualInput 
       stopScanner();
     }
     setIsManualMode(!isManualMode);
-  };
-
-  const switchCamera = async () => {
-    if (cameras.length <= 1) return;
-    
-    setIsChangingCamera(true);
-    
-    // Stop current scanner if it's active
-    if (isScanning && html5QrCodeRef.current) {
-      await html5QrCodeRef.current.stop().catch(err => console.error("Error stopping camera:", err));
-      setIsScanning(false);
-    }
-    
-    // Find the next camera in the list
-    const currentIndex = cameras.findIndex(c => c.id === selectedCamera.id);
-    const nextIndex = (currentIndex + 1) % cameras.length;
-    
-    // Log the camera change
-    console.log(`Switching from camera: ${selectedCamera.label} to ${cameras[nextIndex].label}`);
-    
-    setSelectedCamera(cameras[nextIndex]);
-    setIsChangingCamera(false);
-    
-    // Restart scanner if it was active
-    if (isScanning) {
-      setTimeout(() => {
-        startScanner();
-      }, 500);
-    }
   };
 
   return (
@@ -317,7 +225,7 @@ export const BarcodeScanner = ({ onCodeScanned, className = '', showManualInput 
               )}
               
               {scanSuccess && !isScanning && (
-                <div className="absolute inset-0 bg-green-100 bg-opacity-80 flex items-center justify-center">
+                <div className="absolute inset-0 bg-green-100 bg-opacity-80 flex items-center justify-center z-10">
                   <div className="text-center">
                     <FaCheck className="mx-auto h-16 w-16 text-green-500 mb-2" />
                     <p className="text-green-700 font-bold text-lg">Codi escanejat!</p>
@@ -374,4 +282,8 @@ export const BarcodeScanner = ({ onCodeScanned, className = '', showManualInput 
   );
 };
 
-export default BarcodeScanner;
+BarcodeScanner.propTypes = {
+  onCodeScanned: PropTypes.func.isRequired,
+  className: PropTypes.string,
+  showManualInput: PropTypes.bool
+};
