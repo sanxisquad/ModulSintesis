@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FaQrcode, FaInfoCircle, FaTrophy, FaRecycle, FaLeaf } from 'react-icons/fa';
 import { useAuth } from '../../hooks/useAuth';
 import { Navigate } from 'react-router-dom';
-import BarcodeScanner from '../components/recycling/BarcodeScanner';
+import { BarcodeScanner } from '../components/recycling/BarcodeScanner'; // Changed from default to named import
 
 const RecyclePage = () => {
   const { isAuthenticated, user, loading } = useAuth();

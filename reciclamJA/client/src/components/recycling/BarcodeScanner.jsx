@@ -287,3 +287,5 @@ BarcodeScanner.propTypes = {
   className: PropTypes.string,
   showManualInput: PropTypes.bool
 };
+
+export default BarcodeScanner;
