@@ -26,6 +26,8 @@ import RecyclePage from "./pages/RecyclePage";
 import { GestorPremios } from './pages/gestor/GestorPremios';
 import { PrizesPage } from './pages/main/PrizesPage';
 import { MediaTestPage } from './pages/MediaTestPage';
+import { EstadistiquesGenerals } from './pages/EstadistiquesGenerals';
+import { HomeStats } from './components/stats/HomeStats';
 
 import { ConfirmDialogProvider } from './components/common/ConfirmDialog';
 
@@ -74,6 +76,8 @@ function App() {
               <Route path="/escaneig" element={<RecyclePage />} />
               <Route path="/premis" element={<PrizesPage />} />
               <Route path="/media-test" element={<MediaTestPage />} />
+                <Route path="/estadistiques" element={<HomeStats />} />
+
             </Routes>
           </div>
           <Toaster />

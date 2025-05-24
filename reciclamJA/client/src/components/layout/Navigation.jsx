@@ -34,7 +34,8 @@ import {
   FaSpinner,
   FaComment,
   FaStar,
-  FaGift  // Añadido el icono para premios
+  FaGift,
+  FaChartLine  // Añadido para estadísticas
 } from "react-icons/fa";
 import { MdManageAccounts } from "react-icons/md";
 
@@ -668,6 +669,20 @@ export function Navigation() {
                                     </button>
                                 </li>
                                 
+                                {/* Añadir opción de estadísticas también en el menú móvil para gestores */}
+                                {canMenu && (
+                                    <li>
+                                        <Link 
+                                            to="/estadistiques" 
+                                            className="flex items-center px-3 py-2 rounded-md hover:bg-gray-800"
+                                            onClick={() => setMobileMenuOpen(false)}
+                                        >
+                                            <FaChartLine className="mr-3" />
+                                            Estadístiques
+                                        </Link>
+                                    </li>
+                                )}
+                                
                                 {/* Añadir opción de gestión de premios para usuarios con permisos */}
                                 {canMenu && (
                                     <li>
@@ -706,6 +721,18 @@ export function Navigation() {
                                         >
                                             <FaChartBar className="w-5 h-5 text-gray-400 group-hover:text-white" />
                                             <span className="ml-3">Dashboard</span>
+                                        </Link>
+                                    </li>
+                                    
+                                    {/* Añadir opción de estadísticas */}
+                                    <li>
+                                        <Link 
+                                            to="/estadistiques" 
+                                            className="flex items-center p-2 rounded-lg hover:bg-gray-800 group"
+                                            onClick={() => toggleMenu()}
+                                        >
+                                            <FaChartLine className="w-5 h-5 text-gray-400 group-hover:text-white" />
+                                            <span className="ml-3">Estadístiques</span>
                                         </Link>
                                     </li>
                                     
