@@ -1,31 +1,23 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ca">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-    <meta name="theme-color" content="#10B981" />
-    <meta name="description" content="ReciclamJA - Aplicació per a la gestió eficient del reciclatge" />
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    
+    <!-- Favicons para diferentes dispositius -->
+    <link rel="icon" type="image/png" href="%PUBLIC_URL%/LogoR.png" />
+    <link rel="shortcut icon" href="%PUBLIC_URL%/LogoR.png" />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/LogoR.png" />
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#4CAF50" />
+    <meta
+      name="description"
+      content="ReciclamJA - Plataforma de gestió de reciclatge"
+    />
     <title>ReciclamJA</title>
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   </head>
   <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <noscript>Cal activar JavaScript per executar aquesta aplicació.</noscript>
     <div id="root"></div>
-    <!-- Registration of service worker for PWA -->
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', function() {
-          navigator.serviceWorker.register('/service-worker.js').then(function(registration) {
-            console.log('ServiceWorker registration successful with scope: ', registration.scope);
-          }, function(err) {
-            console.log('ServiceWorker registration failed: ', err);
-          });
-        });
-      }
-    </script>
   </body>
 </html>
