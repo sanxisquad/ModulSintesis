@@ -13,6 +13,9 @@ from .serializers import (
     PrizeRedemptionSerializer
 )
 from datetime import timedelta
+from django.db.models import Count, Sum, Q
+from zonesreciclatge.models import ReporteContenedor, Contenedor
+from accounts.models import CustomUser
 
 def buscar_producto_openfoodfacts(codigo):
     """
@@ -717,3 +720,116 @@ def actualizar_estado_redencion(request, pk):
             
     except PrizeRedemption.DoesNotExist:
         return Response({"error": "Redempció no trobada"}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])  # Allow any user to access
+def estadisticas_top_recyclers(request):
+    """Obtiene los top 5 usuarios que más han reciclado - Ranking global"""
+    # Base queryset - todos los usuarios con productos reciclados
+    queryset = CustomUser.objects.annotate(
+        total_productos=Count('productos_reciclados'),
+        total_puntos_reciclaje=Sum('productos_reciclados__puntos_obtenidos')
+    ).filter(total_productos__gt=0)
+    
+    # Global ranking - sin filtros de empresa
+    top_recyclers = queryset.order_by('-total_score')[:5]
+    
+    result = []
+    for user in top_recyclers:
+        result.append({
+            'id': user.id,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'username': user.username,
+            'total_score': user.total_score,
+            'productos_reciclados': user.total_productos,
+            'empresa': {
+                'id': user.empresa.id,
+                'nom': user.empresa.nom
+            } if user.empresa else None
+        })
+    
+    return Response(result)
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])  # Allow any user to access
+def estadisticas_top_reporters(request):
+    """Obtiene los top 5 usuarios que más reportes han hecho - Ranking global"""
+    # Base queryset
+    queryset = CustomUser.objects.annotate(
+        total_reportes=Count('reportes_enviados'),
+        total_reportes_resueltos=Count('reportes_enviados', filter=Q(reportes_enviados__estado='resuelto')),
+        total_reportes_rechazados=Count('reportes_enviados', filter=Q(reportes_enviados__estado='rechazado'))
+    ).filter(total_reportes__gt=0)
+    
+    # Global ranking - sin filtros de empresa o permisos
+    top_reporters = queryset.order_by('-total_reportes')[:5]
+    
+    result = []
+    for reporter in top_reporters:
+        result.append({
+            'id': reporter.id,
+            'first_name': reporter.first_name,
+            'last_name': reporter.last_name,
+            'username': reporter.username,
+            'total_reportes': reporter.total_reportes,
+            'reportes_resueltos': reporter.total_reportes_resueltos,
+            'reportes_rechazados': reporter.total_reportes_rechazados,
+            'empresa': {
+                'id': reporter.empresa.id,
+                'nom': reporter.empresa.nom
+            } if reporter.empresa else None
+        })
+    
+    return Response(result)
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])  # Allow any user to access
+def estadisticas_top_containers(request):
+    """Obtiene los top 5 contenedores más utilizados - Ranking global"""
+    # Base queryset - contenedores con bolsas recicladas
+    queryset = Contenedor.objects.annotate(
+        total_reciclajes=Count('bolsavirtual', filter=Q(bolsavirtual__reciclada=True))
+    ).filter(total_reciclajes__gt=0)
+    
+    # Global ranking - sin filtros de empresa
+    top_containers = queryset.order_by('-total_reciclajes')[:5]
+    
+    result = []
+    for container in top_containers:
+        result.append({
+            'id': container.id,
+            'cod': container.cod,
+            'tipus': container.tipus,
+            'ciutat': container.ciutat,
+            'total_reciclajes': container.total_reciclajes,
+            'zona_data': {
+                'id': container.zona.id,
+                'nom': container.zona.nom,
+                'empresa': {
+                    'id': container.zona.empresa.id,
+                    'nom': container.zona.empresa.nom
+                }
+            } if container.zona else None
+        })
+    
+    return Response(result)
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])  # Allow any user to access
+def estadisticas_generales(request):
+    """Obtiene estadísticas generales del sistema - Datos globales"""
+    # Siempre mostrar estadísticas globales, sin filtrar por empresa
+    total_users = CustomUser.objects.filter(is_active=True).count()
+    total_productos = ProductoReciclado.objects.count()
+    total_reportes = ReporteContenedor.objects.count()
+    total_reportes_resueltos = ReporteContenedor.objects.filter(estado='resuelto').count()
+    total_puntos = CustomUser.objects.aggregate(total=Sum('total_score'))['total'] or 0
+    
+    return Response({
+        'total_users': total_users,
+        'total_productos_reciclados': total_productos,
+        'total_reportes': total_reportes,
+        'total_reportes_resueltos': total_reportes_resueltos,
+        'total_puntos': total_puntos
+    })

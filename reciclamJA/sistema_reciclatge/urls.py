@@ -27,4 +27,10 @@ urlpatterns = [
     path('premios-redenciones/', views.lista_redenciones, name='lista_redenciones'),
     path('premios-redenciones/<int:pk>/', views.detalle_redencion, name='detalle_redencion'),
     path('premios-redenciones/<int:pk>/actualizar-estado/', views.actualizar_estado_redencion, name='actualizar_estado_redencion'),
+
+    # Statistics endpoints
+    path('api/stats/top-recyclers/', views.estadisticas_top_recyclers, name='top-recyclers'),
+    path('api/stats/top-reporters/', views.estadisticas_top_reporters, name='top-reporters'),
+    path('api/stats/top-containers/', views.estadisticas_top_containers, name='top-containers'),
+    path('api/stats/general/', views.estadisticas_generales, name='general-stats'),
 ]
