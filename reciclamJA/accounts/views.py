@@ -23,13 +23,20 @@ class RegisterView(generics.CreateAPIView):
         user = serializer.save()
         
         # Enviar correo con credenciales (si tienes el password en texto plano)
-        enviar_correo_credenciales(
-            username=user.username,
-            nombre=user.first_name,
-            email=user.email,
-            password=serializer.validated_data['password'],  # Asegúrate de tener esto disponible
-            apellidos=user.last_name
-        )
+        try:
+            email_sent = enviar_correo_credenciales(
+                username=user.username,
+                nombre=user.first_name,
+                email=user.email,
+                password=serializer.validated_data['password'],  # Asegúrate de tener esto disponible
+                apellidos=user.last_name
+            )
+            
+            if not email_sent:
+                print(f"[WARNING] No se pudo enviar el correo de credenciales a {user.email}")
+        except Exception as e:
+            print(f"[ERROR] Exception al enviar correo de credenciales: {str(e)}")
+            # No interrumpimos el proceso de registro si falla el envío de correo
 
         return user
 
